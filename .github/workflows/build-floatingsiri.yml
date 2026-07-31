@@ -1,0 +1,66 @@
+name: Build FloatingSiri
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'FloatingSiri/**'
+      - '.github/workflows/build-floatingsiri.yml'
+
+jobs:
+  build:
+    name: Build rootless .deb
+    runs-on: macos-14
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build deps
+        run: |
+          brew install ldid dpkg make
+          echo "$(brew --prefix make)/libexec/gnubin" >> "$GITHUB_PATH"
+
+      - name: Setup Theos
+        uses: waruhachi/theos-action@v2.4.6
+        with:
+          theos-src: 'theos/theos'
+          theos-branch: 'master'
+          sdks-src: 'theos/sdks'
+          sdks-branch: 'master'
+          libgcuniversal: 'false'
+          altlist: 'false'
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+          xcrun -sdk iphoneos --show-sdk-version
+
+      - name: Build FloatingSiri (rootless)
+        working-directory: FloatingSiri
+        env:
+          THEOS: ${{ env.THEOS }}
+        run: |
+          set -euo pipefail
+          # Prefer a concrete SDK if "latest" is flaky
+          SDK_VER="$(ls "$THEOS/sdks" | sed -n 's/iPhoneOS\([0-9.]*\)\.sdk/\1/p' | sort -V | tail -1 || true)"
+          if [ -n "${SDK_VER:-}" ]; then
+            sed -i '' "s/^TARGET :=.*/TARGET := iphone:clang:${SDK_VER}:14.0/" Makefile
+            echo "Using SDK $SDK_VER"
+          fi
+          make clean package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
+          echo "Built packages:"
+          ls -lah packages || ls -lah ../packages || true
+          # Collect deb(s)
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          find . .. -name '*.deb' -path '*/packages/*' -print -exec cp {} "$GITHUB_WORKSPACE/out/" \;
+          ls -lah "$GITHUB_WORKSPACE/out"
+
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FloatingSiri-rootless-deb
+          path: out/*.deb
+          if-no-files-found: error
