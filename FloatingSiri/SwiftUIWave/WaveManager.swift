@@ -46,13 +46,29 @@ import AVFoundation
         displayLink?.add(to: .main, forMode: .common)
     }
 
+    // Jailbreak root prefix: "" (rootful), "/var/jb" (rootless), or roothide's
+    // randomized root — derived from where this dylib was injected from.
+    private static let jbRootPrefix: String = {
+        var info = Dl_info()
+        if dladdr(#dsohandle, &info) != 0, let cPath = info.dli_fname {
+            let path = String(cString: cPath)
+            for marker in ["/Library/MobileSubstrate/DynamicLibraries/", "/usr/lib/TweakInject/"] {
+                if let range = path.range(of: marker), range.lowerBound != path.startIndex {
+                    return String(path[..<range.lowerBound])
+                }
+            }
+        }
+        return ""
+    }()
+
     @objc public func reloadPrefs() {
         let d = UserDefaults(suiteName: "com.kolby.floatingsiri") ?? .standard
         // Also merge file-backed prefs (PreferenceLoader often writes these)
-        let paths = [
-            "/var/jb/var/mobile/Library/Preferences/com.kolby.floatingsiri.plist",
-            "/var/mobile/Library/Preferences/com.kolby.floatingsiri.plist"
-        ]
+        let rel = "/var/mobile/Library/Preferences/com.kolby.floatingsiri.plist"
+        var paths = ["/var/jb" + rel, rel]
+        if !WaveManager.jbRootPrefix.isEmpty {
+            paths.insert(WaveManager.jbRootPrefix + rel, at: 0)
+        }
         var filePrefs: [String: Any] = [:]
         for p in paths {
             if let dict = NSDictionary(contentsOfFile: p) as? [String: Any] {

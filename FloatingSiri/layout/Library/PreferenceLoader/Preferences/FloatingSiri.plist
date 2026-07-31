@@ -26,53 +26,7 @@
 				<key>cell</key>
 				<string>PSGroupCell</string>
 				<key>label</key>
-				<string>Siri UI</string>
-			</dict>
-			<dict>
-				<key>PostNotification</key>
-				<string>com.kolby.floatingsiri/prefschanged</string>
-				<key>cell</key>
-				<string>PSSwitchCell</string>
-				<key>default</key>
-				<true/>
-				<key>defaults</key>
-				<string>com.kolby.floatingsiri</string>
-				<key>key</key>
-				<string>hideOldUI</string>
-				<key>label</key>
-				<string>Hide Old Siri Background</string>
-			</dict>
-			<dict>
-				<key>cell</key>
-				<string>PSGroupCell</string>
-				<key>label</key>
 				<string>Appearance</string>
-			</dict>
-			<dict>
-				<key>PostNotification</key>
-				<string>com.kolby.floatingsiri/prefschanged</string>
-				<key>cell</key>
-				<string>PSSegmentCell</string>
-				<key>default</key>
-				<integer>0</integer>
-				<key>defaults</key>
-				<string>com.kolby.floatingsiri</string>
-				<key>key</key>
-				<string>colorPreset</string>
-				<key>label</key>
-				<string>Color Style</string>
-				<key>validTitles</key>
-				<array>
-					<string>iOS 27</string>
-					<string>Blue</string>
-					<string>Green</string>
-				</array>
-				<key>validValues</key>
-				<array>
-					<integer>0</integer>
-					<integer>1</integer>
-					<integer>2</integer>
-				</array>
 			</dict>
 			<dict>
 				<key>PostNotification</key>
@@ -94,7 +48,7 @@
 				<key>cell</key>
 				<string>PSSliderCell</string>
 				<key>default</key>
-				<real>0.7</real>
+				<real>0.65</real>
 				<key>defaults</key>
 				<string>com.kolby.floatingsiri</string>
 				<key>key</key>
@@ -128,7 +82,7 @@
 				<key>cell</key>
 				<string>PSGroupCell</string>
 				<key>footerText</key>
-				<string>Top half stays dark; bottom half stays refractive glass. Increase glass clarity if the orb looks solid black.</string>
+				<string>Live Glass samples what is actually behind the orb every frame — real see-through refraction. If your device cannot capture live, it automatically falls back to a wallpaper snapshot.</string>
 				<key>label</key>
 				<string>Liquid Glass</string>
 			</dict>
@@ -136,9 +90,41 @@
 				<key>PostNotification</key>
 				<string>com.kolby.floatingsiri/prefschanged</string>
 				<key>cell</key>
+				<string>PSSwitchCell</string>
+				<key>default</key>
+				<true/>
+				<key>defaults</key>
+				<string>com.kolby.floatingsiri</string>
+				<key>key</key>
+				<string>liveGlass</string>
+				<key>label</key>
+				<string>Live Glass (Real Refraction)</string>
+			</dict>
+			<dict>
+				<key>PostNotification</key>
+				<string>com.kolby.floatingsiri/prefschanged</string>
+				<key>cell</key>
 				<string>PSSliderCell</string>
 				<key>default</key>
-				<real>0.92</real>
+				<real>24.0</real>
+				<key>defaults</key>
+				<string>com.kolby.floatingsiri</string>
+				<key>key</key>
+				<string>liveGlassFPS</string>
+				<key>label</key>
+				<string>Live Glass FPS</string>
+				<key>max</key>
+				<real>60.0</real>
+				<key>min</key>
+				<real>10.0</real>
+			</dict>
+			<dict>
+				<key>PostNotification</key>
+				<string>com.kolby.floatingsiri/prefschanged</string>
+				<key>cell</key>
+				<string>PSSliderCell</string>
+				<key>default</key>
+				<real>0.95</real>
 				<key>defaults</key>
 				<string>com.kolby.floatingsiri</string>
 				<key>key</key>
@@ -149,24 +135,6 @@
 				<real>1.0</real>
 				<key>min</key>
 				<real>0.4</real>
-			</dict>
-			<dict>
-				<key>PostNotification</key>
-				<string>com.kolby.floatingsiri/prefschanged</string>
-				<key>cell</key>
-				<string>PSSliderCell</string>
-				<key>default</key>
-				<real>0.55</real>
-				<key>defaults</key>
-				<string>com.kolby.floatingsiri</string>
-				<key>key</key>
-				<string>domeHeight</string>
-				<key>label</key>
-				<string>Top Dome Height</string>
-				<key>max</key>
-				<real>0.75</real>
-				<key>min</key>
-				<real>0.35</real>
 			</dict>
 			<dict>
 				<key>PostNotification</key>
@@ -233,6 +201,8 @@
 			<dict>
 				<key>cell</key>
 				<string>PSGroupCell</string>
+				<key>footerText</key>
+				<string>Orb base size auto-matches your device (notch / Dynamic Island). Scale multiplies it.</string>
 				<key>label</key>
 				<string>Size &amp; Position</string>
 			</dict>
@@ -242,17 +212,17 @@
 				<key>cell</key>
 				<string>PSSliderCell</string>
 				<key>default</key>
-				<real>192.0</real>
+				<real>1.0</real>
 				<key>defaults</key>
 				<string>com.kolby.floatingsiri</string>
 				<key>key</key>
-				<string>orbWidth</string>
+				<string>orbScale</string>
 				<key>label</key>
-				<string>Orb Width</string>
+				<string>Orb Scale</string>
 				<key>max</key>
-				<real>320.0</real>
+				<real>1.8</real>
 				<key>min</key>
-				<real>100.0</real>
+				<real>0.6</real>
 			</dict>
 			<dict>
 				<key>PostNotification</key>
@@ -260,17 +230,53 @@
 				<key>cell</key>
 				<string>PSSliderCell</string>
 				<key>default</key>
-				<real>188.0</real>
+				<real>1.0</real>
 				<key>defaults</key>
 				<string>com.kolby.floatingsiri</string>
 				<key>key</key>
-				<string>orbHeight</string>
+				<string>customWidth</string>
 				<key>label</key>
-				<string>Orb Height</string>
+				<string>Width Multiplier</string>
 				<key>max</key>
-				<real>280.0</real>
+				<real>1.8</real>
 				<key>min</key>
-				<real>80.0</real>
+				<real>0.6</real>
+			</dict>
+			<dict>
+				<key>PostNotification</key>
+				<string>com.kolby.floatingsiri/prefschanged</string>
+				<key>cell</key>
+				<string>PSSliderCell</string>
+				<key>default</key>
+				<real>1.0</real>
+				<key>defaults</key>
+				<string>com.kolby.floatingsiri</string>
+				<key>key</key>
+				<string>customHeight</string>
+				<key>label</key>
+				<string>Height Multiplier</string>
+				<key>max</key>
+				<real>1.8</real>
+				<key>min</key>
+				<real>0.6</real>
+			</dict>
+			<dict>
+				<key>PostNotification</key>
+				<string>com.kolby.floatingsiri/prefschanged</string>
+				<key>cell</key>
+				<string>PSSliderCell</string>
+				<key>default</key>
+				<real>1.0</real>
+				<key>defaults</key>
+				<string>com.kolby.floatingsiri</string>
+				<key>key</key>
+				<string>customCorner</string>
+				<key>label</key>
+				<string>Corner Roundness</string>
+				<key>max</key>
+				<real>2.0</real>
+				<key>min</key>
+				<real>0.3</real>
 			</dict>
 			<dict>
 				<key>PostNotification</key>
@@ -282,55 +288,13 @@
 				<key>defaults</key>
 				<string>com.kolby.floatingsiri</string>
 				<key>key</key>
-				<string>topOffset</string>
+				<string>yOffset</string>
 				<key>label</key>
-				<string>Top Offset (pt)</string>
+				<string>Vertical Offset (pt)</string>
 				<key>max</key>
 				<real>120.0</real>
 				<key>min</key>
-				<real>0.0</real>
-			</dict>
-			<dict>
-				<key>cell</key>
-				<string>PSGroupCell</string>
-				<key>label</key>
-				<string>Animation</string>
-			</dict>
-			<dict>
-				<key>PostNotification</key>
-				<string>com.kolby.floatingsiri/prefschanged</string>
-				<key>cell</key>
-				<string>PSSliderCell</string>
-				<key>default</key>
-				<real>3.8</real>
-				<key>defaults</key>
-				<string>com.kolby.floatingsiri</string>
-				<key>key</key>
-				<string>waveSpeed</string>
-				<key>label</key>
-				<string>Wave Speed (lower = faster)</string>
-				<key>max</key>
-				<real>8.0</real>
-				<key>min</key>
-				<real>0.8</real>
-			</dict>
-			<dict>
-				<key>PostNotification</key>
-				<string>com.kolby.floatingsiri/prefschanged</string>
-				<key>cell</key>
-				<string>PSSliderCell</string>
-				<key>default</key>
-				<real>2.4</real>
-				<key>defaults</key>
-				<string>com.kolby.floatingsiri</string>
-				<key>key</key>
-				<string>pulseSpeed</string>
-				<key>label</key>
-				<string>Glow Pulse Speed</string>
-				<key>max</key>
-				<real>6.0</real>
-				<key>min</key>
-				<real>0.5</real>
+				<real>-60.0</real>
 			</dict>
 			<dict>
 				<key>cell</key>

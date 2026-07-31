@@ -143,7 +143,7 @@ public struct SiriMetalView: UIViewRepresentable {
                 float high = clamp(0.30f + 0.30f*sin(t*2.9f+4.0f)*sin(t*0.71f+2.0f), 0.0f, 1.0f);
                 
                 // talkingFactor is already 0 idle → 1 loud (FloatingSiri WaveManager)
-                float activeFactor = clamp(talkingFactor, 0.0f, 1.5f);
+                float activeFactor = clamp(talkingFactor, 0.0f, 1.0f);
                 
                 float res   = clamp(RESOLVED, 0.0f, 1.0f);
                 float drift = fmod(t, 20.0f * PI) * SPEED;
@@ -155,9 +155,10 @@ public struct SiriMetalView: UIViewRepresentable {
                 float env = cos(PI*0.5f * xNorm);
                 
                 // When idle, activeFactor is 0, making all amplitudes EXACTLY 0.
-                float dynamicLowAmp = 0.0f + (activeFactor * LOW_AMP * 7.0f);
-                float dynamicMidAmp = 0.0f + (activeFactor * MID_ABAMP * 7.0f);
-                float dynamicHighAmp = 0.0f + (activeFactor * HIGH_ABAMP * 7.0f);
+                // 5.0 (was 7.0) = noticeably smaller peak wave height while talking.
+                float dynamicLowAmp = 0.0f + (activeFactor * LOW_AMP * 5.0f);
+                float dynamicMidAmp = 0.0f + (activeFactor * MID_ABAMP * 5.0f);
+                float dynamicHighAmp = 0.0f + (activeFactor * HIGH_ABAMP * 5.0f);
                 
                 float A1    = AMPLITUDE + 0.01f*low*dynamicLowAmp;
                 float A2    = A1 + mid*dynamicMidAmp + high*dynamicHighAmp;
@@ -166,8 +167,8 @@ public struct SiriMetalView: UIViewRepresentable {
                 // Allow a tiny bit of rotation (0.15) when idle so colors are visible on the edges
                 AB *= mix(0.15f, 1.0f, clamp(activeFactor * 4.0f, 0.0f, 1.0f));
                 
-                // Make it thicker when talking
-                float currentThickness = THICKNESS + (activeFactor * 12.0f);
+                // Make it thicker when talking (6.0 = clearly slimmer stroke than 9.0)
+                float currentThickness = THICKNESS + (activeFactor * 6.0f);
                 float th    = mix(0.1f, 0.01f*currentThickness, res);
                 float inten = mix(0.1f, 0.01f*(INTENSITY + low*LOW_INT), res);
                 
