@@ -8,6 +8,25 @@ iOS 27–style **liquid glass** Siri orb for jailbroken devices.
 
 Package ID: `com.kolby.floatingsiri`
 
+## Install via Sileo (easiest — auto-updates)
+
+Add this repo as a source in Sileo (Sources → Edit → Add):
+
+```
+https://raw.githubusercontent.com/kolbymaxx/Siri27/cursor/floatingsiri-ios17-glass-72c7/
+```
+
+Then install **FloatingSiri**. Works on both jailbreak types with the same URL:
+
+- Rootless (Dopamine etc.) devices are offered the `iphoneos-arm64` package
+- roothide (Relaxin') devices are offered the `iphoneos-arm64e` package
+
+Sileo picks the right one automatically based on your jailbreak's architecture,
+and new versions appear as normal updates when the repo is refreshed.
+
+After each new release, regenerate the index with `scripts/update-apt-repo.sh`
+and commit `Packages`, `Packages.gz`, and `Release`.
+
 ## What’s fixed in 1.30
 
 | Issue | Cause | Fix |
@@ -20,8 +39,8 @@ Glass Metal runtime adapted from [LiquidSiri](https://github.com/Thijs2004/Liqui
 
 ## Requirements
 
-- Theos + iOS SDK (macOS build host)
-- rootless jailbreak (`iphoneos-arm64`) — Dopamine / similar
+- Theos + iOS SDK (macOS build host); roothide builds use the [roothide/theos](https://github.com/roothide/theos) fork
+- rootless jailbreak (`iphoneos-arm64`, Dopamine / similar) **or** roothide (`iphoneos-arm64e`, Relaxin')
 - Tested target range: **iOS 14–17.3** (iPhone X on 16, iPhone 12 mini on 17.3)
 
 ## Build
