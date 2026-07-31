@@ -9,3 +9,7 @@ FloatingSiri/packages/
 liquidsiri-ref/
 liquidass-ref/
 packages/
+
+# Built packages for phone install (tracked)
+!dist/
+!dist/*.deb
