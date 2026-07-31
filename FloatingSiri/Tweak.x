@@ -651,7 +651,10 @@ static void FSPollFlames(id objSelf) {
     %orig;
     if (self.window) self.alpha = 0.01;
 }
-- (void)setHidden:(BOOL)hidden { %orig(NO); self.alpha = 0.01; }
+- (void)setHidden:(BOOL)hidden {
+    %orig(hidden);
+    self.alpha = 0.01;
+}
 %end
 
 %hook SiriListeningView
@@ -659,7 +662,10 @@ static void FSPollFlames(id objSelf) {
     %orig;
     if (self.window) self.alpha = 0.01;
 }
-- (void)setHidden:(BOOL)hidden { %orig(NO); self.alpha = 0.01; }
+- (void)setHidden:(BOOL)hidden {
+    %orig(hidden);
+    self.alpha = 0.01;
+}
 %end
 %end
 
