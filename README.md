@@ -1,14 +1,53 @@
-# Siri27 / FloatingSiri
+# KDotz Repo
 
-Recreate and improve the iOS 27–style liquid glass Siri orb for jailbroken iOS 14–17.3.
+Sileo / Zebra APT source for Kolby's jailbreak tweaks (rootless + roothide).
 
-See [`FloatingSiri/README.md`](FloatingSiri/README.md) for build instructions and fix notes.
+## Add in Sileo
 
-## Source layout
+**Sources → Edit → Add:**
 
-- `FloatingSiri/` — Theos tweak project (`com.kolby.floatingsiri`)
-- `packages/` — reference `.deb` extracts (not required to build)
-- `liquidsiri-ref/` / `liquidass-ref/` — upstream references
+```
+https://kolbymaxx.github.io/Siri27/
+```
+
+Backup mirror (same packages): `https://raw.githubusercontent.com/kolbymaxx/Siri27/main/`
+
+Origin / label: **KDotz Repo**
+
+## Packages
+
+| Package | ID | Notes |
+|---------|----|--------|
+| **FloatingSiri** | `com.kolby.floatingsiri` | iOS 27-style liquid glass Siri orb (rootless + roothide) |
+| **Music27** | `com.music27.tweak` | Apple Music Liquid Glass UI for iOS 16/17 (rootless; roothide build pending) |
+
+Source for Music27: [kolbymaxx/Music27](https://github.com/kolbymaxx/Music27)
+
+One source URL works on both jailbreak types: rootless Sileo installs the
+`iphoneos-arm64` builds, roothide (Relaxin') Sileo installs `iphoneos-arm64e`.
+
+## Publishing a new `.deb`
+
+1. Copy the built package into `dist/`
+2. Run `scripts/update-apt-repo.sh`
+3. Commit `dist/*.deb`, `Packages`, `Packages.gz`, and `Release`
+4. Push to `main` — GitHub Pages redeploys and Sileo users get the update on refresh
+
+```bash
+cp /path/to/com.example_1.2.3_iphoneos-arm64.deb dist/
+./scripts/update-apt-repo.sh
+git add dist Packages Packages.gz Release
+git commit -m "Publish com.example 1.2.3"
+git push
+```
+
+## Layout
+
+- `dist/` — published `.deb` files
+- `Packages` / `Packages.gz` / `Release` — APT index (KDotz Repo)
+- `scripts/update-apt-repo.sh` — regenerates the index
+- `repo-site/` + `.github/workflows/deploy-repo-pages.yml` — GitHub Pages hosting
+- `FloatingSiri/` — FloatingSiri Theos project
 
 ## Credits
 
