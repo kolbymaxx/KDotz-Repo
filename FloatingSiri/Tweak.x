@@ -433,6 +433,20 @@ static BOOL FSBackdropViewLooksBlack(UIView *backdropView) {
     CGPoint origin = CGPointZero;
     CGSize sampling = CGSizeZero;
     BOOL ok = LGCaptureLiveBackdropTextureForHost(glass, glass, kFSOrbBackdropViewKey, &origin, &sampling);
+
+    // Keep the feed view BELOW the white bottom-glow so the glow's blur is never
+    // part of the captured backdrop (it was washing out the glass and rainbow).
+    UIView *backdropView = objc_getAssociatedObject(glass, kFSOrbBackdropViewKey);
+    UIView *glow = self.externalWhiteGlowView;
+    if (backdropView && glow && backdropView.superview && backdropView.superview == glow.superview) {
+        NSArray *siblings = backdropView.superview.subviews;
+        NSInteger bIdx = [siblings indexOfObjectIdenticalTo:backdropView];
+        NSInteger gIdx = [siblings indexOfObjectIdenticalTo:glow];
+        if (bIdx != NSNotFound && gIdx != NSNotFound && bIdx > gIdx) {
+            [backdropView.superview insertSubview:backdropView belowSubview:glow];
+        }
+    }
+
     if (ok) {
         glass.wallpaperOrigin = origin;
         glass.wallpaperSamplingResolution = sampling;
