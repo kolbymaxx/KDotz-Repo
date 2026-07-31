@@ -7,6 +7,37 @@
 #import "LiquidGlass.h"
 #import "FloatingSiri-Swift.h"
 
+@interface SiriUIBackgroundBlurViewController : UIViewController
+@end
+
+@interface SBAssistantRootViewController : UIViewController
+@end
+
+@interface SUICOrbView : UIView
+@end
+
+@interface SiriSharedUIOrbView : UIView
+@end
+
+@interface SUICFlamesView : UIView
+@end
+
+@interface SiriUIFlamesView : UIView
+@end
+
+@interface SiriWaveformView : UIView
+@end
+
+@interface SiriListeningView : UIView
+@end
+
+@interface AFUISiriSession : NSObject
+@end
+
+@interface VSSpeechSynthesizer : NSObject
+@end
+
+
 // -----------------------------------------------------------------------------
 // FloatingSiri — iOS 27-style liquid glass Siri orb
 // Glass runtime adapted from LiquidSiri (Thijs) / Liquid (Gl)ass (liquidass)
@@ -437,6 +468,46 @@ void LG_redrawRegisteredGlassViews(LGUpdateGroup group) {}
 // -----------------------------------------------------------------------------
 // Stock orb — hide visually, steal power levels
 // -----------------------------------------------------------------------------
+
+static void FSAttachFlamesPoll(UIView *viewSelf, SEL pollSel) {
+    if (!viewSelf.window) {
+        CADisplayLink *link = objc_getAssociatedObject(viewSelf, pollSel);
+        [link invalidate];
+        objc_setAssociatedObject(viewSelf, pollSel, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        return;
+    }
+    CADisplayLink *existing = objc_getAssociatedObject(viewSelf, pollSel);
+    if (existing) return;
+    CADisplayLink *link = [CADisplayLink displayLinkWithTarget:viewSelf selector:pollSel];
+    [link addToRunLoop:NSRunLoop.mainRunLoop forMode:NSRunLoopCommonModes];
+    objc_setAssociatedObject(viewSelf, pollSel, link, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+static void FSPollFlames(id objSelf) {
+    id delegate = nil;
+    @try {
+        if ([objSelf respondsToSelector:@selector(flamesDelegate)]) {
+            delegate = [objSelf valueForKey:@"flamesDelegate"];
+        } else if ([objSelf respondsToSelector:@selector(delegate)]) {
+            delegate = [objSelf valueForKey:@"delegate"];
+        }
+    } @catch (__unused NSException *e) {}
+
+    float level = 0;
+    BOOL got = NO;
+    if (delegate && [delegate respondsToSelector:@selector(audioLevelForFlamesView:)]) {
+        level = ((float (*)(id, SEL, id))objc_msgSend)(delegate, @selector(audioLevelForFlamesView:), objSelf);
+        got = YES;
+    } else if ([objSelf respondsToSelector:@selector(audioLevel)]) {
+        @try { level = [[objSelf valueForKey:@"audioLevel"] floatValue]; got = YES; } @catch (__unused NSException *e) {}
+    }
+    if (!got) return;
+
+    level = FSNormalizeAudioLevel(level);
+    if (FSIsSiriSpeaking(delegate)) level = 0;
+    FSSendLevel(level);
+}
+
 %group FSSUICOrb
 %hook SUICOrbView
 
@@ -581,67 +652,42 @@ void LG_redrawRegisteredGlassViews(LGUpdateGroup group) {}
 %end
 %end
 
-static void FSAttachFlamesPoll(UIView *viewSelf, SEL pollSel) {
-    if (!viewSelf.window) {
-        CADisplayLink *link = objc_getAssociatedObject(viewSelf, pollSel);
-        [link invalidate];
-        objc_setAssociatedObject(viewSelf, pollSel, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-        return;
-    }
-    CADisplayLink *existing = objc_getAssociatedObject(viewSelf, pollSel);
-    if (existing) return;
-    CADisplayLink *link = [CADisplayLink displayLinkWithTarget:viewSelf selector:pollSel];
-    [link addToRunLoop:NSRunLoop.mainRunLoop forMode:NSRunLoopCommonModes];
-    objc_setAssociatedObject(viewSelf, pollSel, link, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-}
-
-static void FSPollFlames(id objSelf) {
-    id delegate = nil;
-    @try {
-        if ([objSelf respondsToSelector:@selector(flamesDelegate)]) {
-            delegate = [objSelf valueForKey:@"flamesDelegate"];
-        } else if ([objSelf respondsToSelector:@selector(delegate)]) {
-            delegate = [objSelf valueForKey:@"delegate"];
-        }
-    } @catch (__unused NSException *e) {}
-
-    float level = 0;
-    BOOL got = NO;
-    if (delegate && [delegate respondsToSelector:@selector(audioLevelForFlamesView:)]) {
-        level = ((float (*)(id, SEL, id))objc_msgSend)(delegate, @selector(audioLevelForFlamesView:), objSelf);
-        got = YES;
-    } else if ([objSelf respondsToSelector:@selector(audioLevel)]) {
-        @try { level = [[objSelf valueForKey:@"audioLevel"] floatValue]; got = YES; } @catch (__unused NSException *e) {}
-    }
-    if (!got) return;
-
-    level = FSNormalizeAudioLevel(level);
-    if (FSIsSiriSpeaking(delegate)) level = 0;
-    FSSendLevel(level);
-}
 
 %group FSSUICFlames
 %hook SUICFlamesView
-- (void)setState:(NSInteger)state { %orig; globalSiriState = state; }
-- (void)transitionToState:(NSInteger)state animated:(BOOL)animated { %orig; globalSiriState = state; }
+- (void)setState:(NSInteger)state {
+    %orig;
+    globalSiriState = state;
+}
+- (void)transitionToState:(NSInteger)state animated:(BOOL)animated {
+    %orig;
+    globalSiriState = state;
+}
 - (void)didMoveToWindow {
     %orig;
     FSAttachFlamesPoll((UIView *)self, @selector(fsPollAudio:));
 }
 %new
-- (void)fsPollAudio:(CADisplayLink *)link { FSPollFlames(self); }
+- (void)fsPollAudio:(CADisplayLink *)link {
+    FSPollFlames(self);
+}
 %end
 %end
 
 %group FSSiriUIFlames
 %hook SiriUIFlamesView
-- (void)setState:(NSInteger)state { %orig; globalSiriState = state; }
+- (void)setState:(NSInteger)state {
+    %orig;
+    globalSiriState = state;
+}
 - (void)didMoveToWindow {
     %orig;
     FSAttachFlamesPoll((UIView *)self, @selector(fsPollAudio:));
 }
 %new
-- (void)fsPollAudio:(CADisplayLink *)link { FSPollFlames(self); }
+- (void)fsPollAudio:(CADisplayLink *)link {
+    FSPollFlames(self);
+}
 %end
 %end
 
