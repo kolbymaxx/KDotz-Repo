@@ -1,0 +1,80 @@
+Package: com.kolby.floatingsiri
+Version: 1.32.0
+Architecture: iphoneos-arm64
+Maintainer: Kolby
+Installed-Size: 740
+Depends: mobilesubstrate, preferenceloader
+Filename: dist/com.kolby.floatingsiri_1.32.0_iphoneos-arm64.deb
+Size: 133308
+MD5sum: e9da11b3163bd62b19e0012f5c4652d8
+SHA1: 9a27f8a8b689b192f7b59f090174e47509e798e1
+SHA256: 23c6e3a3e2a70f7823901790e31bbad5c1bb5d9c5a7faa07241d15def89562e9
+Section: Tweaks
+Description: iOS 27-style liquid glass Siri orb — half-dark refractive glass, voice-reactive rainbow wave. Supports iOS 14–17.3 (rootless).
+Author: Kolby
+Name: FloatingSiri
+
+Package: com.kolby.floatingsiri
+Version: 1.33.0
+Architecture: iphoneos-arm64
+Maintainer: Kolby
+Installed-Size: 744
+Depends: mobilesubstrate, preferenceloader
+Filename: dist/com.kolby.floatingsiri_1.33.0_iphoneos-arm64.deb
+Size: 135396
+MD5sum: 70d31c6571074e50f8e65cb9cc7db323
+SHA1: 7d6cd8cafcecff83c9d613bac0cb8c25046829cd
+SHA256: 55ee479b6b06e2afc0caf6e6ac6de37de2e18eb8e0c628b0fd45309397d0d1f5
+Section: Tweaks
+Description: iOS 27-style liquid glass Siri orb — half-dark refractive glass, voice-reactive rainbow wave. Supports iOS 14–17.3 (rootless).
+Author: Kolby
+Name: FloatingSiri
+
+Package: com.kolby.floatingsiri
+Version: 1.34.0
+Architecture: iphoneos-arm64
+Maintainer: Kolby
+Installed-Size: 744
+Depends: mobilesubstrate, preferenceloader
+Filename: dist/com.kolby.floatingsiri_1.34.0_iphoneos-arm64.deb
+Size: 135466
+MD5sum: bead47043ceb88b8201621c0f7fe6459
+SHA1: 4051fe4d062aaec2b6bed7d248ed8566d8b20e2c
+SHA256: e84b333fc1f99aa987174b311d3731bec56392b1f1627261defd5c9830e6fe1a
+Section: Tweaks
+Description: iOS 27-style liquid glass Siri orb — half-dark refractive glass, voice-reactive rainbow wave. Supports iOS 14–17.3 (rootless).
+Author: Kolby
+Name: FloatingSiri
+
+Package: com.kolby.floatingsiri
+Version: 1.35.0
+Architecture: iphoneos-arm64
+Maintainer: Kolby
+Installed-Size: 760
+Depends: mobilesubstrate, preferenceloader
+Filename: dist/com.kolby.floatingsiri_1.35.0_iphoneos-arm64.deb
+Size: 137732
+MD5sum: 776bc72da7577e7b98b8e182cc716a84
+SHA1: e09da5536ac30b2bfd39c46438c8d333a211623c
+SHA256: 4b1a5d682d5db6ec3925d4a4c5401febe167e8b782ee4c3c9e79f457d526b8b9
+Section: Tweaks
+Description: iOS 27-style liquid glass Siri orb — half-dark refractive glass, voice-reactive rainbow wave. Supports iOS 14–17.3 (rootless).
+Author: Kolby
+Name: FloatingSiri
+
+Package: com.kolby.floatingsiri
+Version: 1.35.0
+Architecture: iphoneos-arm64e
+Maintainer: Kolby
+Installed-Size: 760
+Depends: mobilesubstrate, preferenceloader
+Filename: dist/com.kolby.floatingsiri_1.35.0_iphoneos-arm64e.deb
+Size: 137490
+MD5sum: fbf0762e55f1894336fba80e5d94314e
+SHA1: a7856d3a855989334589704b1f1418d7825eb8f6
+SHA256: fcc41c33fcec60de2537d3a19f26c7520f2068a0b1d808111921e78d300e13ef
+Section: Tweaks
+Description: iOS 27-style liquid glass Siri orb — half-dark refractive glass, voice-reactive rainbow wave. Supports iOS 14–17.3 (rootless).
+Author: Kolby
+Name: FloatingSiri
+
