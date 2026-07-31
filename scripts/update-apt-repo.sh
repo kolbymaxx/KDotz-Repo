@@ -11,14 +11,14 @@ dpkg-scanpackages --multiversion dist > Packages
 gzip -9 -kf Packages
 
 {
-  echo "Origin: Siri27"
-  echo "Label: Siri27"
+  echo "Origin: KDotz Repo"
+  echo "Label: KDotz Repo"
   echo "Suite: stable"
   echo "Version: 1.0"
-  echo "Codename: siri27"
+  echo "Codename: kdotz"
   echo "Architectures: iphoneos-arm64 iphoneos-arm64e"
   echo "Components: main"
-  echo "Description: FloatingSiri — iOS 27-style liquid glass Siri orb (rootless + roothide)"
+  echo "Description: KDotz Repo — tweaks by Kolby (rootless + roothide)"
   echo "Date: $(date -Ru)"
   echo "MD5Sum:"
   for f in Packages Packages.gz; do

@@ -1,15 +1,15 @@
-Origin: Siri27
-Label: Siri27
+Origin: KDotz Repo
+Label: KDotz Repo
 Suite: stable
 Version: 1.0
-Codename: siri27
+Codename: kdotz
 Architectures: iphoneos-arm64 iphoneos-arm64e
 Components: main
-Description: FloatingSiri — iOS 27-style liquid glass Siri orb (rootless + roothide)
-Date: Fri, 31 Jul 2026 19:27:21 +0000
+Description: KDotz Repo — tweaks by Kolby (rootless + roothide)
+Date: Fri, 31 Jul 2026 19:33:07 +0000
 MD5Sum:
  f0ec65a3ed3d6e552c631292aa3ad8d7 2952 Packages
- cabef5f255b94e0cc5059e3e2673fb67 879 Packages.gz
+ 75f49d82d678cc7acd059167f880b3f6 879 Packages.gz
 SHA256:
  e840e513ae25373a1301819a90bdeaf90c1bd6ad6e38e22dc225497d736306fc 2952 Packages
- 8eb6f828ea8bdf4a511dbd78fd0e5dc16aebbd54e15ae04d9a8a8eb2f6854b3e 879 Packages.gz
+ fc0e78b1d90d92a6d5cddb7c6f98a6b1da8878bc3a0fbde2d33bf3303c8c31b3 879 Packages.gz
