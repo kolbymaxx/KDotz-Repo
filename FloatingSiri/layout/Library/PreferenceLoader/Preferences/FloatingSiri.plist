@@ -82,9 +82,41 @@
 				<key>cell</key>
 				<string>PSGroupCell</string>
 				<key>footerText</key>
-				<string>Top dome stays dark; bottom stays refractive glass.</string>
+				<string>Live Glass samples what is actually behind the orb every frame — real see-through refraction. If your device cannot capture live, it automatically falls back to a wallpaper snapshot.</string>
 				<key>label</key>
 				<string>Liquid Glass</string>
+			</dict>
+			<dict>
+				<key>PostNotification</key>
+				<string>com.kolby.floatingsiri/prefschanged</string>
+				<key>cell</key>
+				<string>PSSwitchCell</string>
+				<key>default</key>
+				<true/>
+				<key>defaults</key>
+				<string>com.kolby.floatingsiri</string>
+				<key>key</key>
+				<string>liveGlass</string>
+				<key>label</key>
+				<string>Live Glass (Real Refraction)</string>
+			</dict>
+			<dict>
+				<key>PostNotification</key>
+				<string>com.kolby.floatingsiri/prefschanged</string>
+				<key>cell</key>
+				<string>PSSliderCell</string>
+				<key>default</key>
+				<real>24.0</real>
+				<key>defaults</key>
+				<string>com.kolby.floatingsiri</string>
+				<key>key</key>
+				<string>liveGlassFPS</string>
+				<key>label</key>
+				<string>Live Glass FPS</string>
+				<key>max</key>
+				<real>60.0</real>
+				<key>min</key>
+				<real>10.0</real>
 			</dict>
 			<dict>
 				<key>PostNotification</key>

@@ -5,6 +5,8 @@
 #import <Accelerate/Accelerate.h>
 #import <notify.h>
 #import "LiquidGlass.h"
+#import "Shared/LGBannerCaptureSupport.h"
+#import "Runtime/LGSnapshotCaptureSupport.h"
 #import "FloatingSiri-Swift.h"
 
 // -----------------------------------------------------------------------------
@@ -360,15 +362,131 @@ static UIImage *FSCaptureBackdropImage(void) {
 // -----------------------------------------------------------------------------
 // Orb host state — attached per host VC (LiquidSiri geometry, verbatim)
 // -----------------------------------------------------------------------------
+static const void *kFSOrbBackdropViewKey = &kFSOrbBackdropViewKey;
+
 @interface FSOrbState : NSObject
 @property (nonatomic, strong) LiquidGlassView *glassOrbView;
 @property (nonatomic, strong) UIView *glowLineView;
 @property (nonatomic, strong) UIView *externalWhiteGlowView;
 @property (nonatomic, strong) UIImage *capturedWallpaper;
 @property (nonatomic, assign) BOOL hasCapturedBackdrop;
+// Live glass (real see-through refraction, liquidass banner technique)
+@property (nonatomic, strong) CADisplayLink *liveLink;
+@property (nonatomic, assign) CFTimeInterval lastLiveCapture;
+@property (nonatomic, assign) NSInteger liveFailCount;
+@property (nonatomic, assign) NSInteger liveProbeCount;
+@property (nonatomic, assign) NSInteger liveBlackProbes;
+@property (nonatomic, assign) NSInteger liveIdleTicks;
+@property (nonatomic, assign) BOOL liveConfirmed;
+- (void)fsLiveTick:(CADisplayLink *)link;
+- (void)fsStopLiveCapture;
+- (void)fsFallBackToSnapshot;
 @end
 
+// Probe the backdrop view's actual content — if it renders black, live capture
+// doesn't work in this process and we must fall back to snapshots.
+static BOOL FSBackdropViewLooksBlack(UIView *backdropView) {
+    if (!backdropView) return YES;
+    const size_t sample = 16;
+    uint8_t pixels[sample * sample * 4];
+    memset(pixels, 0, sizeof(pixels));
+    CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
+    CGContextRef ctx = CGBitmapContextCreate(pixels, sample, sample, 8, sample * 4, space,
+                                             kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
+    CGColorSpaceRelease(space);
+    if (!ctx) return YES;
+    CGRect bounds = backdropView.bounds;
+    if (bounds.size.width < 1 || bounds.size.height < 1) { CGContextRelease(ctx); return YES; }
+    CGContextTranslateCTM(ctx, 0, sample);
+    CGContextScaleCTM(ctx, sample / bounds.size.width, -(CGFloat)sample / bounds.size.height);
+    UIGraphicsPushContext(ctx);
+    LGDrawViewHierarchyIntoCurrentContext(backdropView, bounds, NO);
+    UIGraphicsPopContext();
+    CGContextRelease(ctx);
+
+    double total = 0;
+    for (size_t i = 0; i < sample * sample; i++) {
+        double r = pixels[i*4 + 0] / 255.0;
+        double g = pixels[i*4 + 1] / 255.0;
+        double b = pixels[i*4 + 2] / 255.0;
+        total += 0.299*r + 0.587*g + 0.114*b;
+    }
+    return (total / (double)(sample * sample)) < 0.03;
+}
+
 @implementation FSOrbState
+
+- (void)fsLiveTick:(CADisplayLink *)link {
+    LiquidGlassView *glass = self.glassOrbView;
+    if (!glass || !glass.window || glass.hidden) {
+        // Safety: never let the link spin forever on a dead host (~20s at 60Hz)
+        if (++self.liveIdleTicks > 1200) [self fsStopLiveCapture];
+        return;
+    }
+    self.liveIdleTicks = 0;
+
+    CGFloat fps = MAX(8.0, MIN(60.0, FSPrefFloat(@"liveGlassFPS", 24.0)));
+    CFTimeInterval now = CACurrentMediaTime();
+    if (self.lastLiveCapture > 0 && (now - self.lastLiveCapture) < (1.0 / fps)) return;
+    self.lastLiveCapture = now;
+
+    CGPoint origin = CGPointZero;
+    CGSize sampling = CGSizeZero;
+    BOOL ok = LGCaptureLiveBackdropTextureForHost(glass, glass, kFSOrbBackdropViewKey, &origin, &sampling);
+    if (ok) {
+        glass.wallpaperOrigin = origin;
+        glass.wallpaperSamplingResolution = sampling;
+        [glass updateOrigin];
+        [glass scheduleDraw];
+        self.liveFailCount = 0;
+
+        // Confirm the backdrop actually contains pixels (not a black plate)
+        if (!self.liveConfirmed && self.liveProbeCount < 12) {
+            self.liveProbeCount++;
+            UIView *backdropView = objc_getAssociatedObject(glass, kFSOrbBackdropViewKey);
+            if (FSBackdropViewLooksBlack(backdropView)) {
+                self.liveBlackProbes++;
+            } else {
+                self.liveConfirmed = YES;
+            }
+            if (self.liveProbeCount >= 12 && !self.liveConfirmed) {
+                [self fsFallBackToSnapshot];
+            }
+        }
+    } else {
+        self.liveFailCount++;
+        if (self.liveFailCount > 45) {
+            [self fsFallBackToSnapshot];
+        }
+    }
+}
+
+- (void)fsStopLiveCapture {
+    [self.liveLink invalidate];
+    self.liveLink = nil;
+    if (self.glassOrbView) {
+        LGRemoveLiveBackdropCaptureView(self.glassOrbView, kFSOrbBackdropViewKey);
+    }
+}
+
+- (void)fsFallBackToSnapshot {
+    [self fsStopLiveCapture];
+    LiquidGlassView *glass = self.glassOrbView;
+    if (!glass) return;
+    glass.wallpaperSamplingResolution = CGSizeZero;
+    UIImage *img = self.capturedWallpaper ?: FSCaptureBackdropImage();
+    if (img) {
+        self.capturedWallpaper = img;
+        self.hasCapturedBackdrop = YES;
+        glass.wallpaperImage = img;
+    } else {
+        glass.wallpaperImage = FSFallbackGradientImage();
+    }
+    glass.wallpaperOrigin = CGPointZero;
+    [glass updateOrigin];
+    [glass scheduleDraw];
+}
+
 @end
 
 static const void *kFSOrbStateKey = &kFSOrbStateKey;
@@ -435,9 +553,10 @@ static void FSOrbViewWillAppear(UIViewController *vc) {
     // Hide default Siri blur effects so they don't darken the screen behind the orb
     vc.view.backgroundColor = [UIColor clearColor];
     for (UIView *sub in vc.view.subviews) {
-        if (sub != st.glassOrbView && sub != st.glowLineView && sub != st.externalWhiteGlowView) {
-            sub.alpha = 0.01; // DO NOT USE hidden=YES! iOS stops sending audio levels if hidden.
-        }
+        if (sub == st.glassOrbView || sub == st.glowLineView || sub == st.externalWhiteGlowView) continue;
+        // Never dim the live-capture backdrop feed
+        if ([NSStringFromClass(sub.class) containsString:@"LGLiveBackdropCaptureView"]) continue;
+        sub.alpha = 0.01; // DO NOT USE hidden=YES! iOS stops sending audio levels if hidden.
     }
 }
 
@@ -563,7 +682,28 @@ static void FSOrbViewDidAppear(UIViewController *vc) {
         }];
     };
 
-    if (!st.hasCapturedBackdrop) {
+    BOOL liveGlass = FSPrefBool(@"liveGlass", YES);
+    if (liveGlass) {
+        // TRUE liquid glass: a CABackdropLayer feed under the orb, redrawn into
+        // the Metal texture every frame (liquidass banner technique). You see
+        // what's actually behind the orb, live, with real refraction.
+        st.liveProbeCount = 0;
+        st.liveBlackProbes = 0;
+        st.liveFailCount = 0;
+        st.liveIdleTicks = 0;
+        st.lastLiveCapture = 0;
+        // Model geometry keeps the capture rect (and Metal texture size) stable
+        // while the orb runs its pop-in / breathing transform animations.
+        LGSetLiveBackdropCaptureUsesModelGeometry(st.glassOrbView, YES);
+        if (!st.liveLink) {
+            st.liveLink = [CADisplayLink displayLinkWithTarget:st selector:@selector(fsLiveTick:)];
+            [st.liveLink addToRunLoop:NSRunLoop.mainRunLoop forMode:NSRunLoopCommonModes];
+        }
+        // Seed a couple of captures, then pop in — no screenshot delay needed
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.08 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            popIn();
+        });
+    } else if (!st.hasCapturedBackdrop) {
         // 0.45s delay so iOS finishes the transition and resolves the full-res buffer
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.45 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             UIImage *img = FSCaptureBackdropImage();
@@ -599,6 +739,7 @@ static void FSOrbViewDidAppear(UIViewController *vc) {
 
 static void FSOrbViewWillDisappear(UIViewController *vc) {
     FSOrbState *st = FSOrbStateFor(vc);
+    [st fsStopLiveCapture];
     [UIView animateWithDuration:0.35 delay:0.0 options:UIViewAnimationOptionCurveEaseIn animations:^{
         st.glassOrbView.transform = CGAffineTransformConcat(CGAffineTransformMakeTranslation(0, -50), CGAffineTransformMakeScale(0.6, 0.6));
         st.glassOrbView.alpha = 0.0;
