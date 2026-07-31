@@ -1,6 +1,7 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 #import <objc/message.h>
+#import <dlfcn.h>
 #import <AVFoundation/AVFoundation.h>
 #import <Accelerate/Accelerate.h>
 #import <notify.h>
@@ -52,6 +53,42 @@ static const char *kFSDarwinLevel = "com.kolby.floatingsiri/level";
 OBJC_EXTERN UIImage *_UICreateScreenUIImage(void);
 
 // -----------------------------------------------------------------------------
+// Jailbreak root resolution — supports rootful (""), rootless ("/var/jb") and
+// roothide (randomized "/var/containers/Bundle/Application/.jbroot-XXXX").
+// Derived from where OUR dylib was injected from, so no scheme guessing.
+// -----------------------------------------------------------------------------
+static NSString *FSJailbreakRootPrefix(void) {
+    static NSString *prefix = nil;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        prefix = @"";
+        // Prefer roothide's own resolver when it's loaded in this process
+        const char *(*jbrootFn)(const char *) = (const char *(*)(const char *))dlsym(RTLD_DEFAULT, "jbroot");
+        if (jbrootFn) {
+            const char *p = jbrootFn("/");
+            if (p && strlen(p) > 1) {
+                prefix = [[NSString stringWithUTF8String:p] stringByStandardizingPath];
+                return;
+            }
+        }
+        // Fall back to parsing this dylib's install path
+        Dl_info info = {0};
+        if (dladdr((const void *)FSJailbreakRootPrefix, &info) && info.dli_fname) {
+            NSString *dylibPath = [NSString stringWithUTF8String:info.dli_fname];
+            for (NSString *marker in @[@"/Library/MobileSubstrate/DynamicLibraries/",
+                                       @"/usr/lib/TweakInject/"]) {
+                NSRange r = [dylibPath rangeOfString:marker];
+                if (r.location != NSNotFound && r.location > 0) {
+                    prefix = [dylibPath substringToIndex:r.location];
+                    return;
+                }
+            }
+        }
+    });
+    return prefix;
+}
+
+// -----------------------------------------------------------------------------
 // Prefs
 // -----------------------------------------------------------------------------
 static NSDictionary *FSPrefs(void) {
@@ -60,10 +97,12 @@ static NSDictionary *FSPrefs(void) {
     CFAbsoluteTime now = CFAbsoluteTimeGetCurrent();
     if (cached && (now - lastLoad) < 0.5) return cached;
 
-    NSArray *paths = @[
-        @"/var/jb/var/mobile/Library/Preferences/com.kolby.floatingsiri.plist",
-        @"/var/mobile/Library/Preferences/com.kolby.floatingsiri.plist"
-    ];
+    NSString *rel = @"/var/mobile/Library/Preferences/com.kolby.floatingsiri.plist";
+    NSMutableArray *paths = [NSMutableArray array];
+    NSString *jbPrefix = FSJailbreakRootPrefix();
+    if (jbPrefix.length) [paths addObject:[jbPrefix stringByAppendingString:rel]];
+    [paths addObject:[@"/var/jb" stringByAppendingString:rel]];
+    [paths addObject:rel];
     for (NSString *p in paths) {
         NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:p];
         if (d) { cached = d; lastLoad = now; return cached; }
@@ -183,10 +222,11 @@ static void FSPollFlames(id objSelf) {
 // candidate is luminance-checked before it can reach the glass shader.
 // -----------------------------------------------------------------------------
 static NSString *FSBackdropDirectory(void) {
-    NSArray *roots = @[
-        @"/var/jb/var/mobile/Library/Caches",
-        @"/var/mobile/Library/Caches"
-    ];
+    NSMutableArray *roots = [NSMutableArray array];
+    NSString *jbPrefix = FSJailbreakRootPrefix();
+    if (jbPrefix.length) [roots addObject:[jbPrefix stringByAppendingString:@"/var/mobile/Library/Caches"]];
+    [roots addObject:@"/var/jb/var/mobile/Library/Caches"];
+    [roots addObject:@"/var/mobile/Library/Caches"];
     NSFileManager *fm = [NSFileManager defaultManager];
     for (NSString *root in roots) {
         BOOL isDir = NO;
