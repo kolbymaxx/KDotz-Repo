@@ -47,3 +47,11 @@ Install the resulting `.deb` with Sileo/Zebra, respring, invoke Siri.
 
 - Stock Siri chrome is dimmed (`alpha ≈ 0.01`) rather than removed so flame audio delegates keep running.  
 - If glass still looks black, confirm SpringBoard wallpaper can be snapshotted on your jailbreak and try a brighter wallpaper.  
+
+## Build from your iPhone (no Mac)
+
+1. Open this repo on GitHub in Safari / the GitHub app.
+2. Go to **Actions → Build FloatingSiri → Run workflow**.
+3. Wait for the green check.
+4. Tap the run → **Artifacts → FloatingSiri-rootless-deb** → download the zip.
+5. Unzip in **Filza**, tap the `.deb` → install with **Sileo/Zebra**, respring.
