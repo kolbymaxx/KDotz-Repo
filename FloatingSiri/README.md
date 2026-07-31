@@ -13,7 +13,7 @@ Package ID: `com.kolby.floatingsiri`
 Add this repo as a source in Sileo (Sources → Edit → Add):
 
 ```
-https://raw.githubusercontent.com/kolbymaxx/Siri27/cursor/floatingsiri-ios17-glass-72c7/
+https://raw.githubusercontent.com/kolbymaxx/Siri27/main/
 ```
 
 Then install **FloatingSiri**. Works on both jailbreak types with the same URL:
