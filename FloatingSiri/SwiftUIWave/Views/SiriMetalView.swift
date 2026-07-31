@@ -166,8 +166,8 @@ public struct SiriMetalView: UIViewRepresentable {
                 // Allow a tiny bit of rotation (0.15) when idle so colors are visible on the edges
                 AB *= mix(0.15f, 1.0f, clamp(activeFactor * 4.0f, 0.0f, 1.0f));
                 
-                // Make it thicker when talking
-                float currentThickness = THICKNESS + (activeFactor * 12.0f);
+                // Make it thicker when talking (9.0 = a hair skinnier peak than 12.0)
+                float currentThickness = THICKNESS + (activeFactor * 9.0f);
                 float th    = mix(0.1f, 0.01f*currentThickness, res);
                 float inten = mix(0.1f, 0.01f*(INTENSITY + low*LOW_INT), res);
                 

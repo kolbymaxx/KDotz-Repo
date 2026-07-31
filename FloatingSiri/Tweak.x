@@ -176,7 +176,81 @@ static void FSPollFlames(id objSelf) {
 
 // -----------------------------------------------------------------------------
 // Backdrop capture (wallpaper preferred; normalized to physical portrait pixels)
+// In-process screen captures return BLACK frames inside SiriViewService on many
+// jailbreaks, so SpringBoard captures and shares via a cache file, and every
+// candidate is luminance-checked before it can reach the glass shader.
 // -----------------------------------------------------------------------------
+static NSString *FSBackdropDirectory(void) {
+    NSArray *roots = @[
+        @"/var/jb/var/mobile/Library/Caches",
+        @"/var/mobile/Library/Caches"
+    ];
+    NSFileManager *fm = [NSFileManager defaultManager];
+    for (NSString *root in roots) {
+        BOOL isDir = NO;
+        if ([fm fileExistsAtPath:root isDirectory:&isDir] && isDir) {
+            NSString *dir = [root stringByAppendingPathComponent:@"com.kolby.floatingsiri"];
+            [fm createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:NULL];
+            return dir;
+        }
+    }
+    return nil;
+}
+
+static NSString *FSBackdropFilePath(void) {
+    NSString *dir = FSBackdropDirectory();
+    return dir ? [dir stringByAppendingPathComponent:@"backdrop.jpg"] : nil;
+}
+
+// Downscale and average luminance — reject effectively-black frames.
+static BOOL FSImageLooksBlack(UIImage *image) {
+    if (!image || !image.CGImage) return YES;
+    const size_t sample = 16;
+    uint8_t pixels[sample * sample * 4];
+    memset(pixels, 0, sizeof(pixels));
+    CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
+    CGContextRef ctx = CGBitmapContextCreate(pixels, sample, sample, 8, sample * 4, space,
+                                             kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
+    CGColorSpaceRelease(space);
+    if (!ctx) return YES;
+    CGContextSetInterpolationQuality(ctx, kCGInterpolationLow);
+    CGContextDrawImage(ctx, CGRectMake(0, 0, sample, sample), image.CGImage);
+    CGContextRelease(ctx);
+
+    double total = 0;
+    for (size_t i = 0; i < sample * sample; i++) {
+        double r = pixels[i*4 + 0] / 255.0;
+        double g = pixels[i*4 + 1] / 255.0;
+        double b = pixels[i*4 + 2] / 255.0;
+        total += 0.299*r + 0.587*g + 0.114*b;
+    }
+    double mean = total / (double)(sample * sample);
+    return mean < 0.04;
+}
+
+// Soft dark-blue gradient so the orb reads as tinted glass, never a solid pill.
+static UIImage *FSFallbackGradientImage(void) {
+    CGFloat scale = [UIScreen mainScreen].scale;
+    CGSize screen = [UIScreen mainScreen].bounds.size;
+    CGSize px = CGSizeMake(screen.width * scale, screen.height * scale);
+    UIGraphicsBeginImageContextWithOptions(px, YES, 1.0);
+    CGContextRef ctx = UIGraphicsGetCurrentContext();
+    CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
+    CGFloat comps[] = {
+        0.16, 0.20, 0.32, 1.0,
+        0.10, 0.11, 0.20, 1.0,
+        0.05, 0.05, 0.10, 1.0
+    };
+    CGFloat locs[] = { 0.0, 0.55, 1.0 };
+    CGGradientRef grad = CGGradientCreateWithColorComponents(space, comps, locs, 3);
+    CGContextDrawLinearGradient(ctx, grad, CGPointMake(px.width * 0.3, 0), CGPointMake(px.width * 0.7, px.height), 0);
+    CGGradientRelease(grad);
+    CGColorSpaceRelease(space);
+    UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return img;
+}
+
 static UIImage *FSNormalizeToScreen(UIImage *raw) {
     if (!raw) return nil;
     CGFloat scale = [UIScreen mainScreen].scale;
@@ -214,31 +288,73 @@ static UIImage *FSNormalizeToScreen(UIImage *raw) {
     return out;
 }
 
-static UIImage *FSCaptureBackdropImage(void) {
+static UIImage *FSWallpaperControllerImage(void) {
     @try {
         Class cls = NSClassFromString(@"SBWallpaperController");
         id ctrl = [cls respondsToSelector:@selector(sharedInstance)] ? ((id (*)(id, SEL))objc_msgSend)(cls, @selector(sharedInstance)) : nil;
-        if (ctrl) {
-            NSArray *sels = @[ @"wallpaperImageForVariant:", @"homescreenWallpaperImage", @"legacyWallpaperImage" ];
-            for (NSString *selName in sels) {
-                SEL sel = NSSelectorFromString(selName);
-                if (![ctrl respondsToSelector:sel]) continue;
-                UIImage *img = nil;
-                if ([selName hasSuffix:@":"]) {
-                    img = ((UIImage *(*)(id, SEL, long long))objc_msgSend)(ctrl, sel, 1);
-                } else {
-                    img = ((UIImage *(*)(id, SEL))objc_msgSend)(ctrl, sel);
-                }
-                if ([img isKindOfClass:[UIImage class]] && img.size.width > 2) {
-                    return FSNormalizeToScreen(img);
-                }
+        if (!ctrl) return nil;
+        NSArray *sels = @[ @"wallpaperImageForVariant:", @"homescreenWallpaperImage", @"legacyWallpaperImage" ];
+        for (NSString *selName in sels) {
+            SEL sel = NSSelectorFromString(selName);
+            if (![ctrl respondsToSelector:sel]) continue;
+            UIImage *img = nil;
+            if ([selName hasSuffix:@":"]) {
+                img = ((UIImage *(*)(id, SEL, long long))objc_msgSend)(ctrl, sel, 1);
+            } else {
+                img = ((UIImage *(*)(id, SEL))objc_msgSend)(ctrl, sel);
+            }
+            if ([img isKindOfClass:[UIImage class]] && img.size.width > 2) {
+                return FSNormalizeToScreen(img);
             }
         }
     } @catch (__unused NSException *e) {}
+    return nil;
+}
 
+static UIImage *FSScreenCaptureImage(void) {
     UIImage *raw = nil;
     @try { raw = _UICreateScreenUIImage(); } @catch (__unused NSException *e) {}
     return FSNormalizeToScreen(raw);
+}
+
+// SpringBoard writes its (working) capture here so SiriViewService can use it.
+static void FSWriteSharedBackdrop(UIImage *image) {
+    if (!image || FSImageLooksBlack(image)) return;
+    NSString *path = FSBackdropFilePath();
+    if (!path) return;
+    NSData *jpeg = UIImageJPEGRepresentation(image, 0.85);
+    if (jpeg.length > 0) {
+        [jpeg writeToFile:path atomically:YES];
+    }
+}
+
+static UIImage *FSReadSharedBackdrop(BOOL requireFresh) {
+    NSString *path = FSBackdropFilePath();
+    if (!path) return nil;
+    NSFileManager *fm = [NSFileManager defaultManager];
+    if (![fm fileExistsAtPath:path]) return nil;
+    if (requireFresh) {
+        NSDate *mtime = [[fm attributesOfItemAtPath:path error:NULL] fileModificationDate];
+        if (!mtime || [[NSDate date] timeIntervalSinceDate:mtime] > 10.0) return nil;
+    }
+    UIImage *img = [UIImage imageWithContentsOfFile:path];
+    if (!img || FSImageLooksBlack(img)) return nil;
+    return img;
+}
+
+// Returns a usable (non-black) backdrop or nil. Caller decides on fallback.
+static UIImage *FSCaptureBackdropImage(void) {
+    UIImage *img = FSWallpaperControllerImage();
+    if (img && !FSImageLooksBlack(img)) return img;
+
+    img = FSReadSharedBackdrop(YES);
+    if (img) return img;
+
+    img = FSScreenCaptureImage();
+    if (img && !FSImageLooksBlack(img)) return img;
+
+    // Stale shared backdrop still beats a black frame
+    return FSReadSharedBackdrop(NO);
 }
 
 // -----------------------------------------------------------------------------
@@ -452,10 +568,15 @@ static void FSOrbViewDidAppear(UIViewController *vc) {
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.45 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             UIImage *img = FSCaptureBackdropImage();
             if (img) {
+                // Good (non-black) capture — safe to cache for future invocations
                 st.capturedWallpaper = img;
                 st.glassOrbView.wallpaperImage = img;
+                st.hasCapturedBackdrop = YES;
+            } else {
+                // Never let a black frame reach the glass; use tinted-glass gradient
+                // and DON'T mark as captured so the next invocation retries.
+                st.glassOrbView.wallpaperImage = FSFallbackGradientImage();
             }
-            st.hasCapturedBackdrop = YES;
             popIn();
         });
     } else {
@@ -564,6 +685,28 @@ void LG_redrawRegisteredGlassViews(LGUpdateGroup group) {}
     %orig;
     [[WaveManager shared] stopRecording];
     FSSendLevel(0);
+}
+
+%end
+%end
+
+// -----------------------------------------------------------------------------
+// SpringBoard backdrop provider — always active in SpringBoard. Fires right as
+// Siri is invoked, BEFORE the screen dims, and shares a known-good capture with
+// the SiriViewService orb via the cache file. Hosts nothing itself.
+// -----------------------------------------------------------------------------
+%group FSBackdropProvider
+%hook SBAssistantRootViewController
+
+- (void)viewWillAppear:(BOOL)animated {
+    %orig;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        UIImage *img = FSWallpaperControllerImage();
+        if (!img || FSImageLooksBlack(img)) {
+            img = FSScreenCaptureImage();
+        }
+        FSWriteSharedBackdrop(img);
+    });
 }
 
 %end
@@ -680,6 +823,11 @@ static void FSPrefsChangedCallback(CFNotificationCenterRef center, void *observe
     if (NSClassFromString(@"SUICFlamesView")) %init(FSSUICFlames);
     if (NSClassFromString(@"SiriUIFlamesView")) %init(FSSiriUIFlames);
     if (NSClassFromString(@"VSSpeechSynthesizer")) %init(FSVSSpeech);
+
+    // SpringBoard always shares a good backdrop capture for the Siri process
+    if (NSClassFromString(@"SBAssistantRootViewController")) {
+        %init(FSBackdropProvider);
+    }
 
     // Exactly ONE orb host per process
     if (NSClassFromString(@"SiriUIBackgroundBlurViewController")) {
