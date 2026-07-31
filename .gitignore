@@ -1,0 +1,11 @@
+.theos/
+packages/*.deb
+**/.DS_Store
+**/obj/
+**/packages/
+FloatingSiri/.theos/
+FloatingSiri/packages/
+*.deb
+liquidsiri-ref/
+liquidass-ref/
+packages/
