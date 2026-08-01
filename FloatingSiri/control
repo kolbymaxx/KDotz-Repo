@@ -1,9 +1,9 @@
 Package: com.kolby.floatingsiri
 Name: FloatingSiri
 Depends: mobilesubstrate, preferenceloader
-Version: 1.35.0
+Version: 1.36.0
 Architecture: iphoneos-arm64
-Description: iOS 27-style liquid glass Siri orb — half-dark refractive glass, voice-reactive rainbow wave. Supports iOS 14–17.3 (rootless).
+Description: iOS 27-style liquid glass Siri orb — half-dark refractive glass, voice-reactive rainbow wave. rootless + roothide (Relaxin'), iOS 14–17.3.
 Maintainer: Kolby
 Author: Kolby
 Section: Tweaks

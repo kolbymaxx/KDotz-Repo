@@ -1,7 +1,8 @@
 TARGET := iphone:clang:latest:14.0
 ARCHS = arm64 arm64e
-INSTALL_TARGET_PROCESSES = SpringBoard SiriViewService
-THEOS_PACKAGE_SCHEME = rootless
+INSTALL_TARGET_PROCESSES = SpringBoard SiriViewService Siri
+# Default rootless; CI / local builds override with THEOS_PACKAGE_SCHEME=roothide
+THEOS_PACKAGE_SCHEME ?= rootless
 
 include $(THEOS)/makefiles/common.mk
 
@@ -25,7 +26,7 @@ FloatingSiri_FILES = Tweak.x \
 	Runtime/LGSnapshotCaptureSupport.m
 
 FloatingSiri_SWIFTFLAGS = -swift-version 5
-FloatingSiri_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-unused-variable -Wno-unused-function -DFLOATINGSIRI=1
+FloatingSiri_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-unused-variable -Wno-unused-function -DFLOATINGSIRI=1 -DDISABLE_ROOTLESS_COMPAT_WARNING=1
 FloatingSiri_FRAMEWORKS = UIKit Foundation SwiftUI AVFoundation Accelerate AudioToolbox MetalKit CoreMotion
 
 include $(THEOS_MAKE_PATH)/tweak.mk
