@@ -78,3 +78,35 @@ Description: iOS 27-style liquid glass Siri orb — half-dark refractive glass, 
 Author: Kolby
 Name: FloatingSiri
 
+Package: com.kolby.floatingsiri
+Version: 1.36.0
+Architecture: iphoneos-arm64
+Maintainer: Kolby
+Installed-Size: 760
+Depends: mobilesubstrate, preferenceloader
+Filename: dist/com.kolby.floatingsiri_1.36.0_iphoneos-arm64.deb
+Size: 138066
+MD5sum: 29357558d3ff9c583746061bfb6a425e
+SHA1: 8353ed5b16dcd4d9da01b9cb7a1bb78d6313ddf2
+SHA256: 4492a9ee5ff048c059e5fa3de34faada49df437238d361783789f9f8fe47707e
+Section: Tweaks
+Description: iOS 27-style liquid glass Siri orb — half-dark refractive glass, voice-reactive rainbow wave. rootless + roothide (Relaxin'), iOS 14–17.3.
+Author: Kolby
+Name: FloatingSiri
+
+Package: com.kolby.floatingsiri
+Version: 1.36.0
+Architecture: iphoneos-arm64e
+Maintainer: Kolby
+Installed-Size: 760
+Depends: mobilesubstrate, preferenceloader
+Filename: dist/com.kolby.floatingsiri_1.36.0_iphoneos-arm64e.deb
+Size: 138182
+MD5sum: a4f44c05e7fdffc8c4ecb981b3aa9d0c
+SHA1: 23b252ce38c7f8f9141aed4c9a2b8ad8e2072d77
+SHA256: 8b8c29c7f0a570b73be2376f44142a77d596e5fd111760145738ad6946ed5e8b
+Section: Tweaks
+Description: iOS 27-style liquid glass Siri orb — half-dark refractive glass, voice-reactive rainbow wave. rootless + roothide (Relaxin'), iOS 14–17.3.
+Author: Kolby
+Name: FloatingSiri
+
