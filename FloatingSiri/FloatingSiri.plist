@@ -1,1 +1,25 @@
-{ Filter = { Bundles = ( "com.apple.SiriViewService", "com.apple.springboard", "com.apple.siri" ); }; }
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Filter</key>
+	<dict>
+		<key>Bundles</key>
+		<array>
+			<string>com.apple.springboard</string>
+			<string>com.apple.SiriViewService</string>
+			<string>com.apple.siri</string>
+			<string>com.apple.siri.SystemUI</string>
+			<string>com.apple.SiriUI</string>
+			<string>com.apple.AssistantServices</string>
+		</array>
+		<key>Executables</key>
+		<array>
+			<string>SpringBoard</string>
+			<string>Siri</string>
+			<string>SiriViewService</string>
+			<string>assistantd</string>
+		</array>
+	</dict>
+</dict>
+</plist>

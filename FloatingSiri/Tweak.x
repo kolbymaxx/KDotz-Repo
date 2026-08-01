@@ -627,18 +627,19 @@ static void FSOrbViewDidAppear(UIViewController *vc) {
 
     CGFloat width = 130.0;
     CGFloat height = 105.0;
-    CGFloat physicalY = 31.0;
+    // Slightly higher than LiquidSiri defaults so the dome blends into notch / island
+    CGFloat physicalY = 26.0;
 
     if (safeTop >= 59.0) {
         // Dynamic Island devices — wraps the black dome around the island
         width = 180.0;
         height = 148.0;
-        physicalY = 9.0;
+        physicalY = 4.0;
     } else if (safeTop > 44.0) {
         // iPhone 12 / 13 (incl. mini)
         width = 144.0;
         height = 116.0;
-        physicalY = 36.0;
+        physicalY = 30.0;
     }
 
     CGFloat customYOffset = FSPrefFloat(@"yOffset", FSPrefFloat(@"topOffset", 0.0));
@@ -711,19 +712,32 @@ static void FSOrbViewDidAppear(UIViewController *vc) {
 
     [st.glassOrbView.layer insertSublayer:blackDomeLayer below:st.glowLineView.layer];
 
-    // Start hidden and tucked up inside the notch
-    st.glassOrbView.hidden = YES;
+    // Start tucked above the top of the screen — pulled down on activate
+    CGFloat tuckY = -(height + physicalY + 24.0);
+    st.glassOrbView.transform = CGAffineTransformConcat(
+        CGAffineTransformMakeTranslation(0, tuckY),
+        CGAffineTransformMakeScale(0.82, 0.82));
     st.glassOrbView.alpha = 0.0;
+    st.glassOrbView.hidden = NO;
+    st.externalWhiteGlowView.alpha = 0.0;
+    st.externalWhiteGlowView.transform = CGAffineTransformMakeTranslation(0, tuckY);
 
     CGFloat orbOpacity = FSPrefFloat(@"orbOpacity", 1.0);
 
     void (^popIn)(void) = ^{
         st.glassOrbView.hidden = NO;
-        [UIView animateWithDuration:0.6 delay:0.0 usingSpringWithDamping:0.7 initialSpringVelocity:0.6 options:UIViewAnimationOptionCurveEaseOut animations:^{
+        [UIView animateWithDuration:0.58
+                              delay:0.0
+             usingSpringWithDamping:0.76
+              initialSpringVelocity:0.95
+                            options:UIViewAnimationOptionCurveEaseOut | UIViewAnimationOptionAllowUserInteraction
+                         animations:^{
             st.glassOrbView.transform = CGAffineTransformIdentity;
             st.glassOrbView.alpha = orbOpacity;
+            st.externalWhiteGlowView.transform = CGAffineTransformIdentity;
             st.externalWhiteGlowView.alpha = 1.0;
         } completion:^(BOOL finished) {
+            if (!finished) return;
             // Gentle infinite breathing so the liquid feels alive
             CABasicAnimation *breatheAnim = [CABasicAnimation animationWithKeyPath:@"transform.scale"];
             breatheAnim.fromValue = @(1.0);
@@ -794,9 +808,14 @@ static void FSOrbViewDidAppear(UIViewController *vc) {
 static void FSOrbViewWillDisappear(UIViewController *vc) {
     FSOrbState *st = FSOrbStateFor(vc);
     [st fsStopLiveCapture];
-    [UIView animateWithDuration:0.35 delay:0.0 options:UIViewAnimationOptionCurveEaseIn animations:^{
-        st.glassOrbView.transform = CGAffineTransformConcat(CGAffineTransformMakeTranslation(0, -50), CGAffineTransformMakeScale(0.6, 0.6));
+    [st.glassOrbView.layer removeAnimationForKey:@"orbBreathing"];
+    CGFloat tuckY = -(CGRectGetHeight(st.glassOrbView.bounds) + 40.0);
+    [UIView animateWithDuration:0.32 delay:0.0 options:UIViewAnimationOptionCurveEaseIn animations:^{
+        st.glassOrbView.transform = CGAffineTransformConcat(
+            CGAffineTransformMakeTranslation(0, tuckY),
+            CGAffineTransformMakeScale(0.78, 0.78));
         st.glassOrbView.alpha = 0.0;
+        st.externalWhiteGlowView.transform = CGAffineTransformMakeTranslation(0, tuckY);
         st.externalWhiteGlowView.alpha = 0.0;
     } completion:nil];
 }
@@ -1009,8 +1028,13 @@ static void FSPrefsChangedCallback(CFNotificationCenterRef center, void *observe
 }
 
 %ctor {
+    @autoreleasepool {
     BOOL enabled = FSPrefBool(@"enabled", YES);
     if (!enabled) return;
+
+    NSString *proc = [NSProcessInfo processInfo].processName ?: @"?";
+    NSString *jb = FSJailbreakRootPrefix() ?: @"";
+    NSLog(@"[FloatingSiri] loaded in %@ jbroot='%@'", proc, jb);
 
     if (NSClassFromString(@"SUICOrbView")) %init(FSSUICOrb);
     if (NSClassFromString(@"SiriSharedUIOrbView")) %init(FSSiriSharedOrb);
@@ -1024,11 +1048,18 @@ static void FSPrefsChangedCallback(CFNotificationCenterRef center, void *observe
         %init(FSBackdropProvider);
     }
 
-    // Exactly ONE orb host per process
+    // Exactly ONE orb host per process. Prefer the dedicated Siri blur VC when
+    // present (iOS 14–16 / some 17 builds); otherwise host on SpringBoard's
+    // assistant root (iOS 17). SystemUI / SiriUI processes may only see the
+    // former after the expanded filter lands.
     if (NSClassFromString(@"SiriUIBackgroundBlurViewController")) {
         %init(FSSiriUIHost);
+        NSLog(@"[FloatingSiri] host=SiriUIBackgroundBlurViewController");
     } else if (NSClassFromString(@"SBAssistantRootViewController")) {
         %init(FSAssistantRootFallback);
+        NSLog(@"[FloatingSiri] host=SBAssistantRootViewController");
+    } else {
+        NSLog(@"[FloatingSiri] WARNING: no orb host class in %@", proc);
     }
 
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
@@ -1044,4 +1075,5 @@ static void FSPrefsChangedCallback(CFNotificationCenterRef center, void *observe
                                     CFSTR("com.kolby.floatingsiri/prefschanged"),
                                     NULL,
                                     CFNotificationSuspensionBehaviorDeliverImmediately);
+    } // @autoreleasepool
 }
