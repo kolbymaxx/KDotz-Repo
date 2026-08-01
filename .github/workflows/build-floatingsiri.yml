@@ -114,6 +114,19 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/out"
           find . .. -name '*.deb' -path '*/packages/*' -print -exec cp {} "$GITHUB_WORKSPACE/out/" \;
           ls -lah "$GITHUB_WORKSPACE/out"
+          # Sanity: layout must be jbroot-relative (Library/...), not /var/jb
+          DEB="$(ls "$GITHUB_WORKSPACE/out"/*.deb | head -1)"
+          dpkg-deb -I "$DEB"
+          dpkg-deb -c "$DEB" | head -20
+          if dpkg-deb -c "$DEB" | grep -q ' var/jb/'; then
+            echo "ERROR: roothide deb still contains /var/jb paths" >&2
+            exit 1
+          fi
+          # Filter must list SystemUI for iOS 17 Siri
+          TMP=$(mktemp -d)
+          dpkg-deb -x "$DEB" "$TMP"
+          plutil -p "$TMP"/Library/MobileSubstrate/DynamicLibraries/FloatingSiri.plist
+          grep -q 'SystemUI' <(plutil -p "$TMP"/Library/MobileSubstrate/DynamicLibraries/FloatingSiri.plist)
 
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v4
