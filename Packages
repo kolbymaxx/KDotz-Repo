@@ -78,3 +78,19 @@ Description: iOS 27-style liquid glass Siri orb — half-dark refractive glass, 
 Author: Kolby
 Name: FloatingSiri
 
+Package: com.music27.tweak
+Version: 1.0.1
+Architecture: iphoneos-arm64
+Maintainer: Music27
+Installed-Size: 228
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader
+Filename: dist/com.music27.tweak_1.0.1_iphoneos-arm64.deb
+Size: 26662
+MD5sum: 6ffa62a9e53093213fe059a3ab552d61
+SHA1: 7ea6565ca325a79bfc23da0783257705c86dbf35
+SHA256: 228edce07eebb6f2a2f5f15772a868aa6911f812bd95ddd422bf1ff7f97abed3
+Section: Tweaks
+Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass look — glass tab bar, floating mini player, library pins, artwork color themes. Fixes the black-screen bug from 1.0.0.
+Author: Music27
+Name: Music27
+
