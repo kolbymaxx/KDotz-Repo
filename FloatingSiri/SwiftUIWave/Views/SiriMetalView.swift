@@ -155,10 +155,10 @@ public struct SiriMetalView: UIViewRepresentable {
                 float env = cos(PI*0.5f * xNorm);
                 
                 // When idle, activeFactor is 0, making all amplitudes EXACTLY 0.
-                // 5.0 (was 7.0) = noticeably smaller peak wave height while talking.
-                float dynamicLowAmp = 0.0f + (activeFactor * LOW_AMP * 5.0f);
-                float dynamicMidAmp = 0.0f + (activeFactor * MID_ABAMP * 5.0f);
-                float dynamicHighAmp = 0.0f + (activeFactor * HIGH_ABAMP * 5.0f);
+                // 3.0 = clearly smaller talking peak (was 5.0 / 7.0).
+                float dynamicLowAmp = 0.0f + (activeFactor * LOW_AMP * 3.0f);
+                float dynamicMidAmp = 0.0f + (activeFactor * MID_ABAMP * 3.0f);
+                float dynamicHighAmp = 0.0f + (activeFactor * HIGH_ABAMP * 3.0f);
                 
                 float A1    = AMPLITUDE + 0.01f*low*dynamicLowAmp;
                 float A2    = A1 + mid*dynamicMidAmp + high*dynamicHighAmp;
@@ -167,8 +167,8 @@ public struct SiriMetalView: UIViewRepresentable {
                 // Allow a tiny bit of rotation (0.15) when idle so colors are visible on the edges
                 AB *= mix(0.15f, 1.0f, clamp(activeFactor * 4.0f, 0.0f, 1.0f));
                 
-                // Make it thicker when talking (6.0 = clearly slimmer stroke than 9.0)
-                float currentThickness = THICKNESS + (activeFactor * 6.0f);
+                // Make it thicker when talking (4.0 = slimmer stroke than 6.0 / 9.0)
+                float currentThickness = THICKNESS + (activeFactor * 4.0f);
                 float th    = mix(0.1f, 0.01f*currentThickness, res);
                 float inten = mix(0.1f, 0.01f*(INTENSITY + low*LOW_INT), res);
                 

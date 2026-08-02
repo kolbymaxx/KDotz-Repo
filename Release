@@ -6,10 +6,10 @@ Codename: kdotz
 Architectures: iphoneos-arm64 iphoneos-arm64e
 Components: main
 Description: KDotz Repo — tweaks by Kolby (rootless + roothide)
-Date: Sat, 01 Aug 2026 01:29:50 +0000
+Date: Sun, 02 Aug 2026 09:02:47 +0000
 MD5Sum:
- 08d3abfbdaa69a7a46257eff097c7cc9 4805 Packages
- 8dd8e6f99996a1013d02846f7a4e05b8 1390 Packages.gz
+ 3ea869c89dcd2cae06646f4aea58ebe7 6011 Packages
+ cdee86bcb0b03720560096458675a21b 1596 Packages.gz
 SHA256:
- ea4102bc6654263e40bf574c42aa8d85acf6589273c458e4b2d9559747fa5db2 4805 Packages
- 0e0ebb5239d7e11ab7c77ff2f19e5dbd45e34eb4d56301671598826035fecc4e 1390 Packages.gz
+ f33a146969176cd9eb5a1994d769416869766d7a30c5435cd686f8164dc97b76 6011 Packages
+ 1df55a5922fed63a8081720a1fde908aa61f7ea5cd9865828d4eb8e3dbff3435 1596 Packages.gz
