@@ -13,10 +13,10 @@ Package ID: `com.kolby.floatingsiri`
 Add this source in Sileo (Sources → Edit → Add):
 
 ```
-https://kolbymaxx.github.io/Siri27/
+https://kolbymaxx.github.io/KDotz-Repo/
 ```
 
-(Backup mirror, same packages: `https://raw.githubusercontent.com/kolbymaxx/Siri27/main/`)
+(Backup mirror, same packages: `https://raw.githubusercontent.com/kolbymaxx/KDotz-Repo/main/`)
 
 Then install **FloatingSiri**. Works on both jailbreak types with the same URL:
 
