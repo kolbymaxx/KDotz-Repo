@@ -1,0 +1,27 @@
+#!/bin/sh
+# Purge leftover RHCompat injection files (1.0.1/1.0.2) even if dpkg metadata is messy.
+set -e
+
+cleanup_dir() {
+  dir="$1"
+  [ -d "$dir" ] || return 0
+  rm -f "$dir/000RHCompat.dylib" \
+        "$dir/000RHCompat.plist" \
+        "$dir/000RHCompat.plist.disabled" \
+        "$dir/RHCompat.dylib" \
+        "$dir/RHCompat.plist" 2>/dev/null || true
+}
+
+if command -v jbroot >/dev/null 2>&1; then
+  cleanup_dir "$(jbroot /Library/MobileSubstrate/DynamicLibraries)"
+  cleanup_dir "$(jbroot /usr/lib/TweakInject)"
+fi
+
+# Fallback: scan live .jbroot-* trees
+for root in /var/containers/Bundle/Application/.jbroot-*; do
+  [ -d "$root" ] || continue
+  cleanup_dir "$root/Library/MobileSubstrate/DynamicLibraries"
+  cleanup_dir "$root/usr/lib/TweakInject"
+done
+
+exit 0
