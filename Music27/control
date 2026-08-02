@@ -1,0 +1,9 @@
+Package: com.music27.tweak
+Name: Music27
+Version: 1.0.2
+Architecture: iphoneos-arm64
+Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass look — glass tab bar, floating mini player, library pins, artwork color themes. Fixes the black-screen bug from 1.0.0.
+Maintainer: Music27
+Author: Music27
+Section: Tweaks
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader

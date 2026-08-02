@@ -22,10 +22,8 @@ Origin / label: **KDotz Repo**
 
 | Package | ID | Notes |
 |---------|----|--------|
-| **FloatingSiri** | `com.kolby.floatingsiri` | iOS 27-style liquid glass Siri orb (rootless + roothide) |
-| **Music27** | `com.music27.tweak` | Apple Music Liquid Glass UI for iOS 16/17 (rootless; roothide build pending) |
-
-Source for Music27: [kolbymaxx/Music27](https://github.com/kolbymaxx/Music27)
+| **Siri27** | `com.kolby.siri27` | iOS 27-style liquid glass Siri orb (rootless + roothide). Replaces FloatingSiri. |
+| **Music27** | `com.music27.tweak` | Apple Music Liquid Glass UI for iOS 16/17 (rootless + roothide) |
 
 One source URL works on both jailbreak types: rootless Sileo installs the
 `iphoneos-arm64` builds, roothide (Relaxin') Sileo installs `iphoneos-arm64e`.
@@ -51,7 +49,8 @@ git push
 - `Packages` / `Packages.gz` / `Release` — APT index (KDotz Repo)
 - `scripts/update-apt-repo.sh` — regenerates the index
 - `repo-site/` + `.github/workflows/deploy-repo-pages.yml` — GitHub Pages hosting
-- `FloatingSiri/` — FloatingSiri Theos project
+- `Siri27/` — Siri27 Theos project
+- `Music27/` — Music27 Theos project
 
 ## Credits
 
