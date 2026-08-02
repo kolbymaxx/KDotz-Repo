@@ -1,0 +1,9 @@
+Package: com.kolby.rhcompat
+Name: RHCompat
+Depends: mobilesubstrate, preferenceloader
+Version: 1.0.0
+Architecture: iphoneos-arm64e
+Description: RootHide companion — early-load path shim so unpatched rootless tweaks resolve /var/jb and classic PreferenceLoader/data paths into the live jbroot. RootHide (Relaxin') only.
+Maintainer: Kolby
+Author: Kolby
+Section: Tweaks
