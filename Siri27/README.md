@@ -1,4 +1,4 @@
-# FloatingSiri
+# Siri27
 
 iOS 27–style **liquid glass** Siri orb for jailbroken devices.
 
@@ -6,7 +6,7 @@ iOS 27–style **liquid glass** Siri orb for jailbroken devices.
 - Bottom half: refractive / translucent liquid glass  
 - Center: rainbow spectral wave that **grows with speech level**
 
-Package ID: `com.kolby.floatingsiri`
+Package ID: `com.kolby.siri27`
 
 ## Install via Sileo — KDotz Repo (easiest — auto-updates)
 
@@ -18,7 +18,7 @@ https://kolbymaxx.github.io/KDotz-Repo/
 
 (Backup mirror, same packages: `https://raw.githubusercontent.com/kolbymaxx/KDotz-Repo/main/`)
 
-Then install **FloatingSiri**. Works on both jailbreak types with the same URL:
+Then install **Siri27**. Works on both jailbreak types with the same URL:
 
 - Rootless (Dopamine etc.) devices are offered the `iphoneos-arm64` package
 - roothide (Relaxin') devices are offered the `iphoneos-arm64e` package
@@ -48,7 +48,7 @@ Glass Metal runtime adapted from [LiquidSiri](https://github.com/Thijs2004/Liqui
 ## Build
 
 ```bash
-cd FloatingSiri
+cd Siri27
 export THEOS=~/theos
 make package FINALPACKAGE=1
 ```
@@ -57,7 +57,7 @@ Install the resulting `.deb` with Sileo/Zebra, respring, invoke Siri.
 
 ## Settings
 
-**Settings → Floating Siri**
+**Settings → Siri27**
 
 - Size / position / glow  
 - **Top Dome Opacity / Height** — tune the dark-vs-glass split  
@@ -72,7 +72,7 @@ Install the resulting `.deb` with Sileo/Zebra, respring, invoke Siri.
 ## Build from your iPhone (no Mac)
 
 1. Open this repo on GitHub in Safari / the GitHub app.
-2. Go to **Actions → Build FloatingSiri → Run workflow**.
+2. Go to **Actions → Build Siri27 → Run workflow**.
 3. Wait for the green check.
-4. Tap the run → **Artifacts → FloatingSiri-rootless-deb** → download the zip.
+4. Tap the run → **Artifacts → Siri27-rootless-deb** → download the zip.
 5. Unzip in **Filza**, tap the `.deb` → install with **Sileo/Zebra**, respring.

@@ -142,7 +142,7 @@ public struct SiriMetalView: UIViewRepresentable {
                 float mid  = clamp(0.40f + 0.40f*sin(t*1.7f+2.0f)*sin(t*0.53f), 0.0f, 1.0f);
                 float high = clamp(0.30f + 0.30f*sin(t*2.9f+4.0f)*sin(t*0.71f+2.0f), 0.0f, 1.0f);
                 
-                // talkingFactor is already 0 idle → 1 loud (FloatingSiri WaveManager)
+                // talkingFactor is already 0 idle → 1 loud (Siri27 WaveManager)
                 float activeFactor = clamp(talkingFactor, 0.0f, 1.0f);
                 
                 float res   = clamp(RESOLVED, 0.0f, 1.0f);

@@ -3,8 +3,8 @@ packages/*.deb
 **/.DS_Store
 **/obj/
 **/packages/
-FloatingSiri/.theos/
-FloatingSiri/packages/
+Siri27/.theos/
+Siri27/packages/
 *.deb
 liquidsiri-ref/
 liquidass-ref/

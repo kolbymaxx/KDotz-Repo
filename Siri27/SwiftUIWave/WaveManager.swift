@@ -5,7 +5,7 @@ import AVFoundation
 /// Voice-level bridge + smoothing for the Metal rainbow wave.
 /// Fixed vs older builds:
 /// - Much lower deadzone (Siri flame levels are often tiny)
-/// - Configurable mic gain via `com.kolby.floatingsiri`
+/// - Configurable mic gain via `com.kolby.siri27`
 /// - Accepts dB or linear inputs
 /// - Idle bassLevel stays near 0 so talkingFactor can rise immediately
 @objc public class WaveManager: NSObject, ObservableObject {
@@ -40,7 +40,7 @@ import AVFoundation
         reloadPrefs()
         NotificationCenter.default.addObserver(self,
                                              selector: #selector(reloadPrefs),
-                                             name: NSNotification.Name("com.kolby.floatingsiri/prefschanged"),
+                                             name: NSNotification.Name("com.kolby.siri27/prefschanged"),
                                              object: nil)
         displayLink = CADisplayLink(target: self, selector: #selector(updatePower))
         displayLink?.add(to: .main, forMode: .common)
@@ -62,9 +62,9 @@ import AVFoundation
     }()
 
     @objc public func reloadPrefs() {
-        let d = UserDefaults(suiteName: "com.kolby.floatingsiri") ?? .standard
+        let d = UserDefaults(suiteName: "com.kolby.siri27") ?? .standard
         // Also merge file-backed prefs (PreferenceLoader often writes these)
-        let rel = "/var/mobile/Library/Preferences/com.kolby.floatingsiri.plist"
+        let rel = "/var/mobile/Library/Preferences/com.kolby.siri27.plist"
         var paths = ["/var/jb" + rel, rel]
         if !WaveManager.jbRootPrefix.isEmpty {
             paths.insert(WaveManager.jbRootPrefix + rel, at: 0)

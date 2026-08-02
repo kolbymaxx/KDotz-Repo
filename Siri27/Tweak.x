@@ -8,12 +8,12 @@
 #import "LiquidGlass.h"
 #import "Shared/LGBannerCaptureSupport.h"
 #import "Runtime/LGSnapshotCaptureSupport.h"
-#import "FloatingSiri-Swift.h"
+#import "Siri27-Swift.h"
 
 // -----------------------------------------------------------------------------
-// FloatingSiri — iOS 27-style liquid glass Siri orb
+// Siri27 — iOS 27-style liquid glass Siri orb
 // Orb geometry / motion ported 1:1 from LiquidSiri (Thijs) — proven look.
-// Audio pipeline (mic gain / deadzone / talkingFactor) is the FloatingSiri fix.
+// Audio pipeline (mic gain / deadzone / talkingFactor) is the Siri27 fix.
 // -----------------------------------------------------------------------------
 
 @interface SiriUIBackgroundBlurViewController : UIViewController
@@ -47,8 +47,8 @@
 @end
 
 static NSInteger globalSiriState = 1;
-static NSString * const kFSPrefsDomain = @"com.kolby.floatingsiri";
-static const char *kFSDarwinLevel = "com.kolby.floatingsiri/level";
+static NSString * const kFSPrefsDomain = @"com.kolby.siri27";
+static const char *kFSDarwinLevel = "com.kolby.siri27/level";
 
 OBJC_EXTERN UIImage *_UICreateScreenUIImage(void);
 
@@ -97,7 +97,7 @@ static NSDictionary *FSPrefs(void) {
     CFAbsoluteTime now = CFAbsoluteTimeGetCurrent();
     if (cached && (now - lastLoad) < 0.5) return cached;
 
-    NSString *rel = @"/var/mobile/Library/Preferences/com.kolby.floatingsiri.plist";
+    NSString *rel = @"/var/mobile/Library/Preferences/com.kolby.siri27.plist";
     NSMutableArray *paths = [NSMutableArray array];
     NSString *jbPrefix = FSJailbreakRootPrefix();
     if (jbPrefix.length) [paths addObject:[jbPrefix stringByAppendingString:rel]];
@@ -231,7 +231,7 @@ static NSString *FSBackdropDirectory(void) {
     for (NSString *root in roots) {
         BOOL isDir = NO;
         if ([fm fileExistsAtPath:root isDirectory:&isDir] && isDir) {
-            NSString *dir = [root stringByAppendingPathComponent:@"com.kolby.floatingsiri"];
+            NSString *dir = [root stringByAppendingPathComponent:@"com.kolby.siri27"];
             [fm createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:NULL];
             return dir;
         }
@@ -1034,7 +1034,7 @@ static void FSPrefsChangedCallback(CFNotificationCenterRef center, void *observe
 
     NSString *proc = [NSProcessInfo processInfo].processName ?: @"?";
     NSString *jb = FSJailbreakRootPrefix() ?: @"";
-    NSLog(@"[FloatingSiri] loaded in %@ jbroot='%@'", proc, jb);
+    NSLog(@"[Siri27] loaded in %@ jbroot='%@'", proc, jb);
 
     if (NSClassFromString(@"SUICOrbView")) %init(FSSUICOrb);
     if (NSClassFromString(@"SiriSharedUIOrbView")) %init(FSSiriSharedOrb);
@@ -1054,25 +1054,25 @@ static void FSPrefsChangedCallback(CFNotificationCenterRef center, void *observe
     // former after the expanded filter lands.
     if (NSClassFromString(@"SiriUIBackgroundBlurViewController")) {
         %init(FSSiriUIHost);
-        NSLog(@"[FloatingSiri] host=SiriUIBackgroundBlurViewController");
+        NSLog(@"[Siri27] host=SiriUIBackgroundBlurViewController");
     } else if (NSClassFromString(@"SBAssistantRootViewController")) {
         %init(FSAssistantRootFallback);
-        NSLog(@"[FloatingSiri] host=SBAssistantRootViewController");
+        NSLog(@"[Siri27] host=SBAssistantRootViewController");
     } else {
-        NSLog(@"[FloatingSiri] WARNING: no orb host class in %@", proc);
+        NSLog(@"[Siri27] WARNING: no orb host class in %@", proc);
     }
 
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
                                     NULL,
                                     FSDarwinLevelCallback,
-                                    CFSTR("com.kolby.floatingsiri/level"),
+                                    CFSTR("com.kolby.siri27/level"),
                                     NULL,
                                     CFNotificationSuspensionBehaviorDeliverImmediately);
 
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
                                     NULL,
                                     FSPrefsChangedCallback,
-                                    CFSTR("com.kolby.floatingsiri/prefschanged"),
+                                    CFSTR("com.kolby.siri27/prefschanged"),
                                     NULL,
                                     CFNotificationSuspensionBehaviorDeliverImmediately);
     } // @autoreleasepool

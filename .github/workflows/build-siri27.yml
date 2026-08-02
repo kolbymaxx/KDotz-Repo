@@ -1,11 +1,11 @@
-name: Build FloatingSiri
+name: Build Siri27
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - 'FloatingSiri/**'
-      - '.github/workflows/build-floatingsiri.yml'
+      - 'Siri27/**'
+      - '.github/workflows/build-siri27.yml'
 
 jobs:
   build:
@@ -38,8 +38,8 @@ jobs:
           xcodebuild -version
           xcrun -sdk iphoneos --show-sdk-version
 
-      - name: Build FloatingSiri (rootless)
-        working-directory: FloatingSiri
+      - name: Build Siri27 (rootless)
+        working-directory: Siri27
         env:
           THEOS: ${{ env.THEOS }}
         run: |
@@ -61,7 +61,7 @@ jobs:
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FloatingSiri-rootless-deb
+          name: Siri27-rootless-deb
           path: out/*.deb
           if-no-files-found: error
 
@@ -95,8 +95,8 @@ jobs:
           xcodebuild -version
           xcrun -sdk iphoneos --show-sdk-version
 
-      - name: Build FloatingSiri (roothide)
-        working-directory: FloatingSiri
+      - name: Build Siri27 (roothide)
+        working-directory: Siri27
         env:
           THEOS: ${{ env.THEOS }}
         run: |
@@ -125,12 +125,12 @@ jobs:
           # Filter must list SystemUI for iOS 17 Siri
           TMP=$(mktemp -d)
           dpkg-deb -x "$DEB" "$TMP"
-          plutil -p "$TMP"/Library/MobileSubstrate/DynamicLibraries/FloatingSiri.plist
-          grep -q 'SystemUI' <(plutil -p "$TMP"/Library/MobileSubstrate/DynamicLibraries/FloatingSiri.plist)
+          plutil -p "$TMP"/Library/MobileSubstrate/DynamicLibraries/Siri27.plist
+          grep -q 'SystemUI' <(plutil -p "$TMP"/Library/MobileSubstrate/DynamicLibraries/Siri27.plist)
 
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FloatingSiri-roothide-deb
+          name: Siri27-roothide-deb
           path: out/*.deb
           if-no-files-found: error
