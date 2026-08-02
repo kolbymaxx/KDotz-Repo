@@ -341,3 +341,35 @@ Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass 
 Author: Music27
 Name: Music27
 
+Package: com.music27.tweak
+Version: 1.1.8
+Architecture: iphoneos-arm64e
+Maintainer: Music27
+Installed-Size: 536
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader
+Filename: dist/com.music27.tweak_1.1.8_iphoneos-arm64e.deb
+Size: 59430
+MD5sum: 4db283acb6d35889c068fc577c47a4ea
+SHA1: b6b58c52fd71730c95a8724ca8ab695c566332e4
+SHA256: 484f35f4f5eca56a17cdac655755a2f5036d88ce569791427d697b3e1a84bdc9
+Section: Tweaks
+Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass look. 1.1.8 stops blank Library (no safe-area hacks) and overlays the glass dock more reliably on RootHide.
+Author: Music27
+Name: Music27
+
+Package: com.music27.tweak
+Version: 1.1.8
+Architecture: iphoneos-arm64
+Maintainer: Music27
+Installed-Size: 536
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader
+Filename: dist/com.music27.tweak_1.1.8_iphoneos-arm64.deb
+Size: 59576
+MD5sum: f09551802c00e4d706e34a14c94cbbdf
+SHA1: feff8f3e8252672deee0f0d14ec0c27178908701
+SHA256: eeca659c646302cd8a7bb864dcfadbc85aff8c3488451e3c07bd825418df6632
+Section: Tweaks
+Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass look. 1.1.8 stops blank Library (no safe-area hacks) and overlays the glass dock more reliably on RootHide.
+Author: Music27
+Name: Music27
+
