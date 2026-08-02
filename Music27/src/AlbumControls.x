@@ -305,14 +305,19 @@ static void M27InstallAlbumControls(UIViewController *vc) {
 
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
-    M27InstallAlbumControls(self);
+    // Defer so we don't fight Music's first layout (blank-screen risk).
+    __weak UIViewController *weakSelf = self;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        M27InstallAlbumControls(weakSelf);
+    });
 }
 
 - (void)viewDidLayoutSubviews {
     %orig;
     M27Prefs *prefs = M27Prefs.shared;
     if (!(prefs.enabled && prefs.glassTabBarEnabled)) return;
-    if ([self.view viewWithTag:kM27AlbumControlsTag] || M27IsAlbumDetailController(self)) {
+    // Only refresh an already-installed row during layout — never first-install here.
+    if ([self.view viewWithTag:kM27AlbumControlsTag]) {
         M27InstallAlbumControls(self);
     }
 }

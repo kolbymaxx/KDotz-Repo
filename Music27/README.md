@@ -18,6 +18,14 @@ Settings live under **Settings → Music27**.
 2. Scrolling down collapses into the merged red · mini · Search pill.
 3. Collapsed state stays until you tap the red Music button, which expands again.
 
+## 1.1.1 blank-screen fix
+
+1.1.0 could white-screen Music on launch by (a) mutating safe-area insets every
+layout pass and (b) walking/hiding views in the tab controller content tree
+while looking for the mini player. 1.1.1 installs the dock once, only fades
+strict mini-player matches that are siblings of the tab bar, and never hides
+content hosts.
+
 ## Install via Sileo (KDotz Repo — recommended)
 
 Add this source in Sileo (**Sources → Edit → Add**):
