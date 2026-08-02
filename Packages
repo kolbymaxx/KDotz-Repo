@@ -1,20 +1,3 @@
-Package: com.kolby.rhcompat
-Version: 1.0.2
-Architecture: iphoneos-arm64e
-Maintainer: Kolby
-Installed-Size: 176
-Depends: mobilesubstrate, preferenceloader
-Suggests: rootless-compat
-Filename: dist/com.kolby.rhcompat_1.0.2_iphoneos-arm64e.deb
-Size: 8946
-MD5sum: ad5cf7db6ff9f1720ec51277c3924e57
-SHA1: 47b20cc968f8fa20483f54b9a88f76342c38bbde
-SHA256: 7b54ad6789d716a98aaa1fe5f56bdeacbfb96ce883dfbab3ce502f4c7c56da19
-Section: Tweaks
-Description: RootHide PreferenceLoader/prefs companion (Preferences.app only). 1.0.2 removes SpringBoard injection and POSIX open/stat hooks that could black-screen after respring. Complements official rootless-compat — not a replacement.
-Author: Kolby
-Name: RHCompat
-
 Package: com.kolby.siri27
 Version: 1.39.1
 Architecture: iphoneos-arm64

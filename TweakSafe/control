@@ -1,0 +1,13 @@
+Package: com.kolby.tweaksafe
+Name: TweakSafe
+Depends: preferenceloader
+Version: 1.0.0
+Architecture: iphoneos-arm64e
+Description: RootHide tweak safety panel — enable/disable installed tweaks from Settings, safe-respring helpers, no SpringBoard hooks. Replaces and removes RHCompat.
+Maintainer: Kolby
+Author: Kolby
+Section: Tweaks
+Replaces: com.kolby.rhcompat
+Conflicts: com.kolby.rhcompat
+Breaks: com.kolby.rhcompat
+Provides: com.kolby.rhcompat
