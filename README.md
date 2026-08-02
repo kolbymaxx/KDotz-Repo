@@ -18,6 +18,7 @@ Origin / label: **KDotz Repo**
 
 | Package | ID | Notes |
 |---------|----|--------|
+| **Aether** | `com.kolby.aether` | Universal context glass — clipboard, screen OCR, UI sculpt (rootless + roothide) |
 | **FloatingSiri** | `com.kolby.floatingsiri` | iOS 27-style liquid glass Siri orb (rootless + roothide) |
 | **Music27** | `com.music27.tweak` | Apple Music Liquid Glass UI for iOS 16/17 (rootless; roothide build pending) |
 

@@ -1,0 +1,9 @@
+Package: com.kolby.aether
+Name: Aether
+Depends: mobilesubstrate, preferenceloader
+Version: 0.1.0
+Architecture: iphoneos-arm64
+Description: Universal context glass — clipboard timeline, screen OCR lens, and per-app UI sculpting. Summoned by gesture in any app. RootHide + rootless, iOS 15–17.
+Maintainer: Kolby
+Author: Kolby
+Section: Tweaks
