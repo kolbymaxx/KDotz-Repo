@@ -1,5 +1,9 @@
 # KDotz Repo
 
+<p align="center">
+  <img src="repo-site/logo.png" width="128" height="128" alt="KDotz Repo logo">
+</p>
+
 Sileo / Zebra APT source for Kolby's jailbreak tweaks (rootless + roothide).
 
 ## Add in Sileo
