@@ -6,7 +6,7 @@ iOS 27–style **liquid glass** Siri orb for jailbroken devices.
 - Bottom half: refractive / translucent liquid glass  
 - Center: rainbow spectral wave that **grows with speech level**
 
-Package ID: `com.kolby.siri27`
+Package ID: `com.kolby.siri27` (replaces / uninstalls `com.kolby.floatingsiri` on install)
 
 ## Install via Sileo — KDotz Repo (easiest — auto-updates)
 

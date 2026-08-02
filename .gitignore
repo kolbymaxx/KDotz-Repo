@@ -13,3 +13,5 @@ packages/
 # Built packages for phone install (tracked)
 !dist/
 !dist/*.deb
+Music27/.theos/
+Music27/packages/
