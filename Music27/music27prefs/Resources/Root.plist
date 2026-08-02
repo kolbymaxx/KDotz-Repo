@@ -92,7 +92,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>Music27 1.1.5 — recovers white screen. After update: open Music (dock starts OFF), then Settings → Music27 → enable Floating Glass Dock.</string>
+			<string>Music27 1.1.6 — Settings prefs fixed for RootHide (arm64e). Enable Floating Glass Dock, then force-quit Music.</string>
 		</dict>
 	</array>
 	<key>title</key>

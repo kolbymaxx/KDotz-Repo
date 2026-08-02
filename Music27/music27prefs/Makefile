@@ -1,5 +1,7 @@
 TARGET := iphone:clang:16.5:15.0
-ARCHS = arm64
+# Must include arm64e — RootHide/jbroot Settings loads PreferenceBundles as arm64e.
+# (Hardcoding arm64-only broke Music27Prefs: "have arm64, need arm64e".)
+ARCHS = arm64 arm64e
 
 include $(THEOS)/makefiles/common.mk
 
