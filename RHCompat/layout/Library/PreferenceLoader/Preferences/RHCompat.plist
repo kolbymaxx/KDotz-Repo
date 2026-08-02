@@ -19,7 +19,7 @@
 			<key>label</key>
 			<string>RHCompat</string>
 			<key>footerText</key>
-			<string>RootHide companion. Early-load path shim rewrites /var/jb and classic PreferenceLoader/data paths into the live jbroot so unpatched rootless tweaks keep working. Narrow by design — not a full filesystem virtualization layer.</string>
+			<string>Complements official rootless-compat (keep that installed for binary /var/jb string patching). RHCompat focuses on PreferenceLoader/prefs paths + CFPreferences, with light API-level /var/jb remaps. Not a full filesystem virtualization layer.</string>
 		</dict>
 		<dict>
 			<key>cell</key>

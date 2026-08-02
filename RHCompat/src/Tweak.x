@@ -16,6 +16,8 @@
 #import <sys/stat.h>
 #import <stdio.h>
 #import <stdarg.h>
+#import <dirent.h>
+#import <spawn.h>
 #import <substrate.h>
 
 #import "PathShim.h"
@@ -93,6 +95,33 @@ static FILE *hooked_fopen(const char *path, const char *mode) {
     return orig_fopen(path, mode);
 }
 
+static DIR *(*orig_opendir)(const char *path);
+static DIR *hooked_opendir(const char *path) {
+    const char *rewritten = RHCompatRewritePath(path);
+    if (rewritten) path = rewritten;
+    return orig_opendir(path);
+}
+
+static ssize_t (*orig_readlink)(const char *path, char *buf, size_t bufsize);
+static ssize_t hooked_readlink(const char *path, char *buf, size_t bufsize) {
+    const char *rewritten = RHCompatRewritePath(path);
+    if (rewritten) path = rewritten;
+    return orig_readlink(path, buf, bufsize);
+}
+
+static int (*orig_posix_spawn)(pid_t *pid, const char *path,
+                               const posix_spawn_file_actions_t *file_actions,
+                               const posix_spawnattr_t *attrp,
+                               char *const argv[], char *const envp[]);
+static int hooked_posix_spawn(pid_t *pid, const char *path,
+                              const posix_spawn_file_actions_t *file_actions,
+                              const posix_spawnattr_t *attrp,
+                              char *const argv[], char *const envp[]) {
+    const char *rewritten = RHCompatRewritePath(path);
+    if (rewritten) path = rewritten;
+    return orig_posix_spawn(pid, path, file_actions, attrp, argv, envp);
+}
+
 static void RHCompatInstallPOSIXHooks(void) {
     MSHookFunction((void *)open, (void *)hooked_open, (void **)&orig_open);
     MSHookFunction((void *)openat, (void *)hooked_openat, (void **)&orig_openat);
@@ -100,6 +129,9 @@ static void RHCompatInstallPOSIXHooks(void) {
     MSHookFunction((void *)lstat, (void *)hooked_lstat, (void **)&orig_lstat);
     MSHookFunction((void *)access, (void *)hooked_access, (void **)&orig_access);
     MSHookFunction((void *)fopen, (void *)hooked_fopen, (void **)&orig_fopen);
+    MSHookFunction((void *)opendir, (void *)hooked_opendir, (void **)&orig_opendir);
+    MSHookFunction((void *)readlink, (void *)hooked_readlink, (void **)&orig_readlink);
+    MSHookFunction((void *)posix_spawn, (void *)hooked_posix_spawn, (void **)&orig_posix_spawn);
 }
 
 // -----------------------------------------------------------------------------
