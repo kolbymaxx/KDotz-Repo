@@ -10,7 +10,7 @@
 			<key>label</key>
 			<string>Music27</string>
 			<key>footerText</key>
-			<string>If Music was a white screen, 1.1.5 turns the dock OFF once so Music can open. Re-enable Floating Glass Dock below, then force-quit Music. Pins are local only.</string>
+			<string>RootHide: 1.1.7 reads the same prefs path Settings writes. Turn Floating Glass Dock ON, force-quit Music, reopen. Pins are local only.</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -36,7 +36,7 @@
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
-			<false/>
+			<true/>
 			<key>defaults</key>
 			<string>com.music27.tweak</string>
 			<key>key</key>
@@ -92,7 +92,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>Music27 1.1.6 — Settings prefs fixed for RootHide (arm64e). Enable Floating Glass Dock, then force-quit Music.</string>
+			<string>Music27 1.1.7 — RootHide prefs path sync. Enable Floating Glass Dock, force-quit Music, reopen.</string>
 		</dict>
 	</array>
 	<key>title</key>
