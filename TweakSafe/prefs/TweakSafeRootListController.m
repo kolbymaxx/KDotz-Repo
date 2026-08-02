@@ -2,8 +2,7 @@
 #import <Preferences/PSSpecifier.h>
 #import <UIKit/UIKit.h>
 #include <roothide.h>
-#include <spawn.h>
-#include <unistd.h>
+#include <stdlib.h>
 
 @interface TweakSafeRootListController : PSListController
 @end
