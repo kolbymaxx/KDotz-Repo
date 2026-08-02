@@ -149,3 +149,35 @@ Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass 
 Author: Music27
 Name: Music27
 
+Package: com.music27.tweak
+Version: 1.1.2
+Architecture: iphoneos-arm64e
+Maintainer: Music27
+Installed-Size: 424
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader
+Filename: dist/com.music27.tweak_1.1.2_iphoneos-arm64e.deb
+Size: 56320
+MD5sum: 727e94a57bab3981d29a04d25f54aedd
+SHA1: 20a1380582c5edf3268248397942d5537a375116
+SHA256: bd2abd49d02892b5dc0ce07f34bd5f6b7ad7c498ba764c15171981d729a4f607
+Section: Tweaks
+Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass look — floating glass dock (scroll-collapse / red-button expand), Shuffle·Play·Download album row, library pins, artwork color themes. 1.1.2 covers stock mini-player chrome.
+Author: Music27
+Name: Music27
+
+Package: com.music27.tweak
+Version: 1.1.2
+Architecture: iphoneos-arm64
+Maintainer: Music27
+Installed-Size: 424
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader
+Filename: dist/com.music27.tweak_1.1.2_iphoneos-arm64.deb
+Size: 56294
+MD5sum: b07eb443cdcb4c8a5ff45175fac2be60
+SHA1: 6563f316e6f0b79436c6afe855373cf72ae5123d
+SHA256: 39580c56cb3693e4e2f66cc78e22abc5f1d2810a4828ea339fa64fb9b173f630
+Section: Tweaks
+Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass look — floating glass dock (scroll-collapse / red-button expand), Shuffle·Play·Download album row, library pins, artwork color themes. 1.1.2 covers stock mini-player chrome.
+Author: Music27
+Name: Music27
+
