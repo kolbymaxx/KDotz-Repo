@@ -17,6 +17,7 @@ typedef NS_ENUM(NSInteger, M27DockMode) {
 - (void)floatingDockDidTapPlayPause:(M27FloatingDock *)dock;
 - (void)floatingDockDidTapNowPlaying:(M27FloatingDock *)dock;
 @optional
+- (void)floatingDockDidTapNext:(M27FloatingDock *)dock;
 - (void)floatingDockDidChangeMode:(M27FloatingDock *)dock;
 - (NSInteger)numberOfTabsForFloatingDock:(M27FloatingDock *)dock;
 - (nullable UIImage *)floatingDock:(M27FloatingDock *)dock iconForTabIndex:(NSInteger)index selected:(BOOL)selected;

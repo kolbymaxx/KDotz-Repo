@@ -92,7 +92,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>Music27 1.1.1 — floating Liquid Glass dock (scroll down to collapse; red button expands tabs). Fixed blank Music launch from 1.1.0.</string>
+			<string>Music27 1.1.2 — floating Liquid Glass dock (scroll down to collapse; red button expands tabs). Covers stock mini-player chrome.</string>
 		</dict>
 	</array>
 	<key>title</key>

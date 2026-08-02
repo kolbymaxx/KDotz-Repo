@@ -25,6 +25,7 @@ static const CGFloat kM27CircleButton = 44.0;
 @property (nonatomic, strong) UILabel *expandedTitle;
 @property (nonatomic, strong) UILabel *expandedArtist;
 @property (nonatomic, strong) UIButton *expandedPlayPause;
+@property (nonatomic, strong) UIButton *expandedNext;
 @property (nonatomic, strong) UIVisualEffectView *tabsGlass;
 @property (nonatomic, strong) UIStackView *tabsStack;
 @property (nonatomic, strong) NSMutableArray<UIButton *> *tabButtons;
@@ -192,6 +193,13 @@ static const CGFloat kM27CircleButton = 44.0;
                                                        action:@selector(playPauseTapped)];
     _expandedPlayPause.backgroundColor = UIColor.clearColor;
     [_miniGlass.contentView addSubview:_expandedPlayPause];
+
+    _expandedNext = [self circleIconButtonWithSystemName:@"forward.fill"
+                                                    tint:UIColor.labelColor
+                                                  target:self
+                                                  action:@selector(nextTapped)];
+    _expandedNext.backgroundColor = UIColor.clearColor;
+    [_miniGlass.contentView addSubview:_expandedNext];
 
     _tabsGlass = [M27GlassChrome pillWithCornerRadius:28.0];
     UIView *tabsHost = [[UIView alloc] initWithFrame:CGRectZero];
@@ -398,10 +406,12 @@ static const CGFloat kM27CircleButton = 44.0;
     CGFloat ePad = 10.0;
     CGFloat eArtY = (kM27ExpandedMiniHeight - eArt) / 2.0;
     self.expandedArt.frame = CGRectMake(ePad, eArtY, eArt, eArt);
-    CGFloat ePlay = 36.0;
+    CGFloat eBtn = 34.0;
+    CGFloat nextX = CGRectGetWidth(self.miniGlass.bounds) - ePad - eBtn;
+    self.expandedNext.frame =
+        CGRectMake(nextX, (kM27ExpandedMiniHeight - eBtn) / 2.0, eBtn, eBtn);
     self.expandedPlayPause.frame =
-        CGRectMake(CGRectGetWidth(self.miniGlass.bounds) - ePad - ePlay,
-                   (kM27ExpandedMiniHeight - ePlay) / 2.0, ePlay, ePlay);
+        CGRectMake(nextX - eBtn - 2.0, (kM27ExpandedMiniHeight - eBtn) / 2.0, eBtn, eBtn);
     CGFloat eTextX = CGRectGetMaxX(self.expandedArt.frame) + 8.0;
     CGFloat eTextW = MAX(0, CGRectGetMinX(self.expandedPlayPause.frame) - 8.0 - eTextX);
     self.expandedTitle.frame = CGRectMake(eTextX, eArtY + 1.0, eTextW, 16.0);
@@ -477,6 +487,12 @@ static const CGFloat kM27CircleButton = 44.0;
 - (void)playPauseTapped {
     if ([self.delegate respondsToSelector:@selector(floatingDockDidTapPlayPause:)]) {
         [self.delegate floatingDockDidTapPlayPause:self];
+    }
+}
+
+- (void)nextTapped {
+    if ([self.delegate respondsToSelector:@selector(floatingDockDidTapNext:)]) {
+        [self.delegate floatingDockDidTapNext:self];
     }
 }
 

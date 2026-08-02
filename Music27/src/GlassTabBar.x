@@ -54,6 +54,15 @@ static void M27TogglePlayPause(void) {
     }
 }
 
+static void M27NextTrack(void) {
+    M27MRSendCommandFunc send = M27MRSendCommand();
+    if (send) {
+        send(4, NULL); // kMRNextTrack
+        return;
+    }
+    [MPMusicPlayerController.systemMusicPlayer skipToNextItem];
+}
+
 #pragma mark - Stock chrome (tab bar only — never hide content views)
 
 static void M27StripTabBarChromeOnce(UITabBar *tabBar) {
@@ -65,7 +74,8 @@ static void M27StripTabBarChromeOnce(UITabBar *tabBar) {
     [tabBar setBackgroundImage:[UIImage new]];
     [tabBar setShadowImage:[UIImage new]];
     tabBar.translucent = YES;
-    // Keep the bar in-hierarchy for Music layout, but ignore hits — dock handles them.
+    // Keep in-hierarchy for Music layout, but fully invisible + non-interactive.
+    tabBar.alpha = 0.0;
     tabBar.userInteractionEnabled = NO;
 
     if (@available(iOS 13.0, *)) {
@@ -74,14 +84,6 @@ static void M27StripTabBarChromeOnce(UITabBar *tabBar) {
         appearance.backgroundEffect = nil;
         appearance.backgroundColor = UIColor.clearColor;
         appearance.shadowColor = UIColor.clearColor;
-        appearance.stackedLayoutAppearance.normal.iconColor = UIColor.clearColor;
-        appearance.stackedLayoutAppearance.normal.titleTextAttributes = @{
-            NSForegroundColorAttributeName: UIColor.clearColor
-        };
-        appearance.stackedLayoutAppearance.selected.iconColor = UIColor.clearColor;
-        appearance.stackedLayoutAppearance.selected.titleTextAttributes = @{
-            NSForegroundColorAttributeName: UIColor.clearColor
-        };
         tabBar.standardAppearance = appearance;
         tabBar.scrollEdgeAppearance = appearance;
     }
@@ -91,6 +93,7 @@ static void M27RestoreTabBarChrome(UITabBar *tabBar) {
     if (!tabBar || !objc_getAssociatedObject(tabBar, kM27ChromeKey)) return;
     objc_setAssociatedObject(tabBar, kM27ChromeKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
+    tabBar.alpha = 1.0;
     tabBar.userInteractionEnabled = YES;
     tabBar.hidden = NO;
     [tabBar setBackgroundImage:nil];
@@ -169,16 +172,30 @@ static UIView *M27FindStockMiniPlayer(UITabBarController *tbc);
     M27TogglePlayPause();
 }
 
+- (void)floatingDockDidTapNext:(M27FloatingDock *)dock {
+    (void)dock;
+    M27NextTrack();
+}
+
 - (void)floatingDockDidTapNowPlaying:(M27FloatingDock *)dock {
     (void)dock;
-    // Soft open: try to tap the real mini player if we can find it safely.
+    // Soft open: briefly re-enable the stock mini player and tap it.
     UIView *mini = M27FindStockMiniPlayer(self.tabBarController);
     if (!mini) return;
+    CGFloat prevAlpha = mini.alpha;
+    BOOL prevInteraction = mini.userInteractionEnabled;
+    mini.alpha = 0.02;
+    mini.userInteractionEnabled = YES;
     CGPoint point = CGPointMake(CGRectGetMidX(mini.bounds), CGRectGetMidY(mini.bounds));
     UIView *target = [mini hitTest:point withEvent:nil] ?: mini;
     if ([target isKindOfClass:UIControl.class]) {
         [(UIControl *)target sendActionsForControlEvents:UIControlEventTouchUpInside];
     }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        mini.alpha = prevAlpha;
+        mini.userInteractionEnabled = prevInteraction;
+    });
 }
 
 - (void)floatingDockDidChangeMode:(M27FloatingDock *)dock {
@@ -210,45 +227,74 @@ static UIView *M27FindStockMiniPlayer(UITabBarController *tbc);
 
 @end
 
-#pragma mark - Mini player discovery (strict)
+#pragma mark - Mini player discovery (frame-based, safe)
 
 static UIView *M27FindStockMiniPlayer(UITabBarController *tbc) {
     if (!tbc) return nil;
     UITabBar *tabBar = tbc.tabBar;
-    UIView *parent = tabBar.superview;
+    UIView *parent = tbc.view;
     if (!parent) return nil;
 
-    // Only inspect direct siblings of the tab bar — never walk the selected
-    // view controller's content tree (that caused the white-screen bug).
+    CGRect tabFrame = [tabBar convertRect:tabBar.bounds toView:parent];
     static NSArray<NSString *> *strongNeedles;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
-        strongNeedles = @[ @"miniplayer", @"nowplayingbar", @"nowplayingmini" ];
+        strongNeedles = @[ @"miniplayer", @"nowplayingbar", @"nowplayingmini", @"playerbar" ];
     });
 
-    for (UIView *sibling in parent.subviews) {
-        if (sibling == tabBar) continue;
-        if (sibling.tag == kM27DockTag) continue;
-        // Reject anything that looks like a full-screen content host.
-        if (sibling.bounds.size.height > 120.0) continue;
-        if (M27ClassNameContains(sibling, strongNeedles)) {
-            return sibling;
-        }
-        for (UIView *child in sibling.subviews) {
-            if (child.bounds.size.height > 120.0) continue;
-            if (M27ClassNameContains(child, strongNeedles)) {
-                return child;
-            }
+    UIView *best = nil;
+    CGFloat bestArea = 0;
+
+    // Only direct subviews of the tab controller's view — never descend into
+    // the selected page content (that caused the white-screen bug).
+    for (UIView *sub in parent.subviews) {
+        if (sub == tabBar) continue;
+        if (sub.tag == kM27DockTag) continue;
+        if (sub.hidden) continue;
+
+        CGRect frame = sub.frame;
+        CGFloat h = frame.size.height;
+        CGFloat w = frame.size.width;
+        if (h < 40.0 || h > 110.0) continue;
+        if (w < parent.bounds.size.width * 0.70) continue;
+
+        // Must sit immediately above (or overlapping) the tab bar.
+        CGFloat maxY = CGRectGetMaxY(frame);
+        CGFloat tabMinY = CGRectGetMinY(tabFrame);
+        if (maxY < tabMinY - 24.0) continue;
+        if (CGRectGetMinY(frame) > tabMinY + 10.0) continue;
+
+        BOOL nameMatch = M27ClassNameContains(sub, strongNeedles);
+        CGFloat area = w * h;
+        if (nameMatch) area *= 2.0;
+        if (area > bestArea) {
+            bestArea = area;
+            best = sub;
         }
     }
-    return nil;
+    return best;
 }
 
-static void M27FadeStockMiniPlayer(UITabBarController *tbc) {
+static void M27FadeStockBottomChrome(UITabBarController *tbc, CGRect dockFrame) {
+    if (!tbc) return;
+    UITabBar *tabBar = tbc.tabBar;
+    tabBar.alpha = 0.0;
+    tabBar.userInteractionEnabled = NO;
+
+    CGRect cover = CGRectInset(dockFrame, 0, -12.0);
+    for (UIView *sub in tbc.view.subviews) {
+        if (sub == tabBar) continue;
+        if (sub.tag == kM27DockTag) continue;
+        // Never fade tall content hosts.
+        if (sub.bounds.size.height > 120.0) continue;
+        if (!CGRectIntersectsRect(sub.frame, cover)) continue;
+        sub.alpha = 0.0;
+        sub.userInteractionEnabled = NO;
+    }
+
+    // Also fade a geometry-matched mini player even if slightly outside cover.
     UIView *mini = M27FindStockMiniPlayer(tbc);
-    if (!mini) return;
-    // Fade only — never .hidden / removeFromSuperview (Music may use it for layout).
-    if (mini.alpha > 0.01) {
+    if (mini && mini.tag != kM27DockTag) {
         mini.alpha = 0.0;
         mini.userInteractionEnabled = NO;
     }
@@ -277,26 +323,36 @@ static void M27LayoutDock(UITabBarController *tbc, M27FloatingDock *dock) {
 
     @try {
         CGFloat safeBottom = tbc.view.safeAreaInsets.bottom;
-        CGFloat bottomPad = MAX(safeBottom > 0 ? safeBottom * 0.25 : 8.0, 8.0);
+        CGFloat bottomPad = MAX(safeBottom > 0 ? MIN(safeBottom * 0.35, 14.0) : 8.0, 8.0);
         CGFloat height = dock.preferredHeight;
         CGFloat width = tbc.view.bounds.size.width;
         CGFloat hostH = tbc.view.bounds.size.height;
         if (width < 1 || hostH < 1) return;
 
+        // Prefer covering the stock mini-player slot when present, otherwise sit
+        // just above the (invisible) tab bar / home indicator.
         CGFloat y = hostH - height - bottomPad;
-        // Sit above the (transparent) stock tab bar when it still occupies space.
-        CGFloat tabH = tbc.tabBar.bounds.size.height;
-        if (!tbc.tabBar.hidden && tabH > 1.0) {
-            // Keep dock visually floating above home indicator; stock bar is clear.
-            y = hostH - height - bottomPad;
+        UIView *mini = M27FindStockMiniPlayer(tbc);
+        if (mini) {
+            CGRect miniFrame = [mini convertRect:mini.bounds toView:tbc.view];
+            CGFloat coverTop = CGRectGetMinY(miniFrame);
+            // Keep dock height, but shift up so we fully cover stock mini chrome.
+            y = MIN(y, coverTop);
+        } else {
+            CGRect tabFrame = [tbc.tabBar convertRect:tbc.tabBar.bounds toView:tbc.view];
+            if (dock.mode == M27DockModeExpanded) {
+                y = MIN(y, CGRectGetMinY(tabFrame) - (height - CGRectGetHeight(tabFrame)));
+            }
         }
-        dock.frame = CGRectMake(0, y, width, height);
+
+        CGRect dockFrame = CGRectMake(0, y, width, height);
+        dock.frame = dockFrame;
         [dock refreshChrome];
         [tbc.view bringSubviewToFront:dock];
+        M27FadeStockBottomChrome(tbc, dockFrame);
 
-        // Extra bottom inset so list content clears the floating dock. Apply only
-        // when the value actually changes — avoids layout thrash / white screen.
-        CGFloat needed = height + 4.0;
+        // Extra bottom inset so list content clears the floating dock.
+        CGFloat needed = (hostH - y) + 4.0;
         UIEdgeInsets insets = tbc.additionalSafeAreaInsets;
         if (fabs(insets.bottom - needed) > 1.0) {
             insets.bottom = needed;
@@ -316,11 +372,18 @@ static void M27InstallDockIfNeeded(UITabBarController *tbc) {
         if (existing) [existing removeFromSuperview];
         tbc.additionalSafeAreaInsets = UIEdgeInsetsZero;
         M27RestoreTabBarChrome(tbc.tabBar);
+        // Restore any faded sibling chrome we may have dimmed.
+        for (UIView *sub in tbc.view.subviews) {
+            if (sub.tag == kM27DockTag) continue;
+            if (sub.alpha < 0.05 && sub.bounds.size.height <= 120.0) {
+                sub.alpha = 1.0;
+                sub.userInteractionEnabled = YES;
+            }
+        }
         return;
     }
 
     M27StripTabBarChromeOnce(tbc.tabBar);
-    M27FadeStockMiniPlayer(tbc);
 
     if (objc_getAssociatedObject(tbc, kM27DockInstalledKey) && existing) {
         M27LayoutDock(tbc, existing);
@@ -400,11 +463,10 @@ static void M27HandleScrollOffset(UIScrollView *scrollView) {
     %orig;
     M27Prefs *prefs = M27Prefs.shared;
     if (!(prefs.enabled && prefs.glassTabBarEnabled)) return;
-    // Layout-only path: never reinstall / never hide content here.
+    // Layout-only path: never reinstall / never hide tall content hosts.
     M27FloatingDock *dock = M27DockForTabBarController(self);
     if (dock) {
         M27LayoutDock(self, dock);
-        M27FadeStockMiniPlayer(self);
     }
 }
 
