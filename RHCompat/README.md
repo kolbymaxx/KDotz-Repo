@@ -40,7 +40,7 @@ Plus light `CFPreferencesCopyAppValue` / `CFPreferencesSetAppValue` bridging for
 - No Dobby binary rewriting (that’s `rootless-compat`)
 - No broad filesystem virtualization (not libvroot)
 - No rewrite of Apple system preference domains
-- No injection beyond processes that already receive tweaks (`UIKit` / SpringBoard / Preferences; RootHide’s app allowlist still applies)
+- No SpringBoard / UIKit injection (Preferences.app only)
 
 ## Settings
 
