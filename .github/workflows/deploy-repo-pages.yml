@@ -38,6 +38,12 @@ jobs:
           cp Packages Packages.gz Release site/
           cp dist/*.deb site/dist/
           cp repo-site/index.html site/ 2>/dev/null || true
+          cp repo-site/logo.png site/ 2>/dev/null || true
+          cp CydiaIcon.png "CydiaIcon@2x.png" "CydiaIcon@3x.png" site/ 2>/dev/null || true
+          # Prevent Jekyll from stripping extensionless APT files like Release
+          touch site/.nojekyll
+          test -f site/Release
+          test -f site/Packages
           ls -laR site
 
       - name: Configure Pages

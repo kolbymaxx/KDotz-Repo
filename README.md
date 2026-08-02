@@ -7,10 +7,10 @@ Sileo / Zebra APT source for Kolby's jailbreak tweaks (rootless + roothide).
 **Sources → Edit → Add:**
 
 ```
-https://kolbymaxx.github.io/Siri27/
+https://kolbymaxx.github.io/KDotz-Repo/
 ```
 
-Backup mirror (same packages): `https://raw.githubusercontent.com/kolbymaxx/Siri27/main/`
+Backup mirror (same packages): `https://raw.githubusercontent.com/kolbymaxx/KDotz-Repo/main/`
 
 Origin / label: **KDotz Repo**
 
