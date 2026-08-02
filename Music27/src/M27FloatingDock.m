@@ -311,13 +311,9 @@ static const CGFloat kM27CircleButton = 44.0;
         button.tag = i;
         button.titleLabel.font = [UIFont systemFontOfSize:10 weight:UIFontWeightMedium];
         button.titleLabel.lineBreakMode = NSLineBreakByTruncatingTail;
-        if (@available(iOS 15.0, *)) {
-            UIButtonConfiguration *config = [UIButtonConfiguration plainButtonConfiguration];
-            config.imagePlacement = NSDirectionalRectEdgeTop;
-            config.imagePadding = 2.0;
-            config.baseForegroundColor = UIColor.secondaryLabelColor;
-            button.configuration = config;
-        }
+        button.titleLabel.numberOfLines = 1;
+        button.tintColor = UIColor.secondaryLabelColor;
+        // Avoid UIButtonConfiguration — simpler layout is more stable inside Music.
 
         NSString *title = nil;
         if ([self.delegate respondsToSelector:@selector(floatingDock:titleForTabIndex:)]) {
@@ -334,12 +330,17 @@ static const CGFloat kM27CircleButton = 44.0;
         if (!icon) {
             NSString *sys = i < (NSInteger)fallbackIcons.count ? fallbackIcons[i] : @"circle";
             UIImageSymbolConfiguration *cfg =
-                [UIImageSymbolConfiguration configurationWithPointSize:18 weight:UIImageSymbolWeightMedium];
+                [UIImageSymbolConfiguration configurationWithPointSize:17 weight:UIImageSymbolWeightMedium];
             icon = [UIImage systemImageNamed:sys withConfiguration:cfg];
         }
 
         [button setImage:icon forState:UIControlStateNormal];
         [button setTitle:title forState:UIControlStateNormal];
+        [button setTitleColor:UIColor.secondaryLabelColor forState:UIControlStateNormal];
+        button.contentHorizontalAlignment = UIControlContentHorizontalAlignmentCenter;
+        // Stack icon above title.
+        button.titleEdgeInsets = UIEdgeInsetsMake(28, -22, 0, 0);
+        button.imageEdgeInsets = UIEdgeInsetsMake(-10, 12, 10, -12);
         [button addTarget:self action:@selector(tabTapped:) forControlEvents:UIControlEventTouchUpInside];
         [self.tabsStack addArrangedSubview:button];
         [self.tabButtons addObject:button];
@@ -453,13 +454,6 @@ static const CGFloat kM27CircleButton = 44.0;
         UIColor *color = selected ? active : inactive;
         button.tintColor = color;
         [button setTitleColor:color forState:UIControlStateNormal];
-        if (@available(iOS 15.0, *)) {
-            UIButtonConfiguration *config = button.configuration;
-            if (config) {
-                config.baseForegroundColor = color;
-                button.configuration = config;
-            }
-        }
         if (selected) {
             button.backgroundColor = [active colorWithAlphaComponent:0.12];
             button.layer.cornerRadius = 16.0;

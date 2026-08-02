@@ -54,10 +54,23 @@ const NSInteger M27MaxPins = 12;
     // external writes from the preference bundle before re-reading.
     [_defaults synchronize];
     CFPreferencesAppSynchronize((__bridge CFStringRef)M27PrefDomain);
+
+    // One-time recovery from 1.1.2–1.1.4 white-screen builds: leave the master
+    // toggle on, but require re-enabling the dock once so Music can open.
+    if (![_defaults objectForKey:@"dockSafeBoot115"]) {
+        [_defaults setBool:YES forKey:@"dockSafeBoot115"];
+        [_defaults setBool:NO forKey:@"glassTabBar"];
+        [_defaults synchronize];
+        CFPreferencesSetAppValue(CFSTR("glassTabBar"), kCFBooleanFalse,
+                                 (__bridge CFStringRef)M27PrefDomain);
+        CFPreferencesSetAppValue(CFSTR("dockSafeBoot115"), kCFBooleanTrue,
+                                 (__bridge CFStringRef)M27PrefDomain);
+        CFPreferencesAppSynchronize((__bridge CFStringRef)M27PrefDomain);
+    }
+
     _enabled = [self boolForKey:@"enabled" defaultValue:YES];
-    _glassTabBarEnabled = [self boolForKey:@"glassTabBar" defaultValue:YES];
+    _glassTabBarEnabled = [self boolForKey:@"glassTabBar" defaultValue:NO];
     _colorThemeEnabled = [self boolForKey:@"colorTheme" defaultValue:YES];
-    // Pins default OFF — overlay is optional and was contributing to Library confusion.
     _libraryPinsEnabled = [self boolForKey:@"libraryPins" defaultValue:NO];
 }
 
