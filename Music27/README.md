@@ -2,23 +2,21 @@
 
 Jailbreak tweak that restyles **Apple Music on iOS 16 / 17** toward the **iOS 26 / 27 Liquid Glass** look:
 
-- Floating glass tab bar (continuous corners, soft specular edge, ultra-thin material)
-- Rounded floating mini-player chrome
-- Artwork-driven color wash on album / playlist / now-playing (translucent, behind content)
+- **Floating glass dock**
+  - **Expanded:** mini-player glass pill stacked above a 5-tab glass pill
+  - **Collapsed (after scroll down):** merged pill with red Music button · now playing · Search
+  - Tap the **red button** to expand back to the 5-tab layout
+- **Album / playlist controls:** Shuffle (circle) · Play (pill) · Download (circle)
+- Artwork-driven color wash on album / playlist / now-playing
 - **Pinned** row at the top of Library + Pin / Unpin in context menus and detail nav bars
 
 Settings live under **Settings → Music27**.
 
-## Black-screen fix (1.0.0 → 1.0.1)
+## Dock behavior
 
-The shipped `1.0.0-3+debug` deb painted the whole Music app black. Root causes:
-
-1. **`M27LooksLikeAlbumOrPlaylist` matched any class containing `container`**, which includes Music’s root container view controller — so the color wash ran on the entire app.
-2. **`M27ApplyWash` inserted an opaque `UIView` as a subview.** On iOS 16/17 Music is largely SwiftUI; hosting layers render under UIKit subviews, so the opaque “background” covered all content.
-3. **No-artwork fallback used `systemGrayColor` darkened ~75%**, which is near-black — so even screens without artwork got a black overlay.
-4. **Glass chrome was re-applied on every `layoutSubviews`**, which invalidated layout and caused an endless relayout loop.
-
-1.0.1 fixes all four: stricter matchers, translucent `CAGradientLayer` wash behind content, no theme without artwork, and one-shot chrome stripping.
+1. Fresh launch starts **expanded** (tabs visible).
+2. Scrolling down collapses into the merged red · mini · Search pill.
+3. Collapsed state stays until you tap the red Music button, which expands again.
 
 ## Install via Sileo (KDotz Repo — recommended)
 
@@ -56,4 +54,4 @@ Or copy the deb into `Siri27/dist/` and run `scripts/update-apt-repo.sh` there, 
 
 ## Scope / honesty
 
-This approximates Liquid Glass with `UIVisualEffectView` + continuous corners + specular border. It is **not** Apple’s private Liquid Glass renderer. Full SwiftUI restyling of every Music surface is out of scope for a UIKit-hook tweak; glass chrome, pins, and themed washes are what this delivers reliably.
+This approximates Liquid Glass with `UIVisualEffectView` + continuous corners + specular border + soft shadow. It is **not** Apple’s private Liquid Glass renderer. The dock replaces Music’s stock tab bar / mini-player chrome visually while forwarding tab selection, Search, play/pause (MediaRemote), and Now Playing presentation to Music’s real controllers.

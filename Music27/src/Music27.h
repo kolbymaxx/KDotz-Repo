@@ -5,9 +5,10 @@ NS_ASSUME_NONNULL_BEGIN
 // Shared declarations for the Music27 tweak.
 //
 // Music27 restyles Apple Music on iOS 16/17 toward the iOS 26/27
-// "Liquid Glass" look: floating glass tab bar, rounded floating mini
-// player, artwork-driven color theming, and a pinned items row at the
-// top of the Library page.
+// "Liquid Glass" look: floating glass dock (collapsed red·mini·search /
+// expanded mini + 5 tabs), album Shuffle·Play·Download controls,
+// artwork-driven color theming, and a pinned items row at the top of
+// the Library page.
 
 extern NSString *const M27PrefDomain;           // com.music27.tweak
 extern NSString *const M27ThemeDidChangeNotification;
