@@ -19,7 +19,7 @@
 			<key>label</key>
 			<string>RHCompat</string>
 			<key>footerText</key>
-			<string>Complements official rootless-compat (keep that installed for binary /var/jb string patching). RHCompat focuses on PreferenceLoader/prefs paths + CFPreferences, with light API-level /var/jb remaps. Not a full filesystem virtualization layer.</string>
+			<string>Preferences.app only (1.0.2+). Complements official rootless-compat for binary /var/jb patching. If 1.0.1 black-screened your device, remove 000RHCompat via SSH — see the package README/RECOVERY.md.</string>
 		</dict>
 		<dict>
 			<key>cell</key>

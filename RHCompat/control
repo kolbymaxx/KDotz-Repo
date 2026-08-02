@@ -2,9 +2,9 @@ Package: com.kolby.rhcompat
 Name: RHCompat
 Depends: mobilesubstrate, preferenceloader
 Suggests: rootless-compat
-Version: 1.0.1
+Version: 1.0.2
 Architecture: iphoneos-arm64e
-Description: RootHide companion that complements official rootless-compat — PreferenceLoader/prefs-data + CFPreferences bridging, with light /var/jb API remaps. RootHide (Relaxin') only. Not a replacement for rootless-compat.
+Description: RootHide PreferenceLoader/prefs companion (Preferences.app only). 1.0.2 removes SpringBoard injection and POSIX open/stat hooks that could black-screen after respring. Complements official rootless-compat — not a replacement.
 Maintainer: Kolby
 Author: Kolby
 Section: Tweaks

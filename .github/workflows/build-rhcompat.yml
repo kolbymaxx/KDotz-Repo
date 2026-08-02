@@ -80,7 +80,12 @@ jobs:
           FILTER="$(find "$TMP" -name '000RHCompat.plist' | head -1)"
           test -n "$FILTER"
           plutil -p "$FILTER"
-          grep -q 'UIKit' <(plutil -p "$FILTER")
+          # Safety: Preferences-only — never SpringBoard/UIKit (1.0.1 black-screen)
+          grep -q 'Preferences' <(plutil -p "$FILTER")
+          if grep -q 'springboard\|SpringBoard\|UIKit' <(plutil -p "$FILTER"); then
+            echo "ERROR: filter must not inject SpringBoard/UIKit" >&2
+            exit 1
+          fi
           test -f "$TMP/Library/PreferenceLoader/Preferences/RHCompat.plist"
 
       - name: Upload .deb artifact

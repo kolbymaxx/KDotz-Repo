@@ -1,6 +1,6 @@
 TARGET := iphone:clang:latest:15.0
 ARCHS = arm64 arm64e
-INSTALL_TARGET_PROCESSES = SpringBoard Preferences
+INSTALL_TARGET_PROCESSES = Preferences
 
 # RootHide-only package. Do not build with THEOS_PACKAGE_SCHEME=rootless.
 THEOS_PACKAGE_SCHEME = roothide

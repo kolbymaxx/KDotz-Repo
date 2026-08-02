@@ -24,7 +24,7 @@ Origin / label: **KDotz Repo**
 |---------|----|--------|
 | **Siri27** | `com.kolby.siri27` | iOS 27-style liquid glass Siri orb (rootless + roothide). Replaces FloatingSiri. |
 | **Music27** | `com.music27.tweak` | Apple Music Liquid Glass UI for iOS 16/17 (rootless + roothide) |
-| **RHCompat** | `com.kolby.rhcompat` | RootHide companion — complements official `rootless-compat` with PreferenceLoader/prefs + CFPreferences bridging (**roothide only**) |
+| **RHCompat** | `com.kolby.rhcompat` | RootHide PreferenceLoader/prefs companion (**Preferences.app only**, roothide). Use 1.0.2+; 1.0.1 could black-screen. |
 
 One source URL works on both jailbreak types: rootless Sileo installs the
 `iphoneos-arm64` builds, roothide (Relaxin') Sileo installs `iphoneos-arm64e`.
