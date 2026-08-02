@@ -245,3 +245,35 @@ Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass 
 Author: Music27
 Name: Music27
 
+Package: com.music27.tweak
+Version: 1.1.5
+Architecture: iphoneos-arm64e
+Maintainer: Music27
+Installed-Size: 424
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader
+Filename: dist/com.music27.tweak_1.1.5_iphoneos-arm64e.deb
+Size: 56284
+MD5sum: 3c2cbdf7d81c2852ce7be440a67023bd
+SHA1: 6fb70bb40b3f52b1799f12c7a93c07f347ec1145
+SHA256: 40571d40662deba3f0cb5bc18fdebfe05c8b99bc108e0d03e95ea566595dcad1
+Section: Tweaks
+Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass look. 1.1.5 recovers from white-screen builds — dock starts OFF once; re-enable Floating Glass Dock in Settings after Music opens.
+Author: Music27
+Name: Music27
+
+Package: com.music27.tweak
+Version: 1.1.5
+Architecture: iphoneos-arm64
+Maintainer: Music27
+Installed-Size: 424
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader
+Filename: dist/com.music27.tweak_1.1.5_iphoneos-arm64.deb
+Size: 56290
+MD5sum: b709a65f618f7c1a73c20ebf9af5878c
+SHA1: ed87d4c4e69e81cfe423d9c2e9d0c01869d5b782
+SHA256: 56b7869205074acc6f5854811dfeba2d9db7651cc36cf6f5e3e133580a51403e
+Section: Tweaks
+Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass look. 1.1.5 recovers from white-screen builds — dock starts OFF once; re-enable Floating Glass Dock in Settings after Music opens.
+Author: Music27
+Name: Music27
+
