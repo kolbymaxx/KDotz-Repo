@@ -457,7 +457,6 @@ static void M27HandleScrollOffset(UIScrollView *scrollView) {
 
 - (void)layoutSubviews {
     %orig;
-    [M27Prefs.shared reload];
     M27Prefs *prefs = M27Prefs.shared;
     if (!(prefs.enabled && prefs.glassTabBarEnabled)) return;
     if (!objc_getAssociatedObject(self, kM27ChromeKey)) {
