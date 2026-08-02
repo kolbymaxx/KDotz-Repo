@@ -1,46 +1,68 @@
 Package: com.kolby.siri27
-Version: 1.38.0
+Version: 1.39.1
 Architecture: iphoneos-arm64
 Maintainer: Kolby
 Installed-Size: 756
 Depends: mobilesubstrate, preferenceloader
-Filename: dist/com.kolby.siri27_1.38.0_iphoneos-arm64.deb
-Size: 137822
-MD5sum: dcd9157c304c496c1d714ae3f99aeb72
-SHA1: ae0044d59b1ac537067b1bd60ef1e272a9d15851
-SHA256: 30c4e71f775a14d729f35e6c4aa050d8a153101143b3c687c8ed432fc4b65155
+Conflicts: com.kolby.floatingsiri
+Replaces: com.kolby.floatingsiri
+Provides: com.kolby.floatingsiri
+Filename: dist/com.kolby.siri27_1.39.1_iphoneos-arm64.deb
+Size: 138586
+MD5sum: f1300b419f1c42ce654c2abb2f6ecad0
+SHA1: f72f5ac4a3083397baa5cc9bbae26fe4ff9ddd29
+SHA256: ca1e0f60fbe2fc259ac35ae4b90e84aaaa6a809cc58bd3587069f87aef7f969a
 Section: Tweaks
-Description: iOS 27-style liquid glass Siri orb — half-dark refractive glass, voice-reactive rainbow wave. rootless + roothide (Relaxin'), iOS 14–17.3.
+Description: iOS 27-style liquid glass Siri orb — half-dark refractive glass, voice-reactive rainbow wave. rootless + roothide (Relaxin'), iOS 14–17.3. Replaces FloatingSiri.
 Author: Kolby
 Name: Siri27
 
 Package: com.kolby.siri27
-Version: 1.38.0
+Version: 1.39.1
 Architecture: iphoneos-arm64e
 Maintainer: Kolby
 Installed-Size: 756
 Depends: mobilesubstrate, preferenceloader
-Filename: dist/com.kolby.siri27_1.38.0_iphoneos-arm64e.deb
-Size: 137834
-MD5sum: 150149a2fb22aba2a077b55b12cc2e12
-SHA1: 2e9c719c587e6b611696d0d6d2e30bc363639f59
-SHA256: 562eba227f913b48e5dc16ba487b6f42e404a27d240e6ad5bc99f338fd708db2
+Conflicts: com.kolby.floatingsiri
+Replaces: com.kolby.floatingsiri
+Provides: com.kolby.floatingsiri
+Filename: dist/com.kolby.siri27_1.39.1_iphoneos-arm64e.deb
+Size: 138554
+MD5sum: d122ee7b6fddfa4b45cc681a5d30304f
+SHA1: 9c3e48ddea53c747b45be7ece15d6e01e5cb468b
+SHA256: cfbc91de66a28f72666884e10720bff351e0b90638b1d81f4dd9e2294655d28c
 Section: Tweaks
-Description: iOS 27-style liquid glass Siri orb — half-dark refractive glass, voice-reactive rainbow wave. rootless + roothide (Relaxin'), iOS 14–17.3.
+Description: iOS 27-style liquid glass Siri orb — half-dark refractive glass, voice-reactive rainbow wave. rootless + roothide (Relaxin'), iOS 14–17.3. Replaces FloatingSiri.
 Author: Kolby
 Name: Siri27
 
 Package: com.music27.tweak
-Version: 1.0.1
+Version: 1.0.2
 Architecture: iphoneos-arm64
 Maintainer: Music27
-Installed-Size: 228
+Installed-Size: 356
 Depends: mobilesubstrate (>= 0.9.5000), preferenceloader
-Filename: dist/com.music27.tweak_1.0.1_iphoneos-arm64.deb
-Size: 26662
-MD5sum: 6ffa62a9e53093213fe059a3ab552d61
-SHA1: 7ea6565ca325a79bfc23da0783257705c86dbf35
-SHA256: 228edce07eebb6f2a2f5f15772a868aa6911f812bd95ddd422bf1ff7f97abed3
+Filename: dist/com.music27.tweak_1.0.2_iphoneos-arm64.deb
+Size: 33874
+MD5sum: 89b5f187f1201659d8d5dbcceb7a73db
+SHA1: 356a0cd6fdc7321cc2f98a43690e0da60bda40a0
+SHA256: b5bd7eea707e98b712e6b484dd4b170d342cef405de7bfa1acc66189ab80c90e
+Section: Tweaks
+Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass look — glass tab bar, floating mini player, library pins, artwork color themes. Fixes the black-screen bug from 1.0.0.
+Author: Music27
+Name: Music27
+
+Package: com.music27.tweak
+Version: 1.0.2
+Architecture: iphoneos-arm64e
+Maintainer: Music27
+Installed-Size: 356
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader
+Filename: dist/com.music27.tweak_1.0.2_iphoneos-arm64e.deb
+Size: 33842
+MD5sum: 8df90a05605387f9605d88c47510891c
+SHA1: ed79f57a17dac79ad226012ab1b15b8c2ed4c94d
+SHA256: 5ebf191f333acd0b64dd88869925f9493e3ff29b0b01b2ea836b1722506c6ed8
 Section: Tweaks
 Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass look — glass tab bar, floating mini player, library pins, artwork color themes. Fixes the black-screen bug from 1.0.0.
 Author: Music27
