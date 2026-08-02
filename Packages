@@ -1,3 +1,35 @@
+Package: com.kolby.aether
+Version: 0.1.0
+Architecture: iphoneos-arm64
+Maintainer: Kolby
+Installed-Size: 280
+Depends: mobilesubstrate, preferenceloader
+Filename: dist/com.kolby.aether_0.1.0_iphoneos-arm64.deb
+Size: 38498
+MD5sum: 50bcba3d16019cfb4e7b45e64826c630
+SHA1: 0457cf0faf0c09f0bb7cd6ceb9efa0ca11824c03
+SHA256: c46e5a5d1a38f978d9819f135f68fdc7403690b71818f4266f79d8b64a98be4d
+Section: Tweaks
+Description: Universal context glass — clipboard timeline, screen OCR lens, and per-app UI sculpting. Summoned by gesture in any app. RootHide + rootless, iOS 15–17.
+Author: Kolby
+Name: Aether
+
+Package: com.kolby.aether
+Version: 0.1.0
+Architecture: iphoneos-arm64e
+Maintainer: Kolby
+Installed-Size: 280
+Depends: mobilesubstrate, preferenceloader
+Filename: dist/com.kolby.aether_0.1.0_iphoneos-arm64e.deb
+Size: 38458
+MD5sum: 6b32b7f4cb80f395d39991c3018e44c7
+SHA1: cb0d7322e9fdbe4f327dcc908422fde81c72ce1b
+SHA256: 1e34b11f35d07c2602a332556312fc8ec2aa00dbd4152ce30a06e8ba71c56e20
+Section: Tweaks
+Description: Universal context glass — clipboard timeline, screen OCR lens, and per-app UI sculpting. Summoned by gesture in any app. RootHide + rootless, iOS 15–17.
+Author: Kolby
+Name: Aether
+
 Package: com.kolby.floatingsiri
 Version: 1.32.0
 Architecture: iphoneos-arm64
