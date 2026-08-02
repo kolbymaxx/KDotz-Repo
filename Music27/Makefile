@@ -12,9 +12,12 @@ TWEAK_NAME = Music27
 Music27_FILES = \
 	src/Tweak.x \
 	src/GlassTabBar.x \
+	src/AlbumControls.x \
 	src/ColorTheme.x \
 	src/LibraryPins.x \
 	src/Helpers.m \
+	src/M27GlassChrome.m \
+	src/M27FloatingDock.m \
 	src/M27Prefs.m \
 	src/M27ColorTheme.m \
 	src/M27PinStore.m \

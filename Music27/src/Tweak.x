@@ -8,11 +8,15 @@ static void M27ForceTabBarRelayout(void) {
         for (UIWindow *window in ((UIWindowScene *)scene).windows) {
             UIViewController *root = window.rootViewController;
             if (!root) continue;
+            if ([root isKindOfClass:UITabBarController.class]) {
+                [root.view setNeedsLayout];
+                [root.view layoutIfNeeded];
+            }
             NSMutableArray<UIView *> *stack = [NSMutableArray arrayWithObject:root.view];
             while (stack.count) {
                 UIView *view = stack.lastObject;
                 [stack removeLastObject];
-                if ([view isKindOfClass:UITabBar.class]) {
+                if ([view isKindOfClass:UITabBar.class] || view.tag == 0x4D323744) {
                     [view setNeedsLayout];
                     [view layoutIfNeeded];
                 }
