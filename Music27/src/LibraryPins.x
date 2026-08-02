@@ -183,25 +183,13 @@ static void M27AttachPinnedHeader(UIViewController *vc) {
 
     CGFloat top = target.view.safeAreaInsets.top + 8.0;
     header.frame = CGRectMake(0, top, target.view.bounds.size.width, kM27PinnedHeaderHeight);
-    [header reload];
-    [target.view bringSubviewToFront:header];
-
-    // Pad the first scroll view so content clears the pinned row.
+    // Hide the overlay when there are no pins — never rewrite Music's scroll
+    // insets (that can blank SwiftUI Library pages).
     BOOL hasPins = M27PinStore.shared.pins.count > 0;
-    CGFloat pad = hasPins ? (kM27PinnedHeaderHeight + 8.0) : 0;
-    for (UIView *sub in target.view.subviews) {
-        if (sub.tag == kM27PinnedHeaderTag) continue;
-        if (![sub isKindOfClass:UIScrollView.class]) continue;
-        UIScrollView *scroll = (UIScrollView *)sub;
-        UIEdgeInsets inset = scroll.contentInset;
-        if (fabs(inset.top - pad) > 0.5) {
-            inset.top = pad;
-            scroll.contentInset = inset;
-            if (@available(iOS 13.0, *)) {
-                scroll.verticalScrollIndicatorInsets = inset;
-            }
-        }
-        break;
+    header.hidden = !hasPins;
+    if (hasPins) {
+        [header reload];
+        [target.view bringSubviewToFront:header];
     }
 }
 

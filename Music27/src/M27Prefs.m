@@ -27,18 +27,38 @@ const NSInteger M27MaxPins = 12;
 }
 
 - (BOOL)boolForKey:(NSString *)key defaultValue:(BOOL)fallback {
+    // Prefer the suite, then the preference plist path used by PreferenceLoader,
+    // then the fallback. This avoids "toggles look on but Music reads off".
     id value = [_defaults objectForKey:key];
-    return value ? [value boolValue] : fallback;
+    if (value != nil) return [value boolValue];
+
+    CFStringRef domain = (__bridge CFStringRef)M27PrefDomain;
+    CFPropertyListRef cfVal = CFPreferencesCopyAppValue((__bridge CFStringRef)key, domain);
+    if (cfVal != NULL) {
+        BOOL result = fallback;
+        if (CFGetTypeID(cfVal) == CFBooleanGetTypeID()) {
+            result = CFBooleanGetValue((CFBooleanRef)cfVal);
+        } else if (CFGetTypeID(cfVal) == CFNumberGetTypeID()) {
+            int n = 0;
+            CFNumberGetValue((CFNumberRef)cfVal, kCFNumberIntType, &n);
+            result = n != 0;
+        }
+        CFRelease(cfVal);
+        return result;
+    }
+    return fallback;
 }
 
 - (void)reload {
     // NSUserDefaults caches aggressively inside a single process, so pick up
     // external writes from the preference bundle before re-reading.
     [_defaults synchronize];
+    CFPreferencesAppSynchronize((__bridge CFStringRef)M27PrefDomain);
     _enabled = [self boolForKey:@"enabled" defaultValue:YES];
     _glassTabBarEnabled = [self boolForKey:@"glassTabBar" defaultValue:YES];
     _colorThemeEnabled = [self boolForKey:@"colorTheme" defaultValue:YES];
-    _libraryPinsEnabled = [self boolForKey:@"libraryPins" defaultValue:YES];
+    // Pins default OFF — overlay is optional and was contributing to Library confusion.
+    _libraryPinsEnabled = [self boolForKey:@"libraryPins" defaultValue:NO];
 }
 
 @end
