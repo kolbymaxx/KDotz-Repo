@@ -25,6 +25,7 @@ Music27_FILES = \
 
 Music27_CFLAGS = -fobjc-arc -Wno-unused-variable -Wno-deprecated-declarations
 Music27_FRAMEWORKS = UIKit Foundation CoreGraphics QuartzCore MediaPlayer CoreFoundation
+# CoreFoundation used by M27Prefs CFPreferences fallback.
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 
