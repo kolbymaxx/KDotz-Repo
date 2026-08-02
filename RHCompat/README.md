@@ -1,19 +1,20 @@
 # RHCompat
 
-RootHide companion tweak (`com.kolby.rhcompat`) — a **narrow, early-load path shim** focused on PreferenceLoader / prefs-data bridging, with light `/var/jb` API remaps for runtime-built paths.
+RootHide companion tweak (`com.kolby.rhcompat`) — a **narrow PreferenceLoader / prefs-data shim** for Settings (`Preferences.app` only).
 
 **RootHide (Relaxin’) only.** Ships as `iphoneos-arm64e`.
+
+> **1.0.1 safety note:** 1.0.1 injected into SpringBoard and hooked `open`/`stat` process-wide, which could black-screen after respring. **1.0.2+ does not inject into SpringBoard** and drops those POSIX hooks. If you are stuck on a black screen, see [RECOVERY.md](RECOVERY.md).
 
 ## vs official `rootless-compat`
 
 RootHide already ships **[rootless-compat](https://github.com/roothide/DynamicPatches/tree/AutoPatches)** (`AutoPatches.dylib` via PatchLoader). We are **not a replacement** — different layer, complementary job.
 
-| | Official `rootless-compat` | RHCompat |
+| | Official `rootless-compat` | RHCompat (1.0.2+) |
 |---|---|---|
-| Mechanism | PatchLoader DynamicPatch: **rewrites `/var/jb` string refs inside each tweak binary** (Dobby ADR/ADRP + `__cfstring`) before the tweak runs | Substrate/ElleKit tweak: **hooks file + CFPreferences APIs** in injected processes |
-| Best at | Hardcoded `/var/jb/...` literals baked into mach-o | PreferenceLoader / PreferenceBundles / prefs plists + CFPreferences across schemes |
-| Also handles | Per-binary special cases (`fopen`/`access`/`posix_spawn`/Swift `String.append` for hashed packages), pkgmirror | Runtime-concatenated paths that hit `open`/`stat`/…; process-wide for all tweaks in the process |
-| Load timing | PatchLoader — **before** TweakLoader | `000RHCompat` + `constructor(101)` among Substrate tweaks |
+| Mechanism | PatchLoader DynamicPatch: **rewrites `/var/jb` string refs inside each tweak binary** before the tweak runs | Substrate tweak in **Preferences.app only**: Foundation path helpers + CFPreferences bridge |
+| Best at | Hardcoded `/var/jb/...` literals baked into mach-o | PreferenceLoader / PreferenceBundles / prefs plists + CFPreferences |
+| Injects into SpringBoard | No (per-tweak binary patches) | **No** (1.0.1 did — unsafe; removed) |
 | Settings UI | No | Yes (enable toggle) |
 | Depends on PatchLoader | Yes | No |
 
@@ -23,16 +24,16 @@ Where theirs is stronger: compile-time `/var/jb` cstrings/CFStrings never need t
 
 ## What it does
 
-Loads as `000RHCompat.dylib`, then rewrites a **limited** path set:
+Loads as `000RHCompat.dylib` **only in Preferences**, then rewrites a **limited** path set via Foundation helpers:
 
 | Incoming path | Behavior |
 |---|---|
-| `/var/jb` / `/private/var/jb` (+ suffix) | → `jbroot(suffix)` (API-level; complements AutoPatches) |
+| `/var/jb` / `/private/var/jb` (+ suffix) | → `jbroot(suffix)` |
 | `/Library/PreferenceLoader…` | → `jbroot(path)` |
 | `/Library/PreferenceBundles…` | → `jbroot(path)` |
 | `/var/mobile/Library/Preferences/<non-Apple>.plist` | → jbroot copy when it exists, or when the rootfs file is absent |
 
-Hooks: `open`/`openat`/`stat`/`lstat`/`access`/`fopen`/`opendir`/`readlink`/`posix_spawn`, common Foundation file helpers, plus light `CFPreferencesCopyAppValue` / `CFPreferencesSetAppValue` bridging for tweak domains.
+Plus light `CFPreferencesCopyAppValue` / `CFPreferencesSetAppValue` bridging for tweak domains. **No** process-wide `open`/`stat`/`posix_spawn` hooks.
 
 ## What it deliberately does not do
 
@@ -56,10 +57,10 @@ make clean package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=roothide
 
 ## Filter
 
-Injects when any of these match (`Mode = Any`):
+- Bundles: `com.apple.Preferences`
+- Executables: `Preferences`
 
-- Bundles: `com.apple.springboard`, `com.apple.Preferences`, `com.apple.UIKit`
-- Executables: `SpringBoard`, `Preferences`
+(No SpringBoard / UIKit.)
 
 ## Credits / lineage
 
