@@ -3,5 +3,8 @@
 		Bundles = (
 			"com.apple.Music"
 		);
+		Executables = (
+			"Music"
+		);
 	};
 }

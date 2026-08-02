@@ -1,8 +1,8 @@
 Package: com.music27.tweak
 Name: Music27
-Version: 1.1.7
+Version: 1.1.8
 Architecture: iphoneos-arm64
-Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass look. 1.1.7 reads RootHide jbroot prefs so Settings toggles actually apply in Music.
+Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass look. 1.1.8 stops blank Library (no safe-area hacks) and overlays the glass dock more reliably on RootHide.
 Maintainer: Music27
 Author: Music27
 Section: Tweaks
