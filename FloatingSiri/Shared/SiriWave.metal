@@ -106,7 +106,7 @@ fragment half4 siriFragmentShader(VertexOut in [[stage_in]], constant Uniforms &
     float AB    = (ABERRATION + mid*MID_ABER + high*HIGH_ABER)*res;
     
     // When talking, increase thickness
-    float currentThickness = THICKNESS + (talkingFactor * 6.0f);
+    float currentThickness = THICKNESS + (talkingFactor * 4.0f);
     float th    = mix(0.1f, 0.01f*currentThickness, res);
     
     float inten = mix(0.1f, 0.01f*(INTENSITY + low*LOW_INT), res);
