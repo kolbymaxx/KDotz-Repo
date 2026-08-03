@@ -3,6 +3,8 @@
 
 /// Thin, cached wrapper over the tweak's NSUserDefaults suite.
 /// Reloads automatically when the prefs bundle posts kGANotifyPrefsChanged.
+NS_ASSUME_NONNULL_BEGIN
+
 @interface GAPreferences : NSObject
 
 + (instancetype)shared;
@@ -35,3 +37,5 @@
 - (void)reload;
 
 @end
+
+NS_ASSUME_NONNULL_END

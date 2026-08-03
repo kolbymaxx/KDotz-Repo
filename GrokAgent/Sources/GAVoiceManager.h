@@ -24,6 +24,8 @@
 ///   1. Helper app that owns the mic, pipes the transcript back over a socket.
 ///   2. Patch the usage-description strings into SpringBoard's plist at install
 ///      (fragile across updates, breaks on restore).
+NS_ASSUME_NONNULL_BEGIN
+
 @interface GAVoiceManager : NSObject
 
 + (instancetype)shared;
@@ -32,3 +34,5 @@
 - (void)stopSpeaking;
 
 @end
+
+NS_ASSUME_NONNULL_END

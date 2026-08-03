@@ -5,6 +5,8 @@
 /// The Darwin notification trigger is always live, whatever the preference —
 /// it costs nothing and gives you a reliable way in over SSH:
 ///     notifyutil -p com.kolby.grokagent/activate
+NS_ASSUME_NONNULL_BEGIN
+
 @interface GAActivationManager : NSObject
 
 + (instancetype)shared;
@@ -19,3 +21,5 @@
 - (BOOL)handleVolumeUpPress;
 
 @end
+
+NS_ASSUME_NONNULL_END

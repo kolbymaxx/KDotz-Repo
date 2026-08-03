@@ -3,6 +3,8 @@
 /// LLM client. xAI's API is OpenAI-compatible, so this class is really a
 /// generic chat-completions client — pointing GABaseURL somewhere else is
 /// enough to swap brains later.
+NS_ASSUME_NONNULL_BEGIN
+
 @interface GAGrokClient : NSObject
 
 + (instancetype)shared;
@@ -17,3 +19,5 @@
                                        NSError *_Nullable error))completion;
 
 @end
+
+NS_ASSUME_NONNULL_END

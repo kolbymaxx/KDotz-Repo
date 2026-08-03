@@ -7,6 +7,8 @@
 /// working tools on day one. Later we can swap the transport for in-process
 /// Manager classes extracted from that project without touching the agent loop —
 /// everything above this class only sees -callTool:arguments:completion:.
+NS_ASSUME_NONNULL_BEGIN
+
 @interface GADeviceControl : NSObject
 
 + (instancetype)shared;
@@ -28,3 +30,5 @@
                                           NSError *_Nullable error))completion;
 
 @end
+
+NS_ASSUME_NONNULL_END

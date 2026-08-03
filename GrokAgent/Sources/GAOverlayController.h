@@ -4,6 +4,8 @@
 /// Minimal on-screen HUD so you can see what the agent is doing without
 /// tailing syslog. Also the temporary text-entry path until the voice
 /// pipeline lands.
+NS_ASSUME_NONNULL_BEGIN
+
 @interface GAOverlayController : NSObject <GAAgentObserver>
 
 + (instancetype)shared;
@@ -17,3 +19,5 @@
 + (void)clearBreadcrumb;
 
 @end
+
+NS_ASSUME_NONNULL_END

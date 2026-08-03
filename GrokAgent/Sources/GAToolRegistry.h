@@ -6,6 +6,8 @@
 /// Deliberately a subset of iOS MCP's ~46 tools. Every tool costs context on
 /// every turn, and the destructive ones (run_command, write_file, uninstall_app)
 /// stay out unless explicitly enabled in preferences.
+NS_ASSUME_NONNULL_BEGIN
+
 @interface GAToolRegistry : NSObject
 
 /// Array of {"type":"function","function":{...}} dictionaries for the request body.
@@ -15,3 +17,5 @@
 + (BOOL)isToolAllowed:(NSString *)name;
 
 @end
+
+NS_ASSUME_NONNULL_END
