@@ -4,7 +4,7 @@ Read-only SwiftUI view inspector for jailbroken iOS. Recovers Swift type names
 (and later field names / layouts) from live `_UIHostingView` hierarchies using
 `__swift5_*` reflection metadata.
 
-**Status:** Phase 1 / milestone 1 (Attach). Not published to the APT repo.
+**Status:** Phase 1 / milestone 2 (Attach + field walk). Not published to the APT repo.
 
 ## Targets
 
@@ -23,6 +23,7 @@ Domain: `com.kolby.swiftpeek`
 |-----|---------|---------|
 | `enabled` | `false` | Master kill switch |
 | `logAttach` | `true` | NSLog attach lines when enabled |
+| `dumpFields` | `true` | Walk fields + mirror/screen strings (milestone 2) |
 
 PreferenceLoader entry ships with the package. Toggle on, relaunch Music
 (or respring for Control Center), watch `os_log` / SSH for:

@@ -9,7 +9,7 @@
 #import "SwiftPeek-Swift.h"
 
 // -----------------------------------------------------------------------------
-// SwiftPeek — read-only SwiftUI inspector (Phase 1 / milestone 1: Attach)
+// SwiftPeek — read-only SwiftUI inspector (Phase 1 / milestones 1–2)
 // -----------------------------------------------------------------------------
 
 static NSMutableSet *gSPLoggedHosts;
