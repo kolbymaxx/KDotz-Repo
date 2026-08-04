@@ -3,58 +3,31 @@
 #import <QuartzCore/QuartzCore.h>
 #import <objc/runtime.h>
 
-// Artwork-driven color theming for album / playlist / now-playing screens.
+// Artwork-driven color theming.
 //
-// FIXES vs. the black-screen binary:
-// 1. Matchers no longer treat "container" alone as an album/playlist screen —
-//    that matched Music's root container VC and washed the whole app black.
-// 2. The wash is a translucent CAGradientLayer on the view's layer (behind
-//    content) instead of an opaque UIView inserted as a subview (which sat
-//    on top of SwiftUI hosting layers and covered everything).
-// 3. No artwork => no theme (no systemGray fallback that darkened to black).
-// 4. Theme is only applied to album/playlist detail + now-playing surfaces.
-
-static const NSInteger kM27WashTag = 0x4D323757; // 'M27W' — used on layer name
+// 1.1.11: match only MusicApplication detail VCs proven by SwiftPeek.
+// Never wash Library*/MiniPlayer*/UIHosting* hosts (those stayed alive while
+// Music looked black — a broad wash covered them).
 
 static BOOL M27LooksLikeAlbumOrPlaylist(UIViewController *vc) {
-    // Require a "detail-ish" token; bare "container"/"product"/"album" on a
-    // Library grid matched root hosts and washed the app black.
-    static NSArray<NSString *> *strong;
-    static NSArray<NSString *> *reject;
-    static dispatch_once_t once;
-    dispatch_once(&once, ^{
-        strong = @[
-            @"albumdetail", @"playlistdetail", @"collectiondetail",
-            @"librarydetail", @"albumpage", @"playlistpage",
-            @"albumvc", @"playlistvc"
-        ];
-        reject = @[
-            @"tabbar", @"container", @"librarylanding", @"libraryview",
-            @"libraryroot", @"social", @"search", @"listennow", @"browse"
-        ];
-    });
-    if (M27ClassNameContains(vc, reject)) return NO;
+    if (!vc || M27IsProtectedMusicHost(vc)) return NO;
     if ([vc isKindOfClass:UITabBarController.class] ||
         [vc isKindOfClass:UINavigationController.class] ||
         [vc isKindOfClass:UISplitViewController.class]) {
         return NO;
     }
-    if (!M27ClassNameContains(vc, strong)) return NO;
-    // Strong match must also look like a detail surface (has large artwork).
-    UIImage *art = M27LargestImageInView(vc.view);
-    return art != nil && art.size.width >= 160;
+    // Exact MusicApplication type names (module prefix optional).
+    if (M27ClassNameHasSuffix(vc, @"AlbumDetailViewController")) return YES;
+    if (M27ClassNameHasSuffix(vc, @"PlaylistDetailViewController")) return YES;
+    return NO;
 }
 
 static BOOL M27IsNowPlayingController(UIViewController *vc) {
-    static NSArray<NSString *> *needles;
-    static dispatch_once_t once;
-    dispatch_once(&once, ^{
-        needles = @[
-            @"nowplaying", @"playerview", @"nowplayingview",
-            @"fullscreenplayer", @"mputnowplaying", @"nowplayingcontrols"
-        ];
-    });
-    return M27ClassNameContains(vc, needles);
+    if (!vc || M27IsProtectedMusicHost(vc)) return NO;
+    // MiniPlayerViewController is protected and is NOT full-screen now playing.
+    if (M27ClassNameHasSuffix(vc, @"NowPlayingViewController")) return YES;
+    if (M27ClassNameHasSuffix(vc, @"FullscreenPlayerViewController")) return YES;
+    return NO;
 }
 
 static BOOL M27ShouldThemeController(UIViewController *vc) {
@@ -82,9 +55,6 @@ static void M27ApplyWash(UIView *view, M27ColorPalette *palette) {
         return;
     }
 
-    // FIX: use a translucent gradient layer inserted at the back of the layer
-    // hierarchy. An opaque UIView subview (the old approach) ended up covering
-    // SwiftUI's hosting layers and produced the black screen.
     CAGradientLayer *wash = M27FindWashLayer(view);
     if (!wash) {
         wash = [CAGradientLayer layer];
@@ -94,8 +64,8 @@ static void M27ApplyWash(UIView *view, M27ColorPalette *palette) {
     }
     wash.frame = view.bounds;
     wash.colors = @[
-        (id)[palette.background colorWithAlphaComponent:0.55].CGColor,
-        (id)[palette.backgroundSecondary colorWithAlphaComponent:0.25].CGColor,
+        (id)[palette.background colorWithAlphaComponent:0.45].CGColor,
+        (id)[palette.backgroundSecondary colorWithAlphaComponent:0.18].CGColor,
         (id)[UIColor clearColor].CGColor
     ];
     wash.startPoint = CGPointMake(0.5, 0.0);
@@ -104,7 +74,6 @@ static void M27ApplyWash(UIView *view, M27ColorPalette *palette) {
 
 static void M27TintControls(UIView *view, M27ColorPalette *palette) {
     if (!view || !palette) return;
-    // Light touch: only tint common UIKit controls, never force opaque bg.
     NSMutableArray<UIView *> *stack = [NSMutableArray arrayWithObject:view];
     NSInteger visited = 0;
     while (stack.count > 0 && visited < 80) {
@@ -135,7 +104,7 @@ static UIImage *M27ArtworkFromNowPlayingInfo(void) {
 static void M27ThemeController(UIViewController *vc) {
     M27Prefs *prefs = M27Prefs.shared;
     if (!(prefs.enabled && prefs.colorThemeEnabled)) {
-        M27RemoveWash(vc.view);
+        if (vc.isViewLoaded) M27RemoveWash(vc.view);
         return;
     }
     if (!M27ShouldThemeController(vc)) return;
@@ -145,19 +114,15 @@ static void M27ThemeController(UIViewController *vc) {
         artwork = M27ArtworkFromNowPlayingInfo();
     }
     M27ColorPalette *palette = [M27ColorTheme.shared paletteFromImage:artwork];
-    if (!palette) {
-        // Keep any existing theme; don't invent a black one.
-        return;
-    }
+    if (!palette) return;
     [M27ColorTheme.shared applyPalette:palette animated:YES];
     M27ApplyWash(vc.view, palette);
     M27TintControls(vc.view, palette);
 }
 
 static void M27ClearThemeOnController(UIViewController *vc) {
-    M27RemoveWash(vc.view);
+    if (vc.isViewLoaded) M27RemoveWash(vc.view);
     if (M27IsNowPlayingController(vc) || M27LooksLikeAlbumOrPlaylist(vc)) {
-        // Only clear the shared theme when leaving a themed surface.
         UIViewController *top = M27TopViewController();
         if (top != vc) {
             [M27ColorTheme.shared clearThemeAnimated:YES];
@@ -169,6 +134,8 @@ static void M27ClearThemeOnController(UIViewController *vc) {
 
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
+    M27Prefs *prefs = M27Prefs.shared;
+    if (!(prefs.enabled && prefs.colorThemeEnabled)) return;
     M27ThemeController(self);
 }
 
@@ -177,15 +144,14 @@ static void M27ClearThemeOnController(UIViewController *vc) {
     M27Prefs *prefs = M27Prefs.shared;
     if (!(prefs.enabled && prefs.colorThemeEnabled)) return;
     if (!M27ShouldThemeController(self)) return;
-    // Keep wash sized to bounds; don't re-extract artwork every layout.
     M27ColorPalette *palette = M27ColorTheme.shared.activePalette;
-    if (palette) {
-        M27ApplyWash(self.view, palette);
-    }
+    if (palette) M27ApplyWash(self.view, palette);
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
     %orig;
+    M27Prefs *prefs = M27Prefs.shared;
+    if (!(prefs.enabled && prefs.colorThemeEnabled)) return;
     M27ClearThemeOnController(self);
 }
 

@@ -126,12 +126,13 @@ static void M27WritePrefsDictionary(NSDictionary *dict) {
     CFPreferencesAppSynchronize((__bridge CFStringRef)M27PrefDomain);
     _plist = M27ReadPrefsDictionary();
 
-    // 1.1.9 one-time recovery: prior builds defaulted the dock ON and could
-    // blank Music on Dopamine/iPhone X. Force dock + color theme OFF once so
-    // Music can launch; user re-enables after verifying.
+    // One-time recovery markers. 1.1.9 forced dock/theme OFF so Music could
+    // launch; 1.1.11 records the SwiftPeek host-aware fix (does not re-force
+    // toggles if the user already re-enabled the dock).
     if (_plist[@"blankScreenFix119"] == nil) {
         NSMutableDictionary *seed = [_plist mutableCopy] ?: [NSMutableDictionary dictionary];
         seed[@"blankScreenFix119"] = @YES;
+        seed[@"hostBlankFix111"] = @YES;
         seed[@"dockSafeBoot115"] = @YES;
         if (seed[@"enabled"] == nil) seed[@"enabled"] = @YES;
         seed[@"glassTabBar"] = @NO;
@@ -141,11 +142,21 @@ static void M27WritePrefsDictionary(NSDictionary *dict) {
         _plist = [seed copy];
         CFPreferencesSetAppValue(CFSTR("blankScreenFix119"), kCFBooleanTrue,
                                  (__bridge CFStringRef)M27PrefDomain);
+        CFPreferencesSetAppValue(CFSTR("hostBlankFix111"), kCFBooleanTrue,
+                                 (__bridge CFStringRef)M27PrefDomain);
         CFPreferencesSetAppValue(CFSTR("glassTabBar"), kCFBooleanFalse,
                                  (__bridge CFStringRef)M27PrefDomain);
         CFPreferencesSetAppValue(CFSTR("colorTheme"), kCFBooleanFalse,
                                  (__bridge CFStringRef)M27PrefDomain);
         CFPreferencesSetAppValue(CFSTR("enabled"), kCFBooleanTrue,
+                                 (__bridge CFStringRef)M27PrefDomain);
+        CFPreferencesAppSynchronize((__bridge CFStringRef)M27PrefDomain);
+    } else if (_plist[@"hostBlankFix111"] == nil) {
+        NSMutableDictionary *seed = [_plist mutableCopy] ?: [NSMutableDictionary dictionary];
+        seed[@"hostBlankFix111"] = @YES;
+        M27WritePrefsDictionary(seed);
+        _plist = [seed copy];
+        CFPreferencesSetAppValue(CFSTR("hostBlankFix111"), kCFBooleanTrue,
                                  (__bridge CFStringRef)M27PrefDomain);
         CFPreferencesAppSynchronize((__bridge CFStringRef)M27PrefDomain);
     }

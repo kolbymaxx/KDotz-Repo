@@ -67,3 +67,41 @@ BOOL M27ClassNameContains(NSObject *obj, NSArray<NSString *> *needles) {
     }
     return NO;
 }
+
+BOOL M27ClassNameHasSuffix(NSObject *obj, NSString *suffix) {
+    if (!obj || suffix.length == 0) return NO;
+    NSString *name = NSStringFromClass(obj.class);
+    if ([name hasSuffix:suffix]) return YES;
+    NSRange dot = [name rangeOfString:@"." options:NSBackwardsSearch];
+    if (dot.location == NSNotFound) return NO;
+    NSString *shortName = [name substringFromIndex:dot.location + 1];
+    return [shortName isEqualToString:suffix];
+}
+
+BOOL M27IsProtectedMusicHost(NSObject *obj) {
+    if (!obj) return NO;
+    // Proven alive while Music looked black (SwiftPeek 0.1.3).
+    // Never fade/hide these hosts or treat them as disposable chrome.
+    // AlbumDetail* is intentionally excluded — theme/controls may target it,
+    // but must never set alpha=0 on the VC's root view.
+    static NSArray<NSString *> *suffixes;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        suffixes = @[
+            @"LibraryViewController",
+            @"LibraryMenuViewController",
+            @"LibraryRecentlyAddedViewController",
+            @"MiniPlayerViewController",
+        ];
+    });
+    for (NSString *suffix in suffixes) {
+        if (M27ClassNameHasSuffix(obj, suffix)) return YES;
+    }
+    NSString *name = NSStringFromClass(obj.class);
+    if ([name containsString:@"UIHostingContentView"] ||
+        [name containsString:@"UIHostingController"] ||
+        [name containsString:@"HostingScrollView"]) {
+        return YES;
+    }
+    return NO;
+}

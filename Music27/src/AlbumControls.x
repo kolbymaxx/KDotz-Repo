@@ -11,28 +11,16 @@ static const CGFloat kM27PlayHeight = 52.0;
 
 static BOOL M27IsAlbumDetailController(UIViewController *vc) {
     if (!vc) return NO;
+    if (M27IsProtectedMusicHost(vc)) return NO;
     if ([vc isKindOfClass:UITabBarController.class] ||
         [vc isKindOfClass:UINavigationController.class] ||
         [vc isKindOfClass:UISplitViewController.class]) {
         return NO;
     }
-    static NSArray<NSString *> *strong;
-    static NSArray<NSString *> *reject;
-    static dispatch_once_t once;
-    dispatch_once(&once, ^{
-        strong = @[
-            @"albumdetail", @"playlistdetail", @"collectiondetail",
-            @"librarydetail", @"albumpage", @"playlistpage"
-        ];
-        reject = @[
-            @"tabbar", @"container", @"librarylanding", @"libraryview",
-            @"libraryroot", @"search", @"listennow", @"browse"
-        ];
-    });
-    if (M27ClassNameContains(vc, reject)) return NO;
-    if (!M27ClassNameContains(vc, strong)) return NO;
-    UIImage *art = M27LargestImageInView(vc.view);
-    return art != nil && art.size.width >= 160;
+    // SwiftPeek: MusicApplication.AlbumDetailViewController only.
+    // Do not match AlbumDetailSongsViewController or broad "album" tokens.
+    return M27ClassNameHasSuffix(vc, @"AlbumDetailViewController")
+        || M27ClassNameHasSuffix(vc, @"PlaylistDetailViewController");
 }
 
 static UIView *M27FindControlWithTitle(UIView *root, NSArray<NSString *> *titles, BOOL exact, NSInteger depth) {
@@ -255,6 +243,12 @@ static void M27FireControl(UIView *control) {
 
 static void M27HideViewKeepLayout(UIView *view) {
     if (!view) return;
+    // Never blank a content host / SwiftUI hosting layer / large container.
+    if (M27IsProtectedMusicHost(view)) return;
+    NSString *name = NSStringFromClass(view.class);
+    if ([name containsString:@"Hosting"] || [name containsString:@"UIHosting"]) return;
+    if (view.bounds.size.height > 72.0) return;
+    if (view.bounds.size.width > 420.0) return;
     view.alpha = 0.0;
     view.userInteractionEnabled = NO;
 }
@@ -277,7 +271,7 @@ static void M27InstallAlbumControls(UIViewController *vc) {
     UIView *shuffle = M27FindControlWithTitle(vc.view, @[ @"shuffle" ], YES, 0);
     if (!play || !shuffle) return;
 
-    // Hide the stock pair (and their closest common row container if obvious).
+    // Hide only small stock controls — never a hosting/content ancestor.
     M27HideViewKeepLayout(play);
     M27HideViewKeepLayout(shuffle);
 
@@ -313,7 +307,9 @@ static void M27InstallAlbumControls(UIViewController *vc) {
 
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
-    // Defer so we don't fight Music's first layout (blank-screen risk).
+    M27Prefs *prefs = M27Prefs.shared;
+    if (!(prefs.enabled && prefs.glassTabBarEnabled)) return;
+    if (!M27IsAlbumDetailController(self)) return;
     __weak UIViewController *weakSelf = self;
     dispatch_async(dispatch_get_main_queue(), ^{
         M27InstallAlbumControls(weakSelf);
