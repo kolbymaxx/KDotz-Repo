@@ -64,8 +64,18 @@ static BOOL SPNameLooksLikeHostingController(const char *name) {
     return YES;
 }
 
-static void SPCollectClasses(BOOL (^match)(const char *),
-                             BOOL (^isKind)(Class),
+typedef BOOL (*SPNameMatchFn)(const char *);
+typedef BOOL (*SPClassKindFn)(Class);
+
+static BOOL SPClassIsUIView(Class c) {
+    return [c isSubclassOfClass:[UIView class]];
+}
+static BOOL SPClassIsUIViewController(Class c) {
+    return [c isSubclassOfClass:[UIViewController class]];
+}
+
+static void SPCollectClasses(SPNameMatchFn match,
+                             SPClassKindFn isKind,
                              NSMutableArray<NSValue *> *outClasses,
                              NSMutableArray<NSString *> *outNames) {
     unsigned int n = 0;
@@ -174,6 +184,8 @@ static void SPHookedViewDidLayout(UIViewController *self, SEL _cmd) {
 }
 
 /// Swizzle an instance method; store the previous IMP once (shared trampoline).
+/// Dedupes by current IMP so Swift generic specializations that share a method
+/// don't recurse into our hook as "original".
 static BOOL SPSwizzle(Class cls, SEL sel, IMP replacement, IMP *origOut) {
     if (!cls || !sel || !replacement || !origOut) return NO;
     Method m = class_getInstanceMethod(cls, sel);
@@ -186,9 +198,20 @@ static BOOL SPSwizzle(Class cls, SEL sel, IMP replacement, IMP *origOut) {
     NSString *key = [NSString stringWithFormat:@"%s|%s", class_getName(cls), sel_getName(sel)];
     if ([gSPSwizzledClasses containsObject:key]) return YES;
 
+    IMP current = method_getImplementation(m);
+    if (current == replacement) {
+        [gSPSwizzledClasses addObject:key];
+        return YES; // already hooked via a shared Method
+    }
+    if (*origOut != NULL && current == (IMP)(*origOut)) {
+        // Same underlying IMP we already replaced on another class name.
+        method_setImplementation(m, replacement);
+        [gSPSwizzledClasses addObject:key];
+        return YES;
+    }
+
     IMP prev = method_setImplementation(m, replacement);
     if (!prev) return NO;
-    // Keep the first original we see — specializations often share the IMP.
     if (*origOut == NULL) *origOut = prev;
     [gSPSwizzledClasses addObject:key];
     return YES;
