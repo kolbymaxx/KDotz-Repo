@@ -35,20 +35,34 @@
 			<key>label</key>
 			<string>Enable SwiftPeek</string>
 		</dict>
-		<dict>
-			<key>PostNotification</key>
-			<string>com.kolby.swiftpeek/prefschanged</string>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<true/>
-			<key>defaults</key>
-			<string>com.kolby.swiftpeek</string>
-			<key>key</key>
-			<string>logAttach</string>
-			<key>label</key>
-			<string>Log Attach (os_log / NSLog)</string>
-		</dict>
+			<dict>
+				<key>PostNotification</key>
+				<string>com.kolby.swiftpeek/prefschanged</string>
+				<key>cell</key>
+				<string>PSSwitchCell</string>
+				<key>default</key>
+				<true/>
+				<key>defaults</key>
+				<string>com.kolby.swiftpeek</string>
+				<key>key</key>
+				<string>logAttach</string>
+				<key>label</key>
+				<string>Log Attach (os_log / NSLog)</string>
+			</dict>
+			<dict>
+				<key>PostNotification</key>
+				<string>com.kolby.swiftpeek/prefschanged</string>
+				<key>cell</key>
+				<string>PSSwitchCell</string>
+				<key>default</key>
+				<true/>
+				<key>defaults</key>
+				<string>com.kolby.swiftpeek</string>
+				<key>key</key>
+				<string>dumpFields</string>
+				<key>label</key>
+				<string>Dump Fields (milestone 2)</string>
+			</dict>
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>

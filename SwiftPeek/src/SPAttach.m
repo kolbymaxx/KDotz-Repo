@@ -5,6 +5,8 @@
 #import "SPPrefs.h"
 #import "SPSwiftMeta.h"
 #import "SPDumpWriter.h"
+#import "SPFieldWalk.h"
+#import "SwiftPeek-Swift.h"
 
 // -----------------------------------------------------------------------------
 // SwiftPeek — read-only SwiftUI inspector (Phase 1 / milestone 1: Attach)
@@ -130,6 +132,44 @@ static UIView *SPFindHostingViewBFS(UIView *root, NSInteger maxNodes) {
     return nil;
 }
 
+/// Visible UIKit strings under a view — pixel correspondence for milestone 2.
+static NSArray<NSString *> *SPScreenStrings(UIView *root) {
+    if (!root) return @[];
+    NSMutableArray *out = [NSMutableArray array];
+    NSMutableSet *seen = [NSMutableSet set];
+    NSMutableArray *q = [NSMutableArray arrayWithObject:root];
+    NSInteger budget = 80;
+    while (q.count && budget-- > 0) {
+        UIView *v = q.firstObject;
+        [q removeObjectAtIndex:0];
+        if ([v isKindOfClass:[UILabel class]]) {
+            NSString *t = [[(UILabel *)v text] ?: @"" stringByTrimmingCharactersInSet:
+                           [NSCharacterSet whitespaceAndNewlineCharacterSet]];
+            if (t.length >= 2 && t.length <= 80 && ![seen containsObject:t]) {
+                [seen addObject:t];
+                [out addObject:t];
+            }
+        }
+        if ([v isKindOfClass:[UIButton class]]) {
+            NSString *t = [[(UIButton *)v titleForState:UIControlStateNormal] ?: @""
+                           stringByTrimmingCharactersInSet:
+                           [NSCharacterSet whitespaceAndNewlineCharacterSet]];
+            if (t.length >= 2 && t.length <= 80 && ![seen containsObject:t]) {
+                [seen addObject:t];
+                [out addObject:t];
+            }
+        }
+        NSString *acc = v.accessibilityLabel;
+        if (acc.length >= 2 && acc.length <= 80 && ![seen containsObject:acc]) {
+            [seen addObject:acc];
+            [out addObject:acc];
+        }
+        for (UIView *sub in v.subviews) [q addObject:sub];
+        if (out.count >= 24) break;
+    }
+    return out;
+}
+
 static void SPLogAttachObject(id object, NSString *role) {
     if (!object) return;
 
@@ -160,22 +200,53 @@ static void SPLogAttachObject(id object, NSString *role) {
               role, typeName, objcName, (unsigned long)addr);
     }
 
-    NSDictionary *payload = @{
-        @"milestone": @1,
-        @"nodes": @[
-            @{
-                @"address": [NSString stringWithFormat:@"0x%lx", (unsigned long)addr],
-                @"objc_class": objcName,
-                @"role": role ?: @"",
-                @"type": typeName,
-            }
-        ],
-    };
+    // Heavy field / mirror work off the layout path.
+    id obj = object;
+    NSString *roleCopy = [role copy] ?: @"";
+    NSString *objcCopy = objcName;
+    NSString *typeCopy = typeName;
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+        NSMutableDictionary *node = [@{
+            @"address": [NSString stringWithFormat:@"0x%lx", (unsigned long)addr],
+            @"objc_class": objcCopy,
+            @"role": roleCopy,
+            @"type": typeCopy,
+        } mutableCopy];
+
+        NSInteger milestone = 1;
+        if (SPPrefBool(@"dumpFields", YES)) {
+            @try {
+                NSArray *fields = SPWalkFields(obj, 2, 64);
+                if (fields.count) {
+                    node[@"fields"] = fields;
+                    milestone = 2;
+                }
+                NSArray *mirrorTitles = [SPMirrorDump titleStringsInObject:obj maxNodes:80];
+                if (mirrorTitles.count) {
+                    node[@"mirror_strings"] = mirrorTitles;
+                    milestone = 2;
+                }
+                UIView *view = nil;
+                if ([obj isKindOfClass:[UIView class]]) view = (UIView *)obj;
+                else if ([obj isKindOfClass:[UIViewController class]]) view = [(UIViewController *)obj view];
+                NSArray *screen = SPScreenStrings(view);
+                if (screen.count) {
+                    node[@"screen_strings"] = screen;
+                    milestone = 2;
+                }
+            } @catch (__unused id e) {
+                // fail closed — still write the attach node
+            }
+        }
+
+        NSDictionary *payload = @{
+            @"milestone": @(milestone),
+            @"nodes": @[node],
+        };
         NSString *path = SPWriteJSONDump(payload);
         SPWriteHeartbeat(path ? @"attach dump written" : @"attach seen but dump write failed",
                          YES, @[], @[]);
-        if (path) NSLog(@"[SwiftPeek] dump written %@", path);
+        if (path) NSLog(@"[SwiftPeek] dump written %@ milestone=%ld", path, (long)milestone);
     });
 }
 

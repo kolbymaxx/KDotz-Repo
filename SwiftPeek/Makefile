@@ -11,11 +11,13 @@ TWEAK_NAME = SwiftPeek
 SwiftPeek_FILES = src/SPAttach.m \
 	src/SPPrefs.m \
 	src/SPSwiftMeta.m \
-	src/SPDumpWriter.m
+	src/SPDumpWriter.m \
+	src/SPFieldWalk.m \
+	src/SPMirrorDump.swift
 
+SwiftPeek_SWIFTFLAGS = -swift-version 5
 SwiftPeek_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-unused-variable -Wno-unused-function -DDISABLE_ROOTLESS_COMPAT_WARNING=1
 SwiftPeek_FRAMEWORKS = UIKit Foundation
-SwiftPeek_LIBRARIES =
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 
