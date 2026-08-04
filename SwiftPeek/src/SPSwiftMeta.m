@@ -75,13 +75,18 @@ NSString *SPSwiftTypeNameFromObject(id object) {
     if (cls) {
         const void *meta = SPStripISA((__bridge const void *)cls);
         NSString *swiftName = SPSwiftTypeNameFromMetadata(meta);
-        if (swiftName.length) return swiftName;
+        // Prefer names that look like Module.Type over empty/UIKit fallbacks.
+        if (swiftName.length && ![swiftName isEqualToString:@"UIView"] &&
+            ![swiftName isEqualToString:@"UIViewController"]) {
+            return swiftName;
+        }
     }
 
     const char *cname = object_getClassName(object);
     if (!cname) return nil;
     NSString *raw = [NSString stringWithUTF8String:cname];
-    if ([raw hasPrefix:@"_Tt"]) {
+    // Demangle any Swift mangled ObjC name (_Tt… / $s…).
+    if ([raw hasPrefix:@"_Tt"] || [raw hasPrefix:@"$s"] || [raw hasPrefix:@"_T"]) {
         NSString *demangled = SPSwiftDemangle(raw);
         if (demangled.length) return demangled;
     }

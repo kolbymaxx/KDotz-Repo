@@ -12,7 +12,7 @@
 
 static NSMutableSet *gSPLoggedHosts;
 static NSInteger gSPAttachCount = 0;
-static const NSInteger kSPMaxAttachLogs = 32;
+static const NSInteger kSPMaxAttachLogs = 48;
 static BOOL gSPHookedHostingView = NO;
 static BOOL gSPHookedHostingController = NO;
 static NSString *gSPHookedViewClassName;
@@ -40,6 +40,56 @@ static void SPEnsureSwiftUILoaded(void) {
     });
 }
 
+static BOOL SPIsBoringTypeName(NSString *name) {
+    if (name.length == 0) return YES;
+    static NSSet *boring;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        boring = [NSSet setWithArray:@[
+            @"UIView", @"UIViewController", @"UIWindow", @"UIWindowController",
+            @"UILayoutContainerView", @"UITransitionView", @"UIDropShadowView",
+            @"UINavigationController", @"UITabBarController", @"UIApplicationRotationFollowingController",
+            @"<unknown>",
+        ]];
+    });
+    if ([boring containsObject:name]) return YES;
+    // Still boring if it's a plain UIKit class with no SwiftUI / app module signal.
+    if ([name hasPrefix:@"UI"] && [name rangeOfString:@"Hosting"].location == NSNotFound) {
+        return YES;
+    }
+    return NO;
+}
+
+static BOOL SPClassNameLooksLikeHostingView(const char *name) {
+    if (!name) return NO;
+    if (strcmp(name, "_UIHostingView") == 0) return YES;
+    if (strstr(name, "_UIHostingView") != NULL) return YES;
+    if (strstr(name, "UIHostingView") != NULL) return YES;
+    return NO;
+}
+
+static BOOL SPClassNameLooksLikeHostingController(const char *name) {
+    if (!name) return NO;
+    if (strcmp(name, "UIHostingController") == 0) return YES;
+    if (strstr(name, "UIHostingController") != NULL) return YES;
+    // Music / app wrappers: …HostingController (but not every *Controller).
+    if (strstr(name, "HostingController") != NULL &&
+        strstr(name, "SecureHosting") == NULL &&
+        strstr(name, "DocumentHosting") == NULL) {
+        return YES;
+    }
+    return NO;
+}
+
+static NSInteger SPHostingControllerRank(const char *name) {
+    if (!name) return 0;
+    if (strcmp(name, "UIHostingController") == 0) return 100;
+    if (strstr(name, "SwiftUI") && strstr(name, "UIHostingController")) return 90;
+    if (strstr(name, "UIHostingController") != NULL) return 80;
+    if (strstr(name, "HostingController") != NULL) return 40;
+    return 10;
+}
+
 static void SPWriteHeartbeat(NSString *message, BOOL hooked,
                              NSArray *viewNames, NSArray *controllerNames) {
     NSMutableArray *prefsInfo = [NSMutableArray array];
@@ -63,27 +113,51 @@ static void SPWriteHeartbeat(NSString *message, BOOL hooked,
     });
 }
 
-static void SPLogAttach(UIView *host) {
-    if (!host) return;
+static UIView *SPFindHostingViewBFS(UIView *root, NSInteger maxNodes) {
+    if (!root) return nil;
+    NSMutableArray *q = [NSMutableArray arrayWithObject:root];
+    NSInteger seen = 0;
+    while (q.count && seen < maxNodes) {
+        UIView *v = q.firstObject;
+        [q removeObjectAtIndex:0];
+        seen++;
+        const char *cn = object_getClassName(v);
+        if (SPClassNameLooksLikeHostingView(cn)) return v;
+        for (UIView *sub in v.subviews) {
+            [q addObject:sub];
+        }
+    }
+    return nil;
+}
+
+static void SPLogAttachObject(id object, NSString *role) {
+    if (!object) return;
 
     static dispatch_once_t once;
     dispatch_once(&once, ^{
         gSPLoggedHosts = [NSMutableSet set];
     });
 
-    NSValue *key = [NSValue valueWithNonretainedObject:host];
+    NSValue *key = [NSValue valueWithNonretainedObject:object];
     if ([gSPLoggedHosts containsObject:key]) return;
     if (gSPAttachCount >= kSPMaxAttachLogs) return;
+
+    NSString *objcName = @(object_getClassName(object) ?: "?");
+    NSString *typeName = SPSwiftTypeNameFromObject(object) ?: objcName;
+
+    // Milestone 1 proof needs a real SwiftUI / app type — skip plain UIKit noise.
+    if (SPIsBoringTypeName(typeName) && SPIsBoringTypeName(objcName)) {
+        return;
+    }
+
     [gSPLoggedHosts addObject:key];
     gSPAttachCount++;
 
-    NSString *typeName = SPSwiftTypeNameFromObject(host) ?: @"<unknown>";
-    uintptr_t addr = (uintptr_t)(__bridge void *)host;
-
+    uintptr_t addr = (uintptr_t)(__bridge void *)object;
     if (SPPrefBool(@"logAttach", YES)) {
-        NSLog(@"[SwiftPeek] attach process=%@ type=%@ addr=0x%lx class=%s",
+        NSLog(@"[SwiftPeek] attach process=%@ role=%@ type=%@ objc=%@ addr=0x%lx",
               NSProcessInfo.processInfo.processName ?: @"?",
-              typeName, (unsigned long)addr, object_getClassName(host));
+              role, typeName, objcName, (unsigned long)addr);
     }
 
     NSDictionary *payload = @{
@@ -91,7 +165,8 @@ static void SPLogAttach(UIView *host) {
         @"nodes": @[
             @{
                 @"address": [NSString stringWithFormat:@"0x%lx", (unsigned long)addr],
-                @"objc_class": @(object_getClassName(host) ?: "?"),
+                @"objc_class": objcName,
+                @"role": role ?: @"",
                 @"type": typeName,
             }
         ],
@@ -106,12 +181,17 @@ static void SPLogAttach(UIView *host) {
 
 static void SPHookedLayoutSubviews(UIView *self, SEL _cmd) {
     if (gSPOrigLayoutSubviews) gSPOrigLayoutSubviews(self, _cmd);
-    @try { SPLogAttach(self); } @catch (__unused id e) {}
+    @try { SPLogAttachObject(self, @"hosting_view"); } @catch (__unused id e) {}
 }
 
 static void SPHookedViewDidLayout(UIViewController *self, SEL _cmd) {
     if (gSPOrigViewDidLayout) gSPOrigViewDidLayout(self, _cmd);
-    @try { SPLogAttach(self.view); } @catch (__unused id e) {}
+    @try {
+        // Controller type is usually the useful Swift name (MusicRootHostingController, etc.).
+        SPLogAttachObject(self, @"hosting_controller");
+        UIView *hosting = SPFindHostingViewBFS(self.view, 64);
+        if (hosting) SPLogAttachObject(hosting, @"hosting_view");
+    } @catch (__unused id e) {}
 }
 
 static BOOL SPSwizzle(Class cls, SEL sel, IMP replacement, IMP *origOut) {
@@ -171,21 +251,13 @@ static void SPTryInstallHooks(void) {
             const char *name = class_getName(list[i]);
             if (!name) continue;
 
-            BOOL looksView = (strcmp(name, "_UIHostingView") == 0) ||
-                             (strstr(name, "_UIHostingView") != NULL) ||
-                             (strstr(name, "UIHostingView") != NULL);
-            if (looksView) {
+            if (SPClassNameLooksLikeHostingView(name)) {
                 [viewNames addObject:@(name)];
                 if ([list[i] isSubclassOfClass:[UIView class]]) {
                     [viewClasses addObject:[NSValue valueWithPointer:(__bridge void *)list[i]]];
                 }
             }
-
-            BOOL looksVC = (strcmp(name, "UIHostingController") == 0) ||
-                           (strstr(name, "UIHostingController") != NULL);
-            if (looksVC &&
-                strstr(name, "SecureHosting") == NULL &&
-                strstr(name, "DocumentHosting") == NULL) {
+            if (SPClassNameLooksLikeHostingController(name)) {
                 [vcNames addObject:@(name)];
                 if ([list[i] isSubclassOfClass:[UIViewController class]]) {
                     [vcClasses addObject:[NSValue valueWithPointer:(__bridge void *)list[i]]];
@@ -209,28 +281,53 @@ static void SPTryInstallHooks(void) {
     }
     if (viewHooks > 0) gSPHookedHostingView = YES;
 
-    // Pick shortest UIHostingController-like name.
+    // Prefer real SwiftUI UIHostingController over incidental *HostingController names.
     Class bestVC = Nil;
+    NSInteger bestRank = -1;
     NSUInteger bestLen = NSUIntegerMax;
     for (NSValue *v in vcClasses) {
         Class cls = (Class)v.pointerValue;
         const char *cn = class_getName(cls);
+        NSInteger rank = SPHostingControllerRank(cn);
         NSUInteger len = cn ? strlen(cn) : NSUIntegerMax;
-        if (len < bestLen) {
+        if (rank > bestRank || (rank == bestRank && len < bestLen)) {
             bestVC = cls;
+            bestRank = rank;
             bestLen = len;
         }
     }
-    if (bestVC && SPSwizzle(bestVC, @selector(viewDidLayoutSubviews),
-                            (IMP)SPHookedViewDidLayout,
-                            (IMP *)&gSPOrigViewDidLayout)) {
-        gSPHookedHostingController = YES;
-        gSPHookedControllerClassName = @(class_getName(bestVC));
+    // Swizzle top few controller candidates (ranked), not only one.
+    NSInteger vcHooks = 0;
+    NSArray *sorted = [vcClasses sortedArrayUsingComparator:^NSComparisonResult(NSValue *a, NSValue *b) {
+        const char *an = class_getName((Class)a.pointerValue);
+        const char *bn = class_getName((Class)b.pointerValue);
+        NSInteger ar = SPHostingControllerRank(an);
+        NSInteger br = SPHostingControllerRank(bn);
+        if (ar != br) return ar > br ? NSOrderedAscending : NSOrderedDescending;
+        size_t al = an ? strlen(an) : 9999;
+        size_t bl = bn ? strlen(bn) : 9999;
+        if (al == bl) return NSOrderedSame;
+        return al < bl ? NSOrderedAscending : NSOrderedDescending;
+    }];
+    for (NSValue *v in sorted) {
+        if (vcHooks >= 6) break;
+        Class cls = (Class)v.pointerValue;
+        if (SPSwizzle(cls, @selector(viewDidLayoutSubviews),
+                      (IMP)SPHookedViewDidLayout,
+                      (IMP *)&gSPOrigViewDidLayout)) {
+            vcHooks++;
+            if (!gSPHookedControllerClassName) {
+                gSPHookedControllerClassName = @(class_getName(cls));
+            }
+        }
     }
+    if (vcHooks > 0) gSPHookedHostingController = YES;
+    (void)bestVC;
 
     BOOL hooked = gSPHookedHostingView || gSPHookedHostingController;
     if (hooked) {
-        NSString *msg = [NSString stringWithFormat:@"hooks installed (views=%ld)", (long)viewHooks];
+        NSString *msg = [NSString stringWithFormat:@"hooks installed (views=%ld controllers=%ld)",
+                                                   (long)viewHooks, (long)vcHooks];
         SPWriteHeartbeat(msg, YES, viewNames, vcNames);
         NSLog(@"[SwiftPeek] %@", msg);
     } else if (viewNames.count || vcNames.count) {
