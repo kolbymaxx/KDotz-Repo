@@ -8,14 +8,14 @@
 
 // Hosts the iOS 27 floating Liquid Glass dock on Music's UITabBarController.
 //
-// 1.1.1 safety fixes vs blank Music launch:
-// - No layout loop: do NOT mutate additionalSafeAreaInsets / tabBar.hidden from
-//   inside every viewDidLayoutSubviews.
-// - Never hide arbitrary views in the tab controller hierarchy (the old
-//   mini-player heuristic could hide real content → white screen).
-// - Install the dock once; layout only repositions the overlay.
-// - Keep the stock tab bar in the hierarchy (transparent) so Music's own
-//   geometry stays stable.
+// 1.1.9 blank-screen fix (iPhone X / Dopamine rootless):
+// - NEVER mutate additionalSafeAreaInsets (Music uses them for mini-player;
+//   clearing them every layout thrash-crushed the root hosting view).
+// - Install once from UITabBarController viewDidAppear only.
+// - No UIWindow / UITabBar.layoutSubviews install paths.
+// - Overlay dock only; leave stock tab bar interactive as fallback.
+// - Fade stock mini-player once at install — never from every layout pass.
+// - Prefs default dock OFF (see M27Prefs blankScreenFix119).
 
 static const NSInteger kM27DockTag = 0x4D323744; // 'M27D'
 static const CGFloat kM27ScrollCollapseY = 40.0;
@@ -23,6 +23,7 @@ static const void *kM27DockControllerKey = &kM27DockControllerKey;
 static const void *kM27DockInstalledKey = &kM27DockInstalledKey;
 static const void *kM27ChromeKey = &kM27ChromeKey;
 static const void *kM27LayoutGuardKey = &kM27LayoutGuardKey;
+static const void *kM27MiniFadedKey = &kM27MiniFadedKey;
 
 #pragma mark - MediaRemote (soft-linked)
 
@@ -63,7 +64,7 @@ static void M27NextTrack(void) {
     [MPMusicPlayerController.systemMusicPlayer skipToNextItem];
 }
 
-#pragma mark - Stock chrome (tab bar only — never hide content views)
+#pragma mark - Stock chrome (visual only — keep interaction as fallback)
 
 static void M27StripTabBarChromeOnce(UITabBar *tabBar) {
     if (!tabBar) return;
@@ -74,8 +75,8 @@ static void M27StripTabBarChromeOnce(UITabBar *tabBar) {
     [tabBar setBackgroundImage:[UIImage new]];
     [tabBar setShadowImage:[UIImage new]];
     tabBar.translucent = YES;
-    // Keep the bar in-hierarchy for Music layout, but ignore hits — dock handles them.
-    tabBar.userInteractionEnabled = NO;
+    // Keep userInteractionEnabled = YES so stock tabs remain a fallback if the
+    // overlay dock fails to receive hits. Dock sits above and takes hits first.
 
     if (@available(iOS 13.0, *)) {
         UITabBarAppearance *appearance = [UITabBarAppearance new];
@@ -185,7 +186,6 @@ static UIView *M27FindStockMiniPlayer(UITabBarController *tbc);
 
 - (void)floatingDockDidTapNowPlaying:(M27FloatingDock *)dock {
     (void)dock;
-    // Soft open: try to tap the real mini player if we can find it safely.
     UIView *mini = M27FindStockMiniPlayer(self.tabBarController);
     if (!mini) return;
     CGPoint point = CGPointMake(CGRectGetMidX(mini.bounds), CGRectGetMidY(mini.bounds));
@@ -243,7 +243,6 @@ static UIView *M27FindStockMiniPlayer(UITabBarController *tbc) {
     for (UIView *sibling in parent.subviews) {
         if (sibling == tabBar) continue;
         if (sibling.tag == kM27DockTag) continue;
-        // Reject anything that looks like a full-screen content host.
         if (sibling.bounds.size.height > 120.0) continue;
         if (M27ClassNameContains(sibling, strongNeedles)) {
             return sibling;
@@ -258,14 +257,25 @@ static UIView *M27FindStockMiniPlayer(UITabBarController *tbc) {
     return nil;
 }
 
-static void M27FadeStockMiniPlayer(UITabBarController *tbc) {
+static void M27FadeStockMiniPlayerOnce(UITabBarController *tbc) {
+    if (!tbc) return;
+    if (objc_getAssociatedObject(tbc, kM27MiniFadedKey)) return;
     UIView *mini = M27FindStockMiniPlayer(tbc);
     if (!mini) return;
-    // Fade only — never .hidden / removeFromSuperview (Music may use it for layout).
-    if (mini.alpha > 0.01) {
-        mini.alpha = 0.0;
-        mini.userInteractionEnabled = NO;
-    }
+    // Fade only — never .hidden / removeFromSuperview.
+    mini.alpha = 0.0;
+    mini.userInteractionEnabled = NO;
+    objc_setAssociatedObject(tbc, kM27MiniFadedKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+static void M27UnfadeStockMiniPlayer(UITabBarController *tbc) {
+    if (!tbc) return;
+    if (!objc_getAssociatedObject(tbc, kM27MiniFadedKey)) return;
+    objc_setAssociatedObject(tbc, kM27MiniFadedKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    UIView *mini = M27FindStockMiniPlayer(tbc);
+    if (!mini) return;
+    mini.alpha = 1.0;
+    mini.userInteractionEnabled = YES;
 }
 
 #pragma mark - Dock install / layout
@@ -281,7 +291,14 @@ static M27DockController *M27ControllerForTabBarController(UITabBarController *t
 }
 
 static M27FloatingDock *M27DockForTabBarController(UITabBarController *tbc) {
-    return (M27FloatingDock *)[tbc.view viewWithTag:kM27DockTag];
+    if (!tbc) return nil;
+    // Direct children only — avoid recursive viewWithTag walks into content hosts.
+    for (UIView *sub in tbc.view.subviews) {
+        if (sub.tag == kM27DockTag && [sub isKindOfClass:M27FloatingDock.class]) {
+            return (M27FloatingDock *)sub;
+        }
+    }
+    return nil;
 }
 
 static void M27LayoutDock(UITabBarController *tbc, M27FloatingDock *dock) {
@@ -290,22 +307,18 @@ static void M27LayoutDock(UITabBarController *tbc, M27FloatingDock *dock) {
     objc_setAssociatedObject(tbc, kM27LayoutGuardKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
     @try {
-        // NEVER touch additionalSafeAreaInsets — that crushed Library to blank white
-        // on RootHide. Overlay the dock; content can scroll underneath slightly.
-        if (!UIEdgeInsetsEqualToEdgeInsets(tbc.additionalSafeAreaInsets, UIEdgeInsetsZero)) {
-            tbc.additionalSafeAreaInsets = UIEdgeInsetsZero;
-        }
-
+        // Overlay only. Do NOT touch additionalSafeAreaInsets — ever.
         UIView *host = tbc.view;
+        if (!host || host.bounds.size.width < 10 || host.bounds.size.height < 10) return;
         if (dock.superview != host) [host addSubview:dock];
 
         CGFloat safeBottom = host.safeAreaInsets.bottom;
         CGFloat bottomPad = safeBottom > 0 ? MIN(safeBottom * 0.22, 10.0) : 8.0;
         CGFloat height = dock.preferredHeight;
+        if (height < 10) return;
+
         CGFloat width = host.bounds.size.width;
         CGFloat hostH = host.bounds.size.height;
-        if (width < 10 || hostH < 10 || height < 10) return;
-
         CGFloat y = hostH - height - bottomPad;
         dock.hidden = NO;
         dock.alpha = 1.0;
@@ -320,26 +333,22 @@ static void M27LayoutDock(UITabBarController *tbc, M27FloatingDock *dock) {
 }
 
 static void M27InstallDockIfNeeded(UITabBarController *tbc) {
-    if (!tbc) return;
-    // Always re-read prefs — RootHide Settings writes can land after Music launch.
+    if (!tbc || !tbc.isViewLoaded) return;
     [M27Prefs.shared reload];
     M27Prefs *prefs = M27Prefs.shared;
     M27FloatingDock *existing = M27DockForTabBarController(tbc);
 
-    // Always clear any leftover crushed insets from older builds.
-    if (!UIEdgeInsetsEqualToEdgeInsets(tbc.additionalSafeAreaInsets, UIEdgeInsetsZero)) {
-        tbc.additionalSafeAreaInsets = UIEdgeInsetsZero;
-    }
-
     if (!(prefs.enabled && prefs.glassTabBarEnabled)) {
         if (existing) [existing removeFromSuperview];
         M27RestoreTabBarChrome(tbc.tabBar);
+        M27UnfadeStockMiniPlayer(tbc);
+        objc_setAssociatedObject(tbc, kM27DockInstalledKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         return;
     }
 
     @try {
         M27StripTabBarChromeOnce(tbc.tabBar);
-        M27FadeStockMiniPlayer(tbc);
+        M27FadeStockMiniPlayerOnce(tbc);
 
         M27DockController *controller = M27ControllerForTabBarController(tbc);
         M27FloatingDock *dock = existing;
@@ -359,8 +368,8 @@ static void M27InstallDockIfNeeded(UITabBarController *tbc) {
         M27LayoutDock(tbc, dock);
     } @catch (__unused NSException *ex) {
         [existing removeFromSuperview];
-        tbc.additionalSafeAreaInsets = UIEdgeInsetsZero;
         M27RestoreTabBarChrome(tbc.tabBar);
+        M27UnfadeStockMiniPlayer(tbc);
     }
 }
 
@@ -373,7 +382,6 @@ static UITabBarController *M27MusicTabBarController(void) {
                 return (UITabBarController *)root;
             }
             if (root.tabBarController) return root.tabBarController;
-            // Music sometimes wraps the tab controller.
             for (UIViewController *child in root.childViewControllers) {
                 if ([child isKindOfClass:UITabBarController.class]) {
                     return (UITabBarController *)child;
@@ -389,10 +397,16 @@ static void M27HandleScrollOffset(UIScrollView *scrollView) {
     if (fabs(scrollView.contentOffset.x) > fabs(scrollView.contentOffset.y)) return;
     if (scrollView.contentOffset.y < kM27ScrollCollapseY) return;
 
-    UITabBarController *tbc = scrollView.window.rootViewController.tabBarController;
-    if (![tbc isKindOfClass:UITabBarController.class]) {
-        tbc = M27MusicTabBarController();
+    UIResponder *r = scrollView;
+    UITabBarController *tbc = nil;
+    while (r) {
+        if ([r isKindOfClass:UITabBarController.class]) {
+            tbc = (UITabBarController *)r;
+            break;
+        }
+        r = r.nextResponder;
     }
+    if (!tbc) tbc = M27MusicTabBarController();
     if (!tbc) return;
 
     M27Prefs *prefs = M27Prefs.shared;
@@ -409,9 +423,10 @@ static void M27HandleScrollOffset(UIScrollView *scrollView) {
 
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
-    // Defer one runloop so Music finishes its own first layout.
+    // Sole install path. Defer one runloop so Music finishes first layout.
+    __weak UITabBarController *weakSelf = self;
     dispatch_async(dispatch_get_main_queue(), ^{
-        M27InstallDockIfNeeded(self);
+        M27InstallDockIfNeeded(weakSelf);
     });
 }
 
@@ -419,12 +434,10 @@ static void M27HandleScrollOffset(UIScrollView *scrollView) {
     %orig;
     M27Prefs *prefs = M27Prefs.shared;
     if (!(prefs.enabled && prefs.glassTabBarEnabled)) return;
-    // Layout-only path: never reinstall / never hide content here.
+    // Layout-only: reposition overlay. Never reinstall / never touch safe area /
+    // never fade mini-player here.
     M27FloatingDock *dock = M27DockForTabBarController(self);
-    if (dock) {
-        M27LayoutDock(self, dock);
-        M27FadeStockMiniPlayer(self);
-    }
+    if (dock) M27LayoutDock(self, dock);
 }
 
 - (void)setSelectedIndex:(NSUInteger)selectedIndex {
@@ -437,67 +450,6 @@ static void M27HandleScrollOffset(UIScrollView *scrollView) {
     %orig;
     M27FloatingDock *dock = M27DockForTabBarController(self);
     if (dock) dock.selectedTabIndex = (NSInteger)self.selectedIndex;
-}
-
-%end
-
-%hook UITabBar
-
-- (void)didMoveToWindow {
-    %orig;
-    if (!self.window) return;
-    UITabBarController *tbc = nil;
-    for (UIResponder *r = self; r; r = r.nextResponder) {
-        if ([r isKindOfClass:UITabBarController.class]) { tbc = (UITabBarController *)r; break; }
-    }
-    if (!tbc) tbc = M27MusicTabBarController();
-    if (!tbc) return;
-    dispatch_async(dispatch_get_main_queue(), ^{ M27InstallDockIfNeeded(tbc); });
-}
-
-- (void)layoutSubviews {
-    %orig;
-    M27Prefs *prefs = M27Prefs.shared;
-    if (!(prefs.enabled && prefs.glassTabBarEnabled)) return;
-    if (!objc_getAssociatedObject(self, kM27ChromeKey)) {
-        // First chance: install from the tab bar itself (RootHide often hits this).
-        UITabBarController *tbc = nil;
-        for (UIResponder *r = self; r; r = r.nextResponder) {
-            if ([r isKindOfClass:UITabBarController.class]) { tbc = (UITabBarController *)r; break; }
-        }
-        M27InstallDockIfNeeded(tbc ?: M27MusicTabBarController());
-        return;
-    }
-    // Keep stock icons invisible if UIKit rebuilds them.
-    for (UIView *sub in self.subviews) {
-        if (sub.tag == kM27DockTag) continue;
-        NSString *name = NSStringFromClass(sub.class);
-        if ([name containsString:@"Button"] || [name containsString:@"TabBarButton"] ||
-            [name containsString:@"UITabBar"]) {
-            sub.alpha = 0.0;
-        }
-    }
-    UITabBarController *tbc = nil;
-    for (UIResponder *r = self; r; r = r.nextResponder) {
-        if ([r isKindOfClass:UITabBarController.class]) { tbc = (UITabBarController *)r; break; }
-    }
-    M27FloatingDock *dock = M27DockForTabBarController(tbc ?: M27MusicTabBarController());
-    if (dock) {
-        [dock.superview bringSubviewToFront:dock];
-        dock.layer.zPosition = 100000;
-    }
-}
-
-%end
-
-%hook UIWindow
-
-- (void)makeKeyAndVisible {
-    %orig;
-    dispatch_async(dispatch_get_main_queue(), ^{
-        UITabBarController *tbc = M27MusicTabBarController();
-        if (tbc) M27InstallDockIfNeeded(tbc);
-    });
 }
 
 %end

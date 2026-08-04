@@ -10,7 +10,7 @@
 			<key>label</key>
 			<string>Music27</string>
 			<key>footerText</key>
-			<string>1.1.8: dock overlays without crushing Library. Keep Floating Glass Dock ON, force-quit Music, reopen. Pins are local only.</string>
+			<string>1.1.9: Music should open stock first. Floating Glass Dock and Color Theme default OFF after upgrade — turn them on only after Music launches cleanly, then force-quit Music.</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -31,12 +31,14 @@
 			<string>PSGroupCell</string>
 			<key>label</key>
 			<string>Features</string>
+			<key>footerText</key>
+			<string>Dock is an overlay only — it never changes Music safe-area insets. If Music goes blank, turn Floating Glass Dock OFF and relaunch.</string>
 		</dict>
 		<dict>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
-			<true/>
+			<false/>
 			<key>defaults</key>
 			<string>com.music27.tweak</string>
 			<key>key</key>
@@ -50,7 +52,7 @@
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
-			<true/>
+			<false/>
 			<key>defaults</key>
 			<string>com.music27.tweak</string>
 			<key>key</key>
@@ -92,7 +94,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>Music27 1.1.8 — safe dock overlay (fixes blank Library). Force-quit Music after toggling.</string>
+			<string>Music27 1.1.9 — blank-screen fix for Dopamine/iPhone X. No APT publish until verified.</string>
 		</dict>
 	</array>
 	<key>title</key>
