@@ -10,7 +10,7 @@
 			<key>label</key>
 			<string>Music27</string>
 			<key>footerText</key>
-			<string>1.1.9: Music should open stock first. Floating Glass Dock and Color Theme default OFF after upgrade — turn them on only after Music launches cleanly, then force-quit Music.</string>
+			<string>1.1.10: Floating Glass Dock is a window overlay (should not blank Library). Enable dock, force-quit Music, reopen. If Library is empty, turn dock OFF and report.</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -32,7 +32,7 @@
 			<key>label</key>
 			<string>Features</string>
 			<key>footerText</key>
-			<string>Dock is an overlay only — it never changes Music safe-area insets. If Music goes blank, turn Floating Glass Dock OFF and relaunch.</string>
+			<string>Dock overlays from the window — it does not edit Music safe-area insets or fade the stock mini-player. Stock tab bar is alpha-hidden only.</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -94,7 +94,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>Music27 1.1.9 — blank-screen fix for Dopamine/iPhone X. No APT publish until verified.</string>
+			<string>Music27 1.1.10 — dock-on Library fix. No APT publish until verified on device.</string>
 		</dict>
 	</array>
 	<key>title</key>

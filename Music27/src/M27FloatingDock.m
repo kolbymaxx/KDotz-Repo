@@ -508,4 +508,38 @@ static const CGFloat kM27CircleButton = 44.0;
     [self refreshChrome];
 }
 
+#pragma mark - Hit testing
+
+- (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent *)event {
+    // Full-width host frame is taller/wider than the glass pills. Only the
+    // visible chrome should capture touches so Library content under the
+    // clear regions stays tappable.
+    if (self.mode == M27DockModeCollapsed) {
+        if (self.collapsedHost.userInteractionEnabled && self.collapsedHost.alpha > 0.01) {
+            CGPoint p = [self convertPoint:point toView:self.collapsedHost];
+            if ([self.collapsedHost pointInside:p withEvent:event]) return YES;
+        }
+        return NO;
+    }
+    if (self.expandedHost.userInteractionEnabled && self.expandedHost.alpha > 0.01) {
+        UIView *miniHost = [self.expandedHost viewWithTag:0x4D324D48];
+        UIView *tabsHost = [self.expandedHost viewWithTag:0x4D325448];
+        if (miniHost) {
+            CGPoint p = [self convertPoint:point toView:miniHost];
+            if ([miniHost pointInside:p withEvent:event]) return YES;
+        }
+        if (tabsHost) {
+            CGPoint p = [self convertPoint:point toView:tabsHost];
+            if ([tabsHost pointInside:p withEvent:event]) return YES;
+        }
+    }
+    return NO;
+}
+
+- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
+    if (!self.userInteractionEnabled || self.hidden || self.alpha < 0.01) return nil;
+    if (![self pointInside:point withEvent:event]) return nil;
+    return [super hitTest:point withEvent:event];
+}
+
 @end
