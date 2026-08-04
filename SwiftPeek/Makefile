@@ -8,7 +8,7 @@ include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = SwiftPeek
 
-SwiftPeek_FILES = Tweak.x \
+SwiftPeek_FILES = src/SPAttach.m \
 	src/SPPrefs.m \
 	src/SPSwiftMeta.m \
 	src/SPDumpWriter.m

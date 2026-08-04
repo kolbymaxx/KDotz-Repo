@@ -2,16 +2,12 @@
 #import <objc/runtime.h>
 #import <dlfcn.h>
 #import <mach-o/dyld.h>
-#import "src/SPPrefs.h"
-#import "src/SPSwiftMeta.h"
-#import "src/SPDumpWriter.h"
+#import "SPPrefs.h"
+#import "SPSwiftMeta.h"
+#import "SPDumpWriter.h"
 
 // -----------------------------------------------------------------------------
 // SwiftPeek — read-only SwiftUI inspector (Phase 1 / milestone 1: Attach)
-//
-// On iOS 16+, _UIHostingView is often only visible as a Swift-mangled class
-// name, so Logos %hook _UIHostingView never binds. Discover classes and
-// swizzle layoutSubviews via the ObjC runtime (no hard ElleKit/Substrate API).
 // -----------------------------------------------------------------------------
 
 static NSMutableSet *gSPLoggedHosts;
@@ -21,7 +17,7 @@ static BOOL gSPHookedHostingView = NO;
 static BOOL gSPHookedHostingController = NO;
 static NSString *gSPHookedViewClassName;
 static NSString *gSPHookedControllerClassName;
-static NSMutableSet *gSPSwizzledClasses;
+static NSMutableSet *gSPSwizzledKeys;
 
 static void (*gSPOrigLayoutSubviews)(UIView *, SEL) = NULL;
 static void (*gSPOrigViewDidLayout)(UIViewController *, SEL) = NULL;
@@ -35,76 +31,13 @@ static void SPPrefsChangedCallback(CFNotificationCenterRef center, void *observe
 static void SPEnsureSwiftUILoaded(void) {
     static dispatch_once_t once;
     dispatch_once(&once, ^{
-        void *h = dlopen("/System/Library/Frameworks/SwiftUI.framework/SwiftUI",
-                         RTLD_LAZY | RTLD_NOLOAD);
-        if (!h) {
-            h = dlopen("/System/Library/Frameworks/SwiftUI.framework/SwiftUI",
-                       RTLD_LAZY);
+        if (!dlopen("/System/Library/Frameworks/SwiftUI.framework/SwiftUI",
+                    RTLD_LAZY | RTLD_NOLOAD)) {
+            dlopen("/System/Library/Frameworks/SwiftUI.framework/SwiftUI", RTLD_LAZY);
         }
-        (void)h;
         NSBundle *b = [NSBundle bundleWithPath:@"/System/Library/Frameworks/SwiftUI.framework"];
         if (b && !b.isLoaded) [b load];
     });
-}
-
-static BOOL SPNameLooksLikeHostingView(const char *name) {
-    if (!name) return NO;
-    if (strcmp(name, "_UIHostingView") == 0) return YES;
-    if (strstr(name, "_UIHostingView") != NULL) return YES;
-    if (strstr(name, "UIHostingView") != NULL) return YES;
-    return NO;
-}
-
-static BOOL SPNameLooksLikeHostingController(const char *name) {
-    if (!name) return NO;
-    if (strcmp(name, "UIHostingController") == 0) return YES;
-    if (strstr(name, "UIHostingController") == NULL) return NO;
-    if (strstr(name, "SecureHosting") != NULL) return NO;
-    if (strstr(name, "DocumentHosting") != NULL) return NO;
-    return YES;
-}
-
-typedef BOOL (*SPNameMatchFn)(const char *);
-typedef BOOL (*SPClassKindFn)(Class);
-
-static BOOL SPClassIsUIView(Class c) {
-    return [c isSubclassOfClass:[UIView class]];
-}
-static BOOL SPClassIsUIViewController(Class c) {
-    return [c isSubclassOfClass:[UIViewController class]];
-}
-
-static void SPCollectClasses(SPNameMatchFn match,
-                             SPClassKindFn isKind,
-                             NSMutableArray<NSValue *> *outClasses,
-                             NSMutableArray<NSString *> *outNames) {
-    unsigned int n = 0;
-    Class *list = objc_copyClassList(&n);
-    if (!list) return;
-    for (unsigned int i = 0; i < n; i++) {
-        const char *name = class_getName(list[i]);
-        if (!match(name)) continue;
-        [outNames addObject:@(name)];
-        if (!isKind(list[i])) continue;
-        [outClasses addObject:[NSValue valueWithPointer:(__bridge void *)list[i]]];
-    }
-    free(list);
-}
-
-static Class SPPickBestClass(NSArray<NSValue *> *classes) {
-    Class best = Nil;
-    NSUInteger bestLen = NSUIntegerMax;
-    for (NSValue *v in classes) {
-        Class c = v.pointerValue;
-        if (!c) continue;
-        const char *n = class_getName(c);
-        NSUInteger len = n ? strlen(n) : NSUIntegerMax;
-        if (len < bestLen) {
-            best = c;
-            bestLen = len;
-        }
-    }
-    return best;
 }
 
 static void SPWriteHeartbeat(NSString *message, BOOL hooked,
@@ -114,8 +47,6 @@ static void SPWriteHeartbeat(NSString *message, BOOL hooked,
         BOOL exists = [[NSFileManager defaultManager] fileExistsAtPath:p];
         [prefsInfo addObject:@{ @"path": p, @"exists": @(exists) }];
     }
-    id hookedView = gSPHookedViewClassName ?: [NSNull null];
-    id hookedCtrl = gSPHookedControllerClassName ?: [NSNull null];
     SPWriteStatus(@{
         @"status": hooked ? @"hooked" : @"loaded",
         @"enabled": @(SPPrefBool(@"enabled", NO)),
@@ -125,8 +56,8 @@ static void SPWriteHeartbeat(NSString *message, BOOL hooked,
         @"hosting_controller": @((controllerNames.count > 0) || gSPHookedHostingController),
         @"hosting_view_names": viewNames ?: @[],
         @"hosting_controller_names": controllerNames ?: @[],
-        @"hooked_view_class": hookedView,
-        @"hooked_controller_class": hookedCtrl,
+        @"hooked_view_class": gSPHookedViewClassName ?: [NSNull null],
+        @"hooked_controller_class": gSPHookedControllerClassName ?: [NSNull null],
         @"hooked": @(hooked),
         @"message": message ?: @"",
     });
@@ -183,9 +114,6 @@ static void SPHookedViewDidLayout(UIViewController *self, SEL _cmd) {
     @try { SPLogAttach(self.view); } @catch (__unused id e) {}
 }
 
-/// Swizzle an instance method; store the previous IMP once (shared trampoline).
-/// Dedupes by current IMP so Swift generic specializations that share a method
-/// don't recurse into our hook as "original".
 static BOOL SPSwizzle(Class cls, SEL sel, IMP replacement, IMP *origOut) {
     if (!cls || !sel || !replacement || !origOut) return NO;
     Method m = class_getInstanceMethod(cls, sel);
@@ -193,64 +121,83 @@ static BOOL SPSwizzle(Class cls, SEL sel, IMP replacement, IMP *origOut) {
 
     static dispatch_once_t once;
     dispatch_once(&once, ^{
-        gSPSwizzledClasses = [NSMutableSet set];
+        gSPSwizzledKeys = [NSMutableSet set];
     });
     NSString *key = [NSString stringWithFormat:@"%s|%s", class_getName(cls), sel_getName(sel)];
-    if ([gSPSwizzledClasses containsObject:key]) return YES;
+    if ([gSPSwizzledKeys containsObject:key]) return YES;
 
     IMP current = method_getImplementation(m);
     if (current == replacement) {
-        [gSPSwizzledClasses addObject:key];
-        return YES; // already hooked via a shared Method
+        [gSPSwizzledKeys addObject:key];
+        return YES;
     }
     if (*origOut != NULL && current == (IMP)(*origOut)) {
-        // Same underlying IMP we already replaced on another class name.
         method_setImplementation(m, replacement);
-        [gSPSwizzledClasses addObject:key];
+        [gSPSwizzledKeys addObject:key];
         return YES;
     }
 
     IMP prev = method_setImplementation(m, replacement);
     if (!prev) return NO;
     if (*origOut == NULL) *origOut = prev;
-    [gSPSwizzledClasses addObject:key];
+    [gSPSwizzledKeys addObject:key];
     return YES;
 }
 
 static void SPTryInstallHooks(void) {
     SPEnsureSwiftUILoaded();
 
-    NSMutableArray<NSValue *> *viewClasses = [NSMutableArray array];
-    NSMutableArray<NSString *> *viewNames = [NSMutableArray array];
-    NSMutableArray<NSValue *> *vcClasses = [NSMutableArray array];
-    NSMutableArray<NSString *> *vcNames = [NSMutableArray array];
+    NSMutableArray *viewClasses = [NSMutableArray array];
+    NSMutableArray *viewNames = [NSMutableArray array];
+    NSMutableArray *vcClasses = [NSMutableArray array];
+    NSMutableArray *vcNames = [NSMutableArray array];
 
     Class directView = NSClassFromString(@"_UIHostingView");
-    if (directView) {
+    if (directView && [directView isSubclassOfClass:[UIView class]]) {
         [viewNames addObject:@"_UIHostingView"];
-        if ([directView isSubclassOfClass:[UIView class]]) {
-            [viewClasses addObject:[NSValue valueWithPointer:(__bridge void *)directView]];
-        }
+        [viewClasses addObject:[NSValue valueWithPointer:(__bridge void *)directView]];
     }
-    SPCollectClasses(SPNameLooksLikeHostingView,
-                     ^BOOL(Class c) { return [c isSubclassOfClass:[UIView class]]; },
-                     viewClasses, viewNames);
 
     Class directVC = NSClassFromString(@"UIHostingController");
-    if (directVC) {
+    if (directVC && [directVC isSubclassOfClass:[UIViewController class]]) {
         [vcNames addObject:@"UIHostingController"];
-        if ([directVC isSubclassOfClass:[UIViewController class]]) {
-            [vcClasses addObject:[NSValue valueWithPointer:(__bridge void *)directVC]];
-        }
+        [vcClasses addObject:[NSValue valueWithPointer:(__bridge void *)directVC]];
     }
-    SPCollectClasses(SPNameLooksLikeHostingController,
-                     ^BOOL(Class c) { return [c isSubclassOfClass:[UIViewController class]]; },
-                     vcClasses, vcNames);
 
-    // Swizzle every hosting-view candidate so specialized Swift generics are covered.
+    unsigned int n = 0;
+    Class *list = objc_copyClassList(&n);
+    if (list) {
+        for (unsigned int i = 0; i < n; i++) {
+            const char *name = class_getName(list[i]);
+            if (!name) continue;
+
+            BOOL looksView = (strcmp(name, "_UIHostingView") == 0) ||
+                             (strstr(name, "_UIHostingView") != NULL) ||
+                             (strstr(name, "UIHostingView") != NULL);
+            if (looksView) {
+                [viewNames addObject:@(name)];
+                if ([list[i] isSubclassOfClass:[UIView class]]) {
+                    [viewClasses addObject:[NSValue valueWithPointer:(__bridge void *)list[i]]];
+                }
+            }
+
+            BOOL looksVC = (strcmp(name, "UIHostingController") == 0) ||
+                           (strstr(name, "UIHostingController") != NULL);
+            if (looksVC &&
+                strstr(name, "SecureHosting") == NULL &&
+                strstr(name, "DocumentHosting") == NULL) {
+                [vcNames addObject:@(name)];
+                if ([list[i] isSubclassOfClass:[UIViewController class]]) {
+                    [vcClasses addObject:[NSValue valueWithPointer:(__bridge void *)list[i]]];
+                }
+            }
+        }
+        free(list);
+    }
+
     NSInteger viewHooks = 0;
     for (NSValue *v in viewClasses) {
-        Class cls = v.pointerValue;
+        Class cls = (Class)v.pointerValue;
         if (SPSwizzle(cls, @selector(layoutSubviews),
                       (IMP)SPHookedLayoutSubviews,
                       (IMP *)&gSPOrigLayoutSubviews)) {
@@ -262,7 +209,18 @@ static void SPTryInstallHooks(void) {
     }
     if (viewHooks > 0) gSPHookedHostingView = YES;
 
-    Class bestVC = SPPickBestClass(vcClasses);
+    // Pick shortest UIHostingController-like name.
+    Class bestVC = Nil;
+    NSUInteger bestLen = NSUIntegerMax;
+    for (NSValue *v in vcClasses) {
+        Class cls = (Class)v.pointerValue;
+        const char *cn = class_getName(cls);
+        NSUInteger len = cn ? strlen(cn) : NSUIntegerMax;
+        if (len < bestLen) {
+            bestVC = cls;
+            bestLen = len;
+        }
+    }
     if (bestVC && SPSwizzle(bestVC, @selector(viewDidLayoutSubviews),
                             (IMP)SPHookedViewDidLayout,
                             (IMP *)&gSPOrigViewDidLayout)) {
@@ -272,8 +230,7 @@ static void SPTryInstallHooks(void) {
 
     BOOL hooked = gSPHookedHostingView || gSPHookedHostingController;
     if (hooked) {
-        NSString *msg = [NSString stringWithFormat:@"hooks installed (views=%ld)",
-                                                   (long)viewHooks];
+        NSString *msg = [NSString stringWithFormat:@"hooks installed (views=%ld)", (long)viewHooks];
         SPWriteHeartbeat(msg, YES, viewNames, vcNames);
         NSLog(@"[SwiftPeek] %@", msg);
     } else if (viewNames.count || vcNames.count) {
@@ -299,12 +256,11 @@ static void SPOnImageAdded(const struct mach_header *mh, intptr_t slide) {
     });
 }
 
-%ctor {
+__attribute__((constructor)) static void SPConstructor(void) {
     @autoreleasepool {
         BOOL enabled = SPPrefBool(@"enabled", NO);
         SPWriteHeartbeat(enabled ? @"ctor enabled" : @"ctor disabled (kill switch)",
                          NO, @[], @[]);
-
         if (!enabled) {
             NSLog(@"[SwiftPeek] disabled — idle");
             return;
@@ -317,7 +273,8 @@ static void SPOnImageAdded(const struct mach_header *mh, intptr_t slide) {
         SPTryInstallHooks();
         _dyld_register_func_for_add_image(SPOnImageAdded);
 
-        for (NSNumber *sec in @[ @0.5, @1.5, @3.0, @6.0, @12.0 ]) {
+        NSArray *delays = @[ @0.5, @1.5, @3.0, @6.0, @12.0 ];
+        for (NSNumber *sec in delays) {
             dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
                                          (int64_t)(sec.doubleValue * NSEC_PER_SEC)),
                            dispatch_get_main_queue(), ^{
