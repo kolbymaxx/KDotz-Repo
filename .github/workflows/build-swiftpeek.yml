@@ -63,7 +63,10 @@ jobs:
           plutil -p "$FILTER"
           grep -q 'com.apple.Music' <(plutil -p "$FILTER")
           grep -q 'com.apple.springboard' <(plutil -p "$FILTER")
-          test -f "$TMP/Library/PreferenceLoader/Preferences/SwiftPeek.plist"
+          # rootless stages under var/jb/; roothide does not — locate either way
+          PREFS="$(find "$TMP" -path '*/PreferenceLoader/Preferences/SwiftPeek.plist' | head -1)"
+          test -n "$PREFS"
+          plutil -p "$PREFS"
           # Must not land in dist/ via this workflow — build artifact only.
           dpkg-deb -I "$DEB"
 
