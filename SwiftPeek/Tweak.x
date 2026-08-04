@@ -1,15 +1,13 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
+#import <dlfcn.h>
+#import <mach-o/dyld.h>
 #import "src/SPPrefs.h"
 #import "src/SPSwiftMeta.h"
 #import "src/SPDumpWriter.h"
 
 // -----------------------------------------------------------------------------
 // SwiftPeek — read-only SwiftUI inspector (Phase 1 / milestone 1: Attach)
-//
-// Hook _UIHostingView layoutSubviews (and UIHostingController as backup),
-// recover a Swift type name for the hosting view, log + JSON dump.
-// Mutation is out of scope.
 // -----------------------------------------------------------------------------
 
 @interface _UIHostingView : UIView
@@ -18,10 +16,11 @@
 @interface UIHostingController : UIViewController
 @end
 
-// Rate-limit attach logs so layoutSubviews doesn't flood.
 static NSMutableSet *gSPLoggedHosts;
 static NSInteger gSPAttachCount = 0;
 static const NSInteger kSPMaxAttachLogs = 32;
+static BOOL gSPHookedHostingView = NO;
+static BOOL gSPHookedHostingController = NO;
 
 static void SPPrefsChangedCallback(CFNotificationCenterRef center, void *observer,
                                    CFStringRef name, const void *object,
@@ -29,9 +28,26 @@ static void SPPrefsChangedCallback(CFNotificationCenterRef center, void *observe
     SPPrefsInvalidate();
 }
 
+static void SPWriteHeartbeat(NSString *message, BOOL hooked) {
+    NSMutableArray *prefsInfo = [NSMutableArray array];
+    for (NSString *p in SPPrefsCandidatePaths()) {
+        BOOL exists = [[NSFileManager defaultManager] fileExistsAtPath:p];
+        [prefsInfo addObject:@{ @"path": p, @"exists": @(exists) }];
+    }
+    SPWriteStatus(@{
+        @"status": hooked ? @"hooked" : @"loaded",
+        @"enabled": @(SPPrefBool(@"enabled", NO)),
+        @"jbroot": SPJailbreakRootPrefix() ?: @"",
+        @"prefs_paths": prefsInfo,
+        @"hosting_view": @(NSClassFromString(@"_UIHostingView") != nil),
+        @"hosting_controller": @(NSClassFromString(@"UIHostingController") != nil),
+        @"hooked": @(hooked),
+        @"message": message ?: @"",
+    });
+}
+
 static void SPLogAttach(UIView *host) {
     if (!host) return;
-    if (!SPPrefBool(@"logAttach", YES)) return;
 
     static dispatch_once_t once;
     dispatch_once(&once, ^{
@@ -48,11 +64,11 @@ static void SPLogAttach(UIView *host) {
     uintptr_t addr = (uintptr_t)(__bridge void *)host;
     NSString *proc = NSProcessInfo.processInfo.processName ?: @"?";
 
-    NSLog(@"[SwiftPeek] attach process=%@ type=%@ addr=0x%lx class=%s",
-          proc, typeName, (unsigned long)addr, object_getClassName(host));
+    if (SPPrefBool(@"logAttach", YES)) {
+        NSLog(@"[SwiftPeek] attach process=%@ type=%@ addr=0x%lx class=%s",
+              proc, typeName, (unsigned long)addr, object_getClassName(host));
+    }
 
-    // Milestone 1 artifact: tiny JSON dump so SSH can confirm without log stream.
-    // Write off the layout path — never block UI on disk I/O.
     NSDictionary *node = @{
         @"address": [NSString stringWithFormat:@"0x%lx", (unsigned long)addr],
         @"objc_class": @(object_getClassName(host) ?: "?"),
@@ -66,6 +82,9 @@ static void SPLogAttach(UIView *host) {
         NSString *path = SPWriteJSONDump(payload);
         if (path) {
             NSLog(@"[SwiftPeek] dump written %@", path);
+            SPWriteHeartbeat(@"attach dump written", YES);
+        } else {
+            SPWriteHeartbeat(@"attach seen but dump write failed", YES);
         }
     });
 }
@@ -94,10 +113,45 @@ static void SPLogAttach(UIView *host) {
 %end
 %end
 
+static void SPTryInstallHooks(void) {
+    if (!gSPHookedHostingView && NSClassFromString(@"_UIHostingView")) {
+        %init(SPHostingViewAttach);
+        gSPHookedHostingView = YES;
+        NSLog(@"[SwiftPeek] hooked _UIHostingView");
+    }
+    if (!gSPHookedHostingController && NSClassFromString(@"UIHostingController")) {
+        %init(SPHostingControllerAttach);
+        gSPHookedHostingController = YES;
+        NSLog(@"[SwiftPeek] hooked UIHostingController");
+    }
+    BOOL hooked = gSPHookedHostingView || gSPHookedHostingController;
+    if (hooked) {
+        SPWriteHeartbeat(@"hooks installed", YES);
+    } else {
+        SPWriteHeartbeat(@"enabled but hosting classes not loaded yet", NO);
+    }
+}
+
+static void SPOnImageAdded(const struct mach_header *mh, intptr_t slide) {
+    (void)slide;
+    Dl_info info = {0};
+    if (!dladdr(mh, &info) || !info.dli_fname) return;
+    if (!strstr(info.dli_fname, "SwiftUI")) return;
+    // SwiftUI just mapped — install hooks on the main queue.
+    dispatch_async(dispatch_get_main_queue(), ^{
+        SPTryInstallHooks();
+    });
+}
+
 %ctor {
     @autoreleasepool {
-        // Kill switch — default OFF.
-        if (!SPPrefBool(@"enabled", NO)) {
+        // Always leave a Filza breadcrumb so we can see the dylib loaded,
+        // even when the kill switch is off.
+        BOOL enabled = SPPrefBool(@"enabled", NO);
+        SPWriteHeartbeat(enabled ? @"ctor enabled" : @"ctor disabled (kill switch)", NO);
+
+        if (!enabled) {
+            NSLog(@"[SwiftPeek] disabled — idle");
             return;
         }
 
@@ -105,23 +159,20 @@ static void SPLogAttach(UIView *host) {
         NSString *jb = SPJailbreakRootPrefix() ?: @"";
         NSLog(@"[SwiftPeek] loaded in %@ jbroot='%@'", proc, jb);
 
-        BOOL inited = NO;
-        if (NSClassFromString(@"_UIHostingView")) {
-            %init(SPHostingViewAttach);
-            inited = YES;
-            NSLog(@"[SwiftPeek] hooked _UIHostingView");
-        }
-        if (NSClassFromString(@"UIHostingController")) {
-            %init(SPHostingControllerAttach);
-            inited = YES;
-            NSLog(@"[SwiftPeek] hooked UIHostingController");
-        }
-        if (NSClassFromString(@"_UIGraphicsView")) {
-            NSLog(@"[SwiftPeek] noted _UIGraphicsView present (no hook in m1)");
-        }
-        if (!inited) {
-            NSLog(@"[SwiftPeek] no hosting class in %@ — idle", proc);
-        }
+        // Immediate attempt (works if SwiftUI already loaded).
+        SPTryInstallHooks();
+
+        // SwiftUI is often loaded after tweak ctors in Music — retry.
+        _dyld_register_func_for_add_image(SPOnImageAdded);
+
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)),
+                       dispatch_get_main_queue(), ^{
+            SPTryInstallHooks();
+        });
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3.0 * NSEC_PER_SEC)),
+                       dispatch_get_main_queue(), ^{
+            SPTryInstallHooks();
+        });
 
         CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
                                         NULL,

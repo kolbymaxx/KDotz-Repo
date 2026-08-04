@@ -14,7 +14,8 @@ NSString *SPJailbreakRootPrefix(void) {
         const char *(*jbrootFn)(const char *) = (const char *(*)(const char *))dlsym(RTLD_DEFAULT, "jbroot");
         if (jbrootFn) {
             const char *p = jbrootFn("/");
-            if (p && strlen(p) > 1) {
+            // Music27: reject NULL, empty, and bare "/"
+            if (p && p[0] != '\0' && strcmp(p, "/") != 0) {
                 prefix = [[NSString stringWithUTF8String:p] stringByStandardizingPath];
                 return;
             }
@@ -35,7 +36,7 @@ NSString *SPJailbreakRootPrefix(void) {
     return prefix;
 }
 
-static NSArray<NSString *> *SPPrefsCandidatePaths(void) {
+NSArray<NSString *> *SPPrefsCandidatePaths(void) {
     NSString *rel = [NSString stringWithFormat:@"/var/mobile/Library/Preferences/%@.plist", kSPPrefsDomain];
     NSMutableArray *paths = [NSMutableArray array];
     NSString *jbPrefix = SPJailbreakRootPrefix();
@@ -51,7 +52,8 @@ NSDictionary *SPPrefs(void) {
 
     for (NSString *p in SPPrefsCandidatePaths()) {
         NSDictionary *d = [NSDictionary dictionaryWithContentsOfFile:p];
-        if (d) {
+        // Require non-empty — an empty file/dict is not a real prefs hit.
+        if ([d isKindOfClass:[NSDictionary class]] && d.count > 0) {
             gSPPrefsCache = d;
             gSPPrefsLastLoad = now;
             return gSPPrefsCache;
@@ -64,7 +66,23 @@ NSDictionary *SPPrefs(void) {
 
 BOOL SPPrefBool(NSString *key, BOOL fallback) {
     id v = SPPrefs()[key];
-    return v ? [v boolValue] : fallback;
+    if (v != nil) return [v boolValue];
+
+    // CFPreferences fallback (same lesson as Music27 on rootless/roothide).
+    CFPropertyListRef cfVal = CFPreferencesCopyAppValue(
+        (__bridge CFStringRef)key, (__bridge CFStringRef)kSPPrefsDomain);
+    if (cfVal == NULL) return fallback;
+
+    BOOL result = fallback;
+    if (CFGetTypeID(cfVal) == CFBooleanGetTypeID()) {
+        result = CFBooleanGetValue((CFBooleanRef)cfVal);
+    } else if (CFGetTypeID(cfVal) == CFNumberGetTypeID()) {
+        int n = 0;
+        CFNumberGetValue((CFNumberRef)cfVal, kCFNumberIntType, &n);
+        result = n != 0;
+    }
+    CFRelease(cfVal);
+    return result;
 }
 
 void SPPrefsInvalidate(void) {

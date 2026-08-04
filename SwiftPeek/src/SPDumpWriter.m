@@ -14,32 +14,26 @@ NSDictionary *SPDumpHeader(void) {
         machine = [NSString stringWithUTF8String:u.machine] ?: @"unknown";
     }
     NSString *proc = NSProcessInfo.processInfo.processName ?: @"unknown";
-    // ISO-8601 UTC
     NSISO8601DateFormatter *fmt = [[NSISO8601DateFormatter alloc] init];
     fmt.formatOptions = NSISO8601DateFormatWithInternetDateTime |
                         NSISO8601DateFormatWithFractionalSeconds;
     fmt.timeZone = [NSTimeZone timeZoneWithAbbreviation:@"UTC"];
     NSString *ts = [fmt stringFromDate:[NSDate date]] ?: @"";
 
-    // Stable key order: use ordered array of pairs when serializing; dictionary
-    // insertion order is preserved for NSDictionary literal / mutable builds
-    // on modern Foundation when enumerated via NSJSONSerialization only if we
-    // build via an ordered structure. We serialize manually for stable keys.
     return @{
         @"device_model": machine,
         @"ios_version": iosVersion,
         @"process": proc,
         @"timestamp": ts,
         @"tool": @"SwiftPeek",
-        @"tool_version": @"0.1.0",
+        @"tool_version": @"0.1.1",
     };
 }
 
-static NSString *SPDumpDirectory(void) {
+NSString *SPDumpDirectory(void) {
     NSString *rel = @"/var/mobile/Library/SwiftPeek/dumps";
     NSString *jb = SPJailbreakRootPrefix();
     if (jb.length) return [jb stringByAppendingString:rel];
-    // Prefer /var/jb when present, else rootfs.
     NSString *rootless = [@"/var/jb" stringByAppendingString:rel];
     BOOL isDir = NO;
     if ([[NSFileManager defaultManager] fileExistsAtPath:@"/var/jb" isDirectory:&isDir] && isDir) {
@@ -48,14 +42,23 @@ static NSString *SPDumpDirectory(void) {
     return rel;
 }
 
+static NSString *SPStatusPath(void) {
+    NSString *rel = @"/var/mobile/Library/SwiftPeek/status.json";
+    NSString *jb = SPJailbreakRootPrefix();
+    if (jb.length) return [jb stringByAppendingString:rel];
+    BOOL isDir = NO;
+    if ([[NSFileManager defaultManager] fileExistsAtPath:@"/var/jb" isDirectory:&isDir] && isDir) {
+        return [@"/var/jb" stringByAppendingString:rel];
+    }
+    return rel;
+}
+
 static NSData *SPStableJSONData(NSDictionary *root, NSError **outError) {
-    // NSJSONSerialization does not guarantee key order. Build JSON by hand for
-    // the top-level object using a fixed key sequence, embedding nested objects
-    // via NSJSONSerialization (order within nested trees is less critical for
-    // diffing than a stable header).
     NSArray *keyOrder = @[
         @"device_model", @"ios_version", @"process", @"timestamp",
-        @"tool", @"tool_version", @"milestone", @"nodes"
+        @"tool", @"tool_version", @"milestone", @"status", @"enabled",
+        @"jbroot", @"prefs_paths", @"hosting_view", @"hosting_controller",
+        @"hooked", @"nodes", @"message"
     ];
     NSMutableString *json = [NSMutableString stringWithString:@"{\n"];
     BOOL first = YES;
@@ -68,7 +71,6 @@ static NSData *SPStableJSONData(NSDictionary *root, NSError **outError) {
                                                         options:0
                                                           error:outError];
         if (!chunk) return nil;
-        // chunk is {"key":value} — strip braces and splice.
         NSString *s = [[NSString alloc] initWithData:chunk encoding:NSUTF8StringEncoding];
         if (s.length < 2) return nil;
         NSString *inner = [s substringWithRange:NSMakeRange(1, s.length - 2)];
@@ -77,7 +79,6 @@ static NSData *SPStableJSONData(NSDictionary *root, NSError **outError) {
         [json appendFormat:@"  %@", [inner stringByTrimmingCharactersInSet:
                                      [NSCharacterSet whitespaceAndNewlineCharacterSet]]];
     }
-    // Any remaining keys (future-proof), sorted for stability.
     NSArray *extra = [[root.allKeys filteredArrayUsingPredicate:
                        [NSPredicate predicateWithBlock:^BOOL(NSString *k, id _) {
         return ![seen containsObject:k];
@@ -101,7 +102,7 @@ static NSData *SPStableJSONData(NSDictionary *root, NSError **outError) {
     return [json dataUsingEncoding:NSUTF8StringEncoding];
 }
 
-NSString *SPWriteJSONDump(NSDictionary *payload) {
+static NSString *SPWriteJSONToPath(NSDictionary *payload, NSString *path, BOOL notify) {
     if (![NSJSONSerialization isValidJSONObject:payload]) return nil;
 
     NSMutableDictionary *root = [SPDumpHeader() mutableCopy];
@@ -113,26 +114,33 @@ NSString *SPWriteJSONDump(NSDictionary *payload) {
     NSData *data = SPStableJSONData(root, &err);
     if (!data) return nil;
 
-    NSString *dir = SPDumpDirectory();
-    NSError *mkErr = nil;
+    NSString *dir = [path stringByDeletingLastPathComponent];
     if (![[NSFileManager defaultManager] createDirectoryAtPath:dir
                                    withIntermediateDirectories:YES
                                                     attributes:nil
-                                                         error:&mkErr]) {
+                                                         error:&err]) {
         return nil;
     }
-
-    NSString *ts = root[@"timestamp"] ?: @"unknown";
-    NSString *safeTs = [[ts stringByReplacingOccurrencesOfString:@":" withString:@"-"]
-                        stringByReplacingOccurrencesOfString:@"." withString:@"-"];
-    NSString *proc = root[@"process"] ?: @"proc";
-    NSString *name = [NSString stringWithFormat:@"%@_%@.json", proc, safeTs];
-    NSString *path = [dir stringByAppendingPathComponent:name];
 
     if (![data writeToFile:path options:NSDataWritingAtomic error:&err]) {
         return nil;
     }
-
-    notify_post(kSPDumpNotify.UTF8String);
+    if (notify) notify_post(kSPDumpNotify.UTF8String);
     return path;
+}
+
+NSString *SPWriteStatus(NSDictionary *payload) {
+    return SPWriteJSONToPath(payload, SPStatusPath(), NO);
+}
+
+NSString *SPWriteJSONDump(NSDictionary *payload) {
+    NSMutableDictionary *root = [payload mutableCopy] ?: [NSMutableDictionary dictionary];
+    NSDictionary *header = SPDumpHeader();
+    NSString *ts = header[@"timestamp"] ?: @"unknown";
+    NSString *safeTs = [[ts stringByReplacingOccurrencesOfString:@":" withString:@"-"]
+                        stringByReplacingOccurrencesOfString:@"." withString:@"-"];
+    NSString *proc = header[@"process"] ?: @"proc";
+    NSString *name = [NSString stringWithFormat:@"%@_%@.json", proc, safeTs];
+    NSString *path = [SPDumpDirectory() stringByAppendingPathComponent:name];
+    return SPWriteJSONToPath(root, path, YES);
 }
