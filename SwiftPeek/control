@@ -1,7 +1,7 @@
 Package: com.kolby.swiftpeek
 Name: SwiftPeek
 Depends: mobilesubstrate, preferenceloader
-Version: 0.1.1
+Version: 0.1.2
 Architecture: iphoneos-arm64
 Description: Read-only SwiftUI view inspector — recovers Swift type/field names from live hosting views. Debug tooling; not published.
 Maintainer: Kolby
