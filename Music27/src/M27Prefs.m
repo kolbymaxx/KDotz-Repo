@@ -7,9 +7,7 @@ NSString *const M27PinsDidChangeNotification = @"M27PinsDidChangeNotification";
 const NSInteger M27MaxPins = 12;
 
 // Resolve jailbreak root the same way Siri27 does — RootHide jbroot, then
-// /var/jb, then rootful. PreferenceLoader on RootHide writes under jbroot;
-// reading only NSUserDefaults/CFPreferences from Music misses those values
-// (toggles look ON in Settings, dock stays OFF in Music).
+// /var/jb, then rootful.
 static NSString *M27JailbreakRootPrefix(void) {
     static NSString *prefix;
     static dispatch_once_t once;
@@ -42,11 +40,12 @@ static NSString *M27JailbreakRootPrefix(void) {
 static NSArray<NSString *> *M27PrefsCandidatePaths(void) {
     NSString *rel = @"/var/mobile/Library/Preferences/com.music27.tweak.plist";
     NSMutableArray<NSString *> *paths = [NSMutableArray array];
+    // Prefer /var/jb first (Dopamine rootless). Then jbroot (RootHide), then rootful.
+    [paths addObject:[@"/var/jb" stringByAppendingString:rel]];
     NSString *jb = M27JailbreakRootPrefix();
-    if (jb.length > 0) {
+    if (jb.length > 0 && ![jb isEqualToString:@"/var/jb"]) {
         [paths addObject:[jb stringByAppendingString:rel]];
     }
-    [paths addObject:[@"/var/jb" stringByAppendingString:rel]];
     [paths addObject:rel];
     return paths;
 }
@@ -64,7 +63,7 @@ static NSDictionary *M27ReadPrefsDictionary(void) {
 static void M27WritePrefsDictionary(NSDictionary *dict) {
     if (![dict isKindOfClass:NSDictionary.class]) return;
     NSArray<NSString *> *paths = M27PrefsCandidatePaths();
-    // Prefer jbroot / first candidate that already exists; else first path.
+    // Prefer an already-existing candidate; else /var/jb (first).
     NSString *target = paths.firstObject;
     for (NSString *path in paths) {
         if ([[NSFileManager defaultManager] fileExistsAtPath:path]) {
@@ -104,7 +103,6 @@ static void M27WritePrefsDictionary(NSDictionary *dict) {
 - (BOOL)boolForKey:(NSString *)key defaultValue:(BOOL)fallback {
     id value = _plist[key];
     if (value == nil) {
-        // CFPreferences fallback (rootless / rootful).
         CFPropertyListRef cfVal = CFPreferencesCopyAppValue(
             (__bridge CFStringRef)key, (__bridge CFStringRef)M27PrefDomain);
         if (cfVal != NULL) {
@@ -128,30 +126,34 @@ static void M27WritePrefsDictionary(NSDictionary *dict) {
     CFPreferencesAppSynchronize((__bridge CFStringRef)M27PrefDomain);
     _plist = M27ReadPrefsDictionary();
 
-    // One-time: do NOT force the dock off anymore on RootHide — that wrote to
-    // the wrong plist and fought Settings. Only seed dockSafeBoot115 marker.
-    if (_plist[@"dockSafeBoot115"] == nil && _plist[@"glassTabBar"] == nil) {
-        // Fresh install: default dock ON so RootHide users see an effect.
+    // 1.1.9 one-time recovery: prior builds defaulted the dock ON and could
+    // blank Music on Dopamine/iPhone X. Force dock + color theme OFF once so
+    // Music can launch; user re-enables after verifying.
+    if (_plist[@"blankScreenFix119"] == nil) {
         NSMutableDictionary *seed = [_plist mutableCopy] ?: [NSMutableDictionary dictionary];
+        seed[@"blankScreenFix119"] = @YES;
         seed[@"dockSafeBoot115"] = @YES;
-        seed[@"enabled"] = @YES;
-        seed[@"glassTabBar"] = @YES;
-        seed[@"colorTheme"] = @YES;
-        seed[@"libraryPins"] = @NO;
+        if (seed[@"enabled"] == nil) seed[@"enabled"] = @YES;
+        seed[@"glassTabBar"] = @NO;
+        seed[@"colorTheme"] = @NO;
+        if (seed[@"libraryPins"] == nil) seed[@"libraryPins"] = @NO;
         M27WritePrefsDictionary(seed);
         _plist = [seed copy];
-        CFPreferencesSetAppValue(CFSTR("glassTabBar"), kCFBooleanTrue,
+        CFPreferencesSetAppValue(CFSTR("blankScreenFix119"), kCFBooleanTrue,
+                                 (__bridge CFStringRef)M27PrefDomain);
+        CFPreferencesSetAppValue(CFSTR("glassTabBar"), kCFBooleanFalse,
+                                 (__bridge CFStringRef)M27PrefDomain);
+        CFPreferencesSetAppValue(CFSTR("colorTheme"), kCFBooleanFalse,
                                  (__bridge CFStringRef)M27PrefDomain);
         CFPreferencesSetAppValue(CFSTR("enabled"), kCFBooleanTrue,
-                                 (__bridge CFStringRef)M27PrefDomain);
-        CFPreferencesSetAppValue(CFSTR("dockSafeBoot115"), kCFBooleanTrue,
                                  (__bridge CFStringRef)M27PrefDomain);
         CFPreferencesAppSynchronize((__bridge CFStringRef)M27PrefDomain);
     }
 
     _enabled = [self boolForKey:@"enabled" defaultValue:YES];
-    _glassTabBarEnabled = [self boolForKey:@"glassTabBar" defaultValue:YES];
-    _colorThemeEnabled = [self boolForKey:@"colorTheme" defaultValue:YES];
+    // Safe defaults when keys are missing: dock/theme OFF so Music opens.
+    _glassTabBarEnabled = [self boolForKey:@"glassTabBar" defaultValue:NO];
+    _colorThemeEnabled = [self boolForKey:@"colorTheme" defaultValue:NO];
     _libraryPinsEnabled = [self boolForKey:@"libraryPins" defaultValue:NO];
 }
 

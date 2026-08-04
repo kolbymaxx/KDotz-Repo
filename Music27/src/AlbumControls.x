@@ -11,20 +11,28 @@ static const CGFloat kM27PlayHeight = 52.0;
 
 static BOOL M27IsAlbumDetailController(UIViewController *vc) {
     if (!vc) return NO;
+    if ([vc isKindOfClass:UITabBarController.class] ||
+        [vc isKindOfClass:UINavigationController.class] ||
+        [vc isKindOfClass:UISplitViewController.class]) {
+        return NO;
+    }
     static NSArray<NSString *> *strong;
-    static NSArray<NSString *> *weak;
+    static NSArray<NSString *> *reject;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
         strong = @[
             @"albumdetail", @"playlistdetail", @"collectiondetail",
             @"librarydetail", @"albumpage", @"playlistpage"
         ];
-        weak = @[ @"album", @"playlist" ];
+        reject = @[
+            @"tabbar", @"container", @"librarylanding", @"libraryview",
+            @"libraryroot", @"search", @"listennow", @"browse"
+        ];
     });
-    if (M27ClassNameContains(vc, strong)) return YES;
-    if (!M27ClassNameContains(vc, weak)) return NO;
+    if (M27ClassNameContains(vc, reject)) return NO;
+    if (!M27ClassNameContains(vc, strong)) return NO;
     UIImage *art = M27LargestImageInView(vc.view);
-    return art != nil && art.size.width >= 120;
+    return art != nil && art.size.width >= 160;
 }
 
 static UIView *M27FindControlWithTitle(UIView *root, NSArray<NSString *> *titles, BOOL exact, NSInteger depth) {
