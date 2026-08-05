@@ -128,24 +128,33 @@ static CGFloat FSPrefFloat(NSString *key, CGFloat fallback) {
 static void FSSendLevel(float level) {
     [[WaveManager shared] updateTargetPower:@(level)];
 
-    notify_post(kFSDarwinLevel);
-    int token = 0;
-    if (notify_register_check(kFSDarwinLevel, &token) == NOTIFY_STATUS_OK) {
+    // Siri's stock orb and the Siri27 host can live in different processes.
+    // Store the level before posting; posting first made the receiver read the
+    // previous sample, which could leave the visible wave stuck at idle.
+    static int token = -1;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        notify_register_check(kFSDarwinLevel, &token);
+    });
+    if (token >= 0) {
         uint64_t packed = 0;
         memcpy(&packed, &level, sizeof(float));
         notify_set_state(token, packed);
-        notify_cancel(token);
     }
+    notify_post(kFSDarwinLevel);
 }
 
 static void FSDarwinLevelCallback(CFNotificationCenterRef center, void *observer,
                                   CFStringRef name, const void *object,
                                   CFDictionaryRef userInfo) {
-    int token = 0;
-    if (notify_register_check(kFSDarwinLevel, &token) != NOTIFY_STATUS_OK) return;
+    static int token = -1;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        notify_register_check(kFSDarwinLevel, &token);
+    });
+    if (token < 0) return;
     uint64_t state = 0;
     notify_get_state(token, &state);
-    notify_cancel(token);
     float level = 0;
     memcpy(&level, &state, sizeof(float));
     [[WaveManager shared] updateTargetPower:@(level)];
@@ -854,9 +863,31 @@ void LG_redrawRegisteredGlassViews(LGUpdateGroup group) {}
 - (id)initWithFrame:(CGRect)arg1 {
     id view = %orig(arg1);
     if ([view isKindOfClass:[UIView class]]) {
-        [(UIView *)view setAlpha:0.0];
+        [(UIView *)view setAlpha:0.01];
     }
     return view;
+}
+
+- (void)setAlpha:(CGFloat)alpha {
+    // Siri repeatedly restores the stock orb's alpha during activation.
+    // Keep it technically visible so its audio-level callbacks continue.
+    %orig(MIN(alpha, 0.01));
+}
+
+- (void)didMoveToWindow {
+    %orig;
+    if (self.window) self.alpha = 0.01;
+}
+
+- (void)didMoveToSuperview {
+    %orig;
+    if (self.superview) self.alpha = 0.01;
+}
+
+- (void)layoutSubviews {
+    %orig;
+    self.layer.opacity = 0.01f;
+    [self.layer removeAnimationForKey:@"opacity"];
 }
 
 - (void)setMode:(NSInteger)mode {
@@ -878,8 +909,24 @@ void LG_redrawRegisteredGlassViews(LGUpdateGroup group) {}
 %hook SiriSharedUIOrbView
 - (id)initWithFrame:(CGRect)arg1 {
     id view = %orig(arg1);
-    if ([view isKindOfClass:[UIView class]]) [(UIView *)view setAlpha:0.0];
+    if ([view isKindOfClass:[UIView class]]) [(UIView *)view setAlpha:0.01];
     return view;
+}
+- (void)setAlpha:(CGFloat)alpha {
+    %orig(MIN(alpha, 0.01));
+}
+- (void)didMoveToWindow {
+    %orig;
+    if (self.window) self.alpha = 0.01;
+}
+- (void)didMoveToSuperview {
+    %orig;
+    if (self.superview) self.alpha = 0.01;
+}
+- (void)layoutSubviews {
+    %orig;
+    self.layer.opacity = 0.01f;
+    [self.layer removeAnimationForKey:@"opacity"];
 }
 - (void)setPowerLevel:(float)arg1 {
     %orig;
