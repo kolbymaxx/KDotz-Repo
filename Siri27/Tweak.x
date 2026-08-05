@@ -628,10 +628,11 @@ static void FSOrbViewDidLoad(UIViewController *vc) {
     st.externalWhiteGlowView.backgroundColor = [UIColor clearColor];
     UIBezierPath *shadowPath = [UIBezierPath bezierPathWithOvalInRect:st.externalWhiteGlowView.bounds];
     st.externalWhiteGlowView.layer.shadowPath = shadowPath.CGPath;
-    st.externalWhiteGlowView.layer.shadowColor = [UIColor whiteColor].CGColor;
+    // Soft colored under-glow — pure white was bleeding through the glass as a bar.
+    st.externalWhiteGlowView.layer.shadowColor = [UIColor colorWithRed:0.55 green:0.72 blue:1.0 alpha:1.0].CGColor;
     st.externalWhiteGlowView.layer.shadowOffset = CGSizeZero;
-    st.externalWhiteGlowView.layer.shadowOpacity = 0.65;
-    st.externalWhiteGlowView.layer.shadowRadius = 12.0;
+    st.externalWhiteGlowView.layer.shadowOpacity = 0.28;
+    st.externalWhiteGlowView.layer.shadowRadius = 14.0;
     st.externalWhiteGlowView.alpha = 0.0;
     [vc.view insertSubview:st.externalWhiteGlowView belowSubview:st.glassOrbView];
 
@@ -707,7 +708,7 @@ static void FSOrbViewDidAppear(UIViewController *vc) {
     st.externalWhiteGlowView.frame = CGRectMake(orbFrame.origin.x + width * 0.15, orbFrame.origin.y + height - (35.0 * customScale), width * 0.7, 30.0 * customScale);
     UIBezierPath *newShadowPath = [UIBezierPath bezierPathWithOvalInRect:st.externalWhiteGlowView.bounds];
     st.externalWhiteGlowView.layer.shadowPath = newShadowPath.CGPath;
-    st.externalWhiteGlowView.layer.shadowOpacity = FSPrefBool(@"glowEnabled", YES) ? FSPrefFloat(@"glowIntensity", 0.65) : 0.0;
+    st.externalWhiteGlowView.layer.shadowOpacity = FSPrefBool(@"glowEnabled", YES) ? FSPrefFloat(@"glowIntensity", 0.28) : 0.0;
 
     // Flawless coordinate math: wallpaperOrigin (0,0) gives a 1:1 physical screen match.
     st.glassOrbView.wallpaperOrigin = CGPointMake(0, 0);
