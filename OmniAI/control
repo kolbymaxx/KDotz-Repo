@@ -1,0 +1,12 @@
+Package: com.kolby.omniai
+Name: OmniAI
+Version: 1.0.0
+Architecture: iphoneos-arm64
+Description: System-wide AI for iOS 16–18 — text selection + on-screen awareness with Grok, Claude, and Gemini web login.
+Depends: mobilesubstrate, preferenceloader, firmware (>= 16.0)
+Conflicts: com.kolby.grokagent
+Replaces: com.kolby.grokagent
+Provides: com.kolby.grokagent
+Maintainer: kolbymaxx
+Author: kolbymaxx
+Section: Tweaks

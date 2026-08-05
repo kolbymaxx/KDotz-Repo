@@ -1,9 +1,0 @@
-Package: com.kolby.grokagent
-Name: GrokAgent
-Version: 0.1.1
-Architecture: iphoneos-arm64
-Description: An on-device AI agent that can see and control your iPhone. A modern replacement for Siri, powered by Grok.
-Depends: mobilesubstrate, preferenceloader, firmware (>= 15.0)
-Maintainer: kolbymaxx
-Author: kolbymaxx
-Section: Tweaks
