@@ -24,6 +24,39 @@ static NSString *OASelectedTextFromResponder(id<UITextInput> input) {
     return [input textInRange:range];
 }
 
+/// UIWindow has no public firstResponder property — walk the hierarchy instead.
+static UIView *OAFindFirstResponderInView(UIView *view) {
+    if (!view) return nil;
+    if (view.isFirstResponder) return view;
+    for (UIView *sub in view.subviews) {
+        UIView *found = OAFindFirstResponderInView(sub);
+        if (found) return found;
+    }
+    return nil;
+}
+
+static UIResponder *OACurrentFirstResponder(void) {
+    UIApplication *app = UIApplication.sharedApplication;
+    if (@available(iOS 15.0, *)) {
+        for (UIScene *scene in app.connectedScenes) {
+            if (![scene isKindOfClass:UIWindowScene.class]) continue;
+            UIWindowScene *ws = (UIWindowScene *)scene;
+            for (UIWindow *window in ws.windows) {
+                UIView *found = OAFindFirstResponderInView(window);
+                if (found) return found;
+            }
+        }
+    }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    for (UIWindow *window in app.windows) {
+        UIView *found = OAFindFirstResponderInView(window);
+        if (found) return found;
+    }
+#pragma clang diagnostic pop
+    return nil;
+}
+
 static void OAInsertOmniAIMenu(id<UIMenuBuilder> builder, id textInput) {
     if (![OmniAIPreferences shared].enabled) return;
     if (@available(iOS 16.0, *)) {
@@ -86,10 +119,7 @@ static void OAInsertOmniAIMenu(id<UIMenuBuilder> builder, id textInput) {
                                           identifier:@"com.kolby.omniai.editmenu"
                                              handler:^(__kindof UIAction *action) {
             id<UITextInput> input = nil;
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-            UIResponder *r = UIApplication.sharedApplication.keyWindow.firstResponder;
-#pragma clang diagnostic pop
+            UIResponder *r = OACurrentFirstResponder();
             if ([r conformsToProtocol:@protocol(UITextInput)]) input = (id<UITextInput>)r;
             NSString *selected = OASelectedTextFromResponder(input);
             [[OmniAIActivationManager shared] activateWithSelectedText:selected
