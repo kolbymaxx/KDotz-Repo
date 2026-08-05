@@ -90,43 +90,6 @@ static NSString *CC27SizeOverridesPath(void) {
     return NO;
 }
 
-- (void)_forceSettingsReload {
-    CCSModuleSettingsProvider *provider = self._provider;
-    if (!provider) return;
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-    for (NSString *name in @[ @"_handleConfigurationFileUpdate", @"_loadSettings", @"_queue_loadSettings" ]) {
-        SEL sel = NSSelectorFromString(name);
-        if ([provider respondsToSelector:sel]) {
-            [provider performSelector:sel];
-            break;
-        }
-    }
-#pragma clang diagnostic pop
-}
-
-- (void)_forceInstanceRebuild {
-    Class mgrCls = NSClassFromString(@"CCUIModuleInstanceManager");
-    id mgr = [mgrCls respondsToSelector:@selector(sharedInstance)] ? [mgrCls sharedInstance] : nil;
-    if (!mgr) return;
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-    for (NSString *name in @[
-        @"_updateModuleInstances",
-        @"updateModuleInstances",
-        @"_reloadModuleInstances",
-        @"loadModuleInstances",
-        @"_loadModuleInstances"
-    ]) {
-        SEL sel = NSSelectorFromString(name);
-        if ([mgr respondsToSelector:sel]) {
-            [mgr performSelector:sel];
-            break;
-        }
-    }
-#pragma clang diagnostic pop
-}
-
 - (void)refreshControlCenterLayout {
     [self _forceSettingsReload];
     [self _forceInstanceRebuild];
@@ -168,6 +131,55 @@ static NSString *CC27SizeOverridesPath(void) {
                                          NULL, NULL, TRUE);
 }
 
+/// True when Control Center overlay (or its gallery sheet) is on-screen.
+/// Live module rebuilds while presented are the Safe Mode vector on add/remove.
+- (BOOL)_controlCenterBusy {
+    UIViewController *host = CC27EditSession.shared.hostController;
+    if (!host) return NO;
+    if (host.view.window != nil) return YES;
+    if (host.presentedViewController != nil) return YES;
+    return NO;
+}
+
+- (void)_forceSettingsReload {
+    CCSModuleSettingsProvider *provider = self._provider;
+    if (!provider) return;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    // Prefer configuration-file handlers. Avoid `_queue_loadSettings` on the
+    // main thread — that private queue API contributed to SpringBoard crashes.
+    for (NSString *name in @[ @"_handleConfigurationFileUpdate", @"_loadSettings" ]) {
+        SEL sel = NSSelectorFromString(name);
+        if ([provider respondsToSelector:sel]) {
+            [provider performSelector:sel];
+            break;
+        }
+    }
+#pragma clang diagnostic pop
+}
+
+- (void)_forceInstanceRebuild {
+    Class mgrCls = NSClassFromString(@"CCUIModuleInstanceManager");
+    id mgr = [mgrCls respondsToSelector:@selector(sharedInstance)] ? [mgrCls sharedInstance] : nil;
+    if (!mgr) return;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    for (NSString *name in @[
+        @"_updateModuleInstances",
+        @"updateModuleInstances",
+        @"_reloadModuleInstances",
+        @"loadModuleInstances",
+        @"_loadModuleInstances"
+    ]) {
+        SEL sel = NSSelectorFromString(name);
+        if ([mgr respondsToSelector:sel]) {
+            [mgr performSelector:sel];
+            break;
+        }
+    }
+#pragma clang diagnostic pop
+}
+
 - (BOOL)enableModule:(NSString *)identifier {
     return [self enableModuleWithResult:identifier] != CC27LayoutApplyFailed;
 }
@@ -186,12 +198,15 @@ static NSString *CC27SizeOverridesPath(void) {
         [provider setAndSaveOrderedUserEnabledModuleIdentifiers:ordered];
     }
 
-    [self refreshControlCenterLayout];
-    // Give SpringBoard a beat to instantiate.
-    [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.05]];
-    [self refreshControlCenterLayout];
-
     [[NSNotificationCenter defaultCenter] postNotificationName:CC27LayoutDidChangeNotification object:nil];
+
+    // While CC (or its gallery sheet) is up, only persist — never rebuild live.
+    // Live rebuilds here were the Safe Mode crash; the save already sticks.
+    if ([self _controlCenterBusy]) {
+        return CC27LayoutApplyNeedsReopen;
+    }
+
+    [self refreshControlCenterLayout];
 
     if ([self.enabledIdentifiers containsObject:identifier] && [self isModuleInstantiated:identifier]) {
         return CC27LayoutApplyVisible;
@@ -209,8 +224,10 @@ static NSString *CC27SizeOverridesPath(void) {
     NSMutableArray *ordered = self.enabledIdentifiers.mutableCopy ?: [NSMutableArray new];
     [ordered removeObject:identifier];
     [provider setAndSaveOrderedUserEnabledModuleIdentifiers:ordered];
-    [self refreshControlCenterLayout];
     [[NSNotificationCenter defaultCenter] postNotificationName:CC27LayoutDidChangeNotification object:nil];
+    if (![self _controlCenterBusy]) {
+        [self refreshControlCenterLayout];
+    }
     return YES;
 }
 
@@ -225,8 +242,10 @@ static NSString *CC27SizeOverridesPath(void) {
     NSUInteger to = MIN(index, ordered.count);
     [ordered insertObject:identifier atIndex:to];
     [provider setAndSaveOrderedUserEnabledModuleIdentifiers:ordered];
-    [self refreshControlCenterLayout];
     [[NSNotificationCenter defaultCenter] postNotificationName:CC27LayoutDidChangeNotification object:nil];
+    if (![self _controlCenterBusy]) {
+        [self refreshControlCenterLayout];
+    }
     return YES;
 }
 
@@ -246,7 +265,10 @@ static NSString *CC27SizeOverridesPath(void) {
     if (identifier.length == 0) return;
     _sizes[identifier] = @{ @"w": @(MAX(1, size.width)), @"h": @(MAX(1, size.height)) };
     [self _saveSizes];
-    [self refreshControlCenterLayout];
+    // Resize path is disabled in the UI; still avoid live rebuilds if CC is open.
+    if (![self _controlCenterBusy]) {
+        [self refreshControlCenterLayout];
+    }
     CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(),
                                          CFSTR("com.opa334.ccsupport/ReloadSizes"),
                                          NULL, NULL, TRUE);

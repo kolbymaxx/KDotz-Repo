@@ -9,9 +9,9 @@
     if (w < 1 || h < 1) return 19.0;
 
     CGFloat minSide = fmin(w, h);
-    // Compact near-square → circle (iOS 26 1x1 look)
+    // Compact near-square → soft circle (full 0.5 clipped SF Symbols / labels)
     if (fabs(w - h) < 12.0 && minSide <= 120.0) {
-        return minSide * 0.5;
+        return minSide * 0.42;
     }
     // Pills / sliders → half of the short side
     if (fabs(w - h) >= 12.0) {
@@ -60,8 +60,9 @@
 }
 
 + (void)applyContinuousCorners:(UIView *)view radius:(CGFloat)radius {
-    // Collapsed modules: clip so materials actually look round.
-    [self _roundView:view radius:radius clip:YES];
+    // Round the platter; do not clip the content container itself — that ate
+    // CC27 Respring glyphs and edit − buttons. Materials still clip below.
+    [self _roundView:view radius:radius clip:NO];
     view.layer.borderWidth = 0.55;
     view.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.28].CGColor;
 }

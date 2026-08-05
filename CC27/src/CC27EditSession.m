@@ -169,10 +169,15 @@ static char kCC27IdKey;
 
 - (void)updateChromeForPresentationState:(NSInteger)state host:(UIViewController *)host {
     if (!host) return;
-    // Known dismissed / dismissing values on iOS 15–17 modular CC.
-    // Anything else while the overlay is up should keep chrome visible.
-    BOOL dismissed = (state == 0 || state == 3 || state == 4);
-    if (dismissed) {
+    // Keep chrome while the Add Control gallery (or any sheet) is presented.
+    if (host.presentedViewController != nil) {
+        [self setHostVisible:YES host:host];
+        return;
+    }
+    // Only hide when clearly dismissed. States 3/4 were treated as dismissed and
+    // hid + / power on some iOS 15–17 / RootHide builds while CC was still open.
+    BOOL dismissed = (state == 0);
+    if (dismissed && host.view.window == nil) {
         [self setHostVisible:NO host:host];
     } else {
         [self setHostVisible:YES host:host];
@@ -411,7 +416,7 @@ static char kCC27IdKey;
         [minus addTarget:self action:@selector(_minusTapped:) forControlEvents:UIControlEventTouchUpInside];
         [container addSubview:minus];
     }
-    minus.frame = CGRectMake(-4, -4, 22, 22);
+    minus.frame = CGRectMake(4, 4, 22, 22);
     [container bringSubviewToFront:minus];
 
     // Resize is disabled in 1.0.2 — previous size overrides crashed SpringBoard.

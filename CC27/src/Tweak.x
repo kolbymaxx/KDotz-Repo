@@ -25,17 +25,22 @@ static void CC27ReloadPrefs(CFNotificationCenterRef center, void *observer, CFSt
     %orig;
     if (!CC27Prefs.shared.enabled) return;
     [CC27EditSession.shared setHostVisible:YES host:self];
+    [CC27EditSession.shared layoutChromeOnHost:self];
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
     %orig;
     if (!CC27Prefs.shared.enabled) return;
+    // Don't hide chrome just because a sheet is presenting over CC.
+    if (self.presentedViewController) return;
     [CC27EditSession.shared setHostVisible:NO host:self];
 }
 
 - (void)viewDidDisappear:(BOOL)animated {
     %orig;
     if (!CC27Prefs.shared.enabled) return;
+    if (self.presentedViewController) return;
+    if (self.view.window != nil) return;
     [CC27EditSession.shared setHostVisible:NO host:self];
 }
 
@@ -43,6 +48,9 @@ static void CC27ReloadPrefs(CFNotificationCenterRef center, void *observer, CFSt
     %orig;
     if (!CC27Prefs.shared.enabled) return;
     [CC27EditSession.shared attachChromeToHost:self];
+    if (self.view.window != nil) {
+        [CC27EditSession.shared setHostVisible:YES host:self];
+    }
     [CC27EditSession.shared layoutChromeOnHost:self];
 }
 
@@ -98,7 +106,7 @@ static void CC27ReloadPrefs(CFNotificationCenterRef center, void *observer, CFSt
                                         CFNotificationSuspensionBehaviorCoalesce);
         if (CC27Prefs.shared.enabled) {
             %init(CC27);
-            NSLog(@"[CC27] 1.0.2 loaded — round glass, no resize, better icons");
+            NSLog(@"[CC27] 1.0.3 loaded — safe add (no live rebuild), sticky chrome, softer glass");
         } else {
             NSLog(@"[CC27] disabled in prefs");
         }

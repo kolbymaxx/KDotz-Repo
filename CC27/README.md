@@ -12,6 +12,13 @@ Unlike aesthetic-only tweaks (CC26 / CCXVIII), CC27 focuses on the **real custom
 - Liquid-glass module chrome (round 1×1 / pill modules; expanded menus stay unclipped)
 - Built-in CC27 modules: **Respring**, **Safe Mode**, **UICache**, **Userspace Reboot**
 
+## 1.0.3 fixes
+
+- **Safe add/remove:** saving a control no longer force-rebuilds Control Center while it is open (that path Safe Mode’d SpringBoard; the save already stuck). Toast asks you to reopen CC.
+- **Sticky + / power:** chrome stays visible while CC is up (including over the Add Control sheet); no longer hides on fragile presentation states 3/4.
+- **Softer glass:** materials round without clipping SF Symbol glyphs (Respring / other 1×1 modules).
+- Prefs clarify: live editing is in Control Center; Settings → Control Center is Apple’s include list and won’t match the packed grid 1:1.
+
 ## 1.0.2 fixes
 
 - Restored round / pill module glass (clips collapsed modules; still skips expanded menus)
@@ -31,7 +38,7 @@ Unlike aesthetic-only tweaks (CC26 / CCXVIII), CC27 focuses on the **real custom
 Add **KDotz Repo** in Sileo:
 
 ```
-https://kolbymaxx.github.io/KDotz-Repo/
+https://raw.githubusercontent.com/kolbymaxx/KDotz-Repo/main/
 ```
 
 Install **CC27** (depends on **CCSupport**). Respring. Open Control Center → tap **+** or touch & hold empty space.

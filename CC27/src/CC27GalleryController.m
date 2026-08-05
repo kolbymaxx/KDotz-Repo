@@ -202,7 +202,12 @@
             if (CC27Prefs.shared.hapticFeedback) {
                 [[[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleMedium] impactOccurred];
             }
-            [self reloadItems];
+            [self dismissViewControllerAnimated:YES completion:^{
+                [CC27EditSession.shared showToast:@"Removed — open Control Center again"];
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.35 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                    [CC27EditSession.shared dismissControlCenter];
+                });
+            }];
         }]];
         [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
         [self presentViewController:alert animated:YES completion:nil];
@@ -237,8 +242,8 @@
         }
     };
 
-    // Small delay so instance rebuild can settle before we check visibility.
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), finish);
+    // Persist first; finish UI after a short delay without live rebuilds.
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC)), dispatch_get_main_queue(), finish);
 }
 
 @end

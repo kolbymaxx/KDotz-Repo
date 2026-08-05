@@ -12,7 +12,7 @@
 			<key>label</key>
 			<string>General</string>
 			<key>footerText</key>
-			<string>CC27 brings iOS 26-style Control Center editing to iOS 15–17: hold an empty area to edit, drag to rearrange, remove with −, and add controls from a searchable gallery — including third-party CCSupport modules.</string>
+			<string>1.0.3: Adding a control from Control Center saves safely then asks you to reopen CC (no Safe Mode). Edit live CC with + or touch &amp; hold empty space — Settings → Control Center is only Apple's include list and will not match the packed grid 1:1.</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -70,7 +70,7 @@
 			<key>label</key>
 			<string>Editing</string>
 			<key>footerText</key>
-			<string>In Control Center: tap + or touch &amp; hold empty space to enter edit mode. Drag modules to rearrange, tap − to remove, and tap Add a Control for the searchable gallery.</string>
+			<string>In Control Center: tap + (or the power button menu for Respring) or touch &amp; hold empty space to enter edit mode. Drag modules to rearrange, tap − to remove, and tap Add a Control for the searchable gallery. After add/remove, reopen Control Center to see the new layout.</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -105,7 +105,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>Requires CCSupport so third-party and CC27 modules can load. Respring after install.</string>
+			<string>Requires CCSupport so third-party and CC27 modules (Respring / Safe Mode / UICache / Userspace) can load. Respring after install.</string>
 		</dict>
 		<dict>
 			<key>cell</key>

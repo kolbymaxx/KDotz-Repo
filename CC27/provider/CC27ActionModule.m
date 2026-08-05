@@ -44,14 +44,15 @@ extern char **environ;
         [_button.topAnchor constraintEqualToAnchor:self.view.topAnchor],
         [_button.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
         [_icon.centerXAnchor constraintEqualToAnchor:_button.centerXAnchor],
-        [_icon.centerYAnchor constraintEqualToAnchor:_button.centerYAnchor constant:-8],
-        [_icon.widthAnchor constraintEqualToConstant:28],
-        [_icon.heightAnchor constraintEqualToConstant:28],
+        [_icon.centerYAnchor constraintEqualToAnchor:_button.centerYAnchor],
+        [_icon.widthAnchor constraintEqualToConstant:26],
+        [_icon.heightAnchor constraintEqualToConstant:26],
         [_label.leadingAnchor constraintEqualToAnchor:_button.leadingAnchor constant:4],
         [_label.trailingAnchor constraintEqualToAnchor:_button.trailingAnchor constant:-4],
-        [_label.topAnchor constraintEqualToAnchor:_icon.bottomAnchor constant:4],
+        [_label.bottomAnchor constraintEqualToAnchor:_button.bottomAnchor constant:-6],
     ]];
 
+    _label.hidden = YES; // 1x1 glass circles clip the subtitle; icon-only is readable.
     [self _refreshChrome];
 }
 
