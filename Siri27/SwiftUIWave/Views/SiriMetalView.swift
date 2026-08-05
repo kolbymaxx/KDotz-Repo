@@ -94,14 +94,14 @@ public struct SiriMetalView: UIViewRepresentable {
             }
 
             constant float PI = 3.14159265359f;
-            constant float AMPLITUDE   = 0.25f; // Low but visible idle wave
+            constant float AMPLITUDE   = 0.055f; // Subtle idle shimmer; speech grows from here
             constant float FREQ        = 0.8f; // Further lowered to make waves even wider horizontally
             constant float ABER_FREQ   = 0.7f;
             constant float SPEED       = 2.4f;
             constant float WAVE_SCALE  = 0.6f;
             constant float ABERRATION  = 2.6f;
             constant float THICKNESS   = 0.5f; // Made extremely sharp/solid
-            constant float INTENSITY   = 2.0f; 
+            constant float INTENSITY   = 2.15f; 
             constant float FALLOFF     = 0.8f; // Slightly more edge fading
             constant float EDGE_MASK   = 0.4f;
             constant float EDGE_INSET  = 0.0f;
@@ -122,7 +122,9 @@ public struct SiriMetalView: UIViewRepresentable {
             
             float3 spectral4(int s){
                 float x = float(s);
-                return clamp(float3(abs(x-3.0f)-1.0f, 2.0f-abs(x-2.0f), 2.0f-abs(x-4.0f)), 0.0f, 1.0f);
+                // Slightly hotter primaries for clearer rainbow bands
+                float3 c = clamp(float3(abs(x-3.0f)-1.0f, 2.0f-abs(x-2.0f), 2.0f-abs(x-4.0f)), 0.0f, 1.0f);
+                return pow(c, float3(0.92f));
             }
 
             fragment half4 siriFragmentShader(VertexOut in [[stage_in]], constant Uniforms &u [[buffer(0)]]) {
@@ -154,8 +156,7 @@ public struct SiriMetalView: UIViewRepresentable {
                 float xNorm = min(abs(uv.x * 1.15f), 1.0f);
                 float env = cos(PI*0.5f * xNorm);
                 
-                // When idle, activeFactor is 0, making all amplitudes EXACTLY 0.
-                // 5.0 (was 7.0) = noticeably smaller peak wave height while talking.
+                // Idle amplitude stays tiny; speech multiplies peak height.
                 float dynamicLowAmp = 0.0f + (activeFactor * LOW_AMP * 5.0f);
                 float dynamicMidAmp = 0.0f + (activeFactor * MID_ABAMP * 5.0f);
                 float dynamicHighAmp = 0.0f + (activeFactor * HIGH_ABAMP * 5.0f);
@@ -164,16 +165,16 @@ public struct SiriMetalView: UIViewRepresentable {
                 float A2    = A1 + mid*dynamicMidAmp + high*dynamicHighAmp;
                 float AB    = (ABERRATION + mid*MID_ABER + high*HIGH_ABER)*res;
                 
-                // Allow a tiny bit of rotation (0.15) when idle so colors are visible on the edges
-                AB *= mix(0.15f, 1.0f, clamp(activeFactor * 4.0f, 0.0f, 1.0f));
+                // Quiet chromatic fringe when idle; full rainbow when talking
+                AB *= mix(0.12f, 1.0f, clamp(activeFactor * 4.0f, 0.0f, 1.0f));
                 
                 // Make it thicker when talking (6.0 = clearly slimmer stroke than 9.0)
                 float currentThickness = THICKNESS + (activeFactor * 6.0f);
                 float th    = mix(0.1f, 0.01f*currentThickness, res);
                 float inten = mix(0.1f, 0.01f*(INTENSITY + low*LOW_INT), res);
                 
-                // Add more glow reflection around the wave, but only heavily when idle
-                float idleGlowBoost = 5.5f * (1.0f - clamp(activeFactor * 2.0f, 0.0f, 1.0f));
+                // Softer idle glow so idle doesn't look like a full talking wave
+                float idleGlowBoost = 2.2f * (1.0f - clamp(activeFactor * 2.0f, 0.0f, 1.0f));
                 float soft  = 0.01f*res*max(0.0f, SOFTNESS + idleGlowBoost + mid*MID_SOFT);
                 
                 float dUnres = max(length(p) - mix(0.14f, UNRES_SCALE, res), 0.0f);
@@ -200,15 +201,19 @@ public struct SiriMetalView: UIViewRepresentable {
                 float lorM  = mix(1.0f/(1.0f + (0.02f*dM)*(0.02f*dM)), 1.0f, res);
                 float boostVal = (1.0f - res) * (14.0f*low + 4.0f);
                 col += 0.5f * inten * (lorM + boostVal) / (sqrt(dM*dM + soft*soft) + th);
-                col = pow(max(col, 0.0f), float3(1.5f));
+                // Milder gamma keeps mids punchier (was 1.5 → washed)
+                col = pow(max(col, 0.0f), float3(1.18f));
                 float3 preFadeCol = col; // Save raw vibrant color for the glass edge
                 float emT = clamp((abs(yScreen) - 1.0f + EDGE_INSET) / (-max(EDGE_MASK, 1e-4f)), 0.0f, 1.0f);
                 float em  = emT*emT*(3.0f - 2.0f*emT);
                 float gauss = exp(-pow(xN*FALLOFF, 2.0f));
                 col *= mix(1.0f, em*gauss, res);
                 col *= res;
-                col *= 1.0f + (talkingFactor * 1.1f); // Less extreme vibrancy boost when talking
-                col *= 0.78f + (talkingFactor * 0.22f); // Tiny bit less vibrant colors when idle
+                // Hint more contrast + vibrancy without neon blowout
+                col *= 1.05f + (talkingFactor * 1.15f);
+                col *= 0.94f + (talkingFactor * 0.14f);
+                float luma = dot(col, float3(0.299f, 0.587f, 0.114f));
+                col = mix(float3(luma), col, 1.16f);
                 
                 return half4(half3(col), 1.0);
             }
