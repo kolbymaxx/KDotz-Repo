@@ -121,6 +121,44 @@ Description: iOS 27-style liquid glass Siri orb — single pop-in, voice-reactiv
 Author: Kolby
 Name: Siri27
 
+Package: com.kolby.siri27
+Version: 1.40.3
+Architecture: iphoneos-arm64e
+Maintainer: Kolby
+Installed-Size: 756
+Depends: mobilesubstrate, preferenceloader
+Conflicts: com.kolby.floatingsiri
+Replaces: com.kolby.floatingsiri
+Provides: com.kolby.floatingsiri
+Filename: dist/com.kolby.siri27_1.40.3_iphoneos-arm64e.deb
+Size: 140390
+MD5sum: 9e6f727928b8c4bd9e9e7b48695918fa
+SHA1: 16a86b4fca986e6a1377ca8be63b9ced5f47676c
+SHA256: 2d84afd9a77e215b5ec367d6fc7863019562440cd3b5017b6837d1cb725bb53b
+Section: Tweaks
+Description: iOS 27-style liquid glass Siri orb — no pop-in box, idle rainbow stays colorful, white under the wave. rootless + roothide (Relaxin'), iOS 14–17.3. Replaces FloatingSiri.
+Author: Kolby
+Name: Siri27
+
+Package: com.kolby.siri27
+Version: 1.40.3
+Architecture: iphoneos-arm64
+Maintainer: Kolby
+Installed-Size: 756
+Depends: mobilesubstrate, preferenceloader
+Conflicts: com.kolby.floatingsiri
+Replaces: com.kolby.floatingsiri
+Provides: com.kolby.floatingsiri
+Filename: dist/com.kolby.siri27_1.40.3_iphoneos-arm64.deb
+Size: 140322
+MD5sum: 47915b2014bea5bec1afd08c8c7762c0
+SHA1: 16e257be48aaa16fd106f021424243b41d6e37bf
+SHA256: 2a216144a62faa8b47ba59ca746b0a9aca63adf17ce095023a71a2e1456e1411
+Section: Tweaks
+Description: iOS 27-style liquid glass Siri orb — no pop-in box, idle rainbow stays colorful, white under the wave. rootless + roothide (Relaxin'), iOS 14–17.3. Replaces FloatingSiri.
+Author: Kolby
+Name: Siri27
+
 Package: com.music27.tweak
 Version: 1.0.2
 Architecture: iphoneos-arm64

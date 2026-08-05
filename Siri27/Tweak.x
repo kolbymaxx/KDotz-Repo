@@ -846,9 +846,11 @@ static void FSOrbViewDidAppear(UIViewController *vc) {
         CGAffineTransformMakeScale(0.82, 0.82));
     st.glassOrbView.alpha = 0.0;
     st.glassOrbView.hidden = NO;
-    st.externalWhiteGlowView.hidden = NO;
+    // Keep under-glow hidden during pop — its shadowPath reads as a soft box
+    // when translated/scaled with the orb.
+    st.externalWhiteGlowView.hidden = YES;
     st.externalWhiteGlowView.alpha = 0.0;
-    st.externalWhiteGlowView.transform = CGAffineTransformMakeTranslation(0, tuckY);
+    st.externalWhiteGlowView.transform = CGAffineTransformIdentity;
 
     void (^popIn)(void) = ^{
         if (appearGen != st.appearGeneration) return;
@@ -863,10 +865,18 @@ static void FSOrbViewDidAppear(UIViewController *vc) {
                          animations:^{
             st.glassOrbView.transform = CGAffineTransformIdentity;
             st.glassOrbView.alpha = orbOpacity;
-            st.externalWhiteGlowView.transform = CGAffineTransformIdentity;
-            st.externalWhiteGlowView.alpha = 1.0;
         } completion:^(BOOL finished) {
             if (!finished || appearGen != st.appearGeneration) return;
+            // Soft under-glow only after settle — never rides the pop transform.
+            st.externalWhiteGlowView.hidden = NO;
+            st.externalWhiteGlowView.transform = CGAffineTransformIdentity;
+            st.externalWhiteGlowView.alpha = 0.0;
+            [UIView animateWithDuration:0.4
+                                  delay:0.04
+                                options:UIViewAnimationOptionCurveEaseOut
+                             animations:^{
+                st.externalWhiteGlowView.alpha = 1.0;
+            } completion:nil];
             // Gentle infinite breathing so the liquid feels alive
             CABasicAnimation *breatheAnim = [CABasicAnimation animationWithKeyPath:@"transform.scale"];
             breatheAnim.fromValue = @(1.0);

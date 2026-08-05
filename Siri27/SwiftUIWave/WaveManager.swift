@@ -173,6 +173,7 @@ import AVFoundation
         let hostingController = UIHostingController(rootView: waveView)
         hostingController.view.frame = frame
         hostingController.view.backgroundColor = .clear
+        hostingController.view.isOpaque = false
         hostingController.view.insetsLayoutMarginsFromSafeArea = false
         if #available(iOS 16.4, *) {
             hostingController.safeAreaRegions = []

@@ -86,18 +86,18 @@ public struct SiriWaveView: View {
     public var body: some View {
         GeometryReader { geo in
             ZStack {
-                // Use the custom Metal GLSL port wrapped in MTKView for iOS 14+ compatibility
+                // Soft rim sits UNDER the rainbow so white can't wash the colors out.
+                Ellipse()
+                    .fill(Color.white.opacity(0.35))
+                    .frame(width: geo.size.width * 0.55, height: 8)
+                    .blur(radius: 10)
+                    .opacity(0.28)
+                    .offset(y: (geo.size.height / 2.0) + 18.0)
+                
+                // Rainbow on top — screen-blended with per-pixel alpha from Metal
                 SiriMetalView(talkingFactor: talkingFactor, phase: manager.phase)
                     .frame(width: geo.size.width, height: geo.size.height)
-                    .blendMode(.screen)
-                
-                // BOTTOM WHITE RIM GLOW (Matches the image's bottom glass reflection)
-                Ellipse()
-                    .fill(Color.white)
-                    .frame(width: geo.size.width * 0.7, height: 12)
-                    .blur(radius: 8)
-                    .opacity(0.6)
-                    .offset(y: (geo.size.height / 2.0) + 20.0)
+                    .blendMode(.plusLighter)
             }
             .edgesIgnoringSafeArea(.all)
         }
