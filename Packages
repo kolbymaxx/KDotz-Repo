@@ -66,6 +66,40 @@ Description: iOS 26-style Control Center for iOS 15–17. 1.0.2 restores round m
 Author: kolbymaxx
 Name: CC27
 
+Package: com.kolby.cc27
+Version: 1.0.3
+Architecture: iphoneos-arm64e
+Maintainer: kolbymaxx
+Installed-Size: 692
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader, com.opa334.ccsupport, firmware (>= 15.0)
+Conflicts: com.cureux.cc26, com.smfb7.ccxviii, com.dvntm.cc18
+Filename: dist/com.kolby.cc27_1.0.3_iphoneos-arm64e.deb
+Size: 67340
+MD5sum: 73986c4d732cb0fec060435fffeb428f
+SHA1: bb2aea5940a1224b7dae44c6173049f481fbdc1d
+SHA256: 6f67c4e53f6af2fe92ad11b61738476a98278432c379ca13143b796373b69ac9
+Section: Tweaks
+Description: iOS 26-style Control Center for iOS 15–17. 1.0.3 stops the duplicate-add crash, adds Remove in the gallery, liquid-glass 3D UI, and home-screen style drag reflow.
+Author: kolbymaxx
+Name: CC27
+
+Package: com.kolby.cc27
+Version: 1.0.3
+Architecture: iphoneos-arm64
+Maintainer: kolbymaxx
+Installed-Size: 692
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader, com.opa334.ccsupport, firmware (>= 15.0)
+Conflicts: com.cureux.cc26, com.smfb7.ccxviii, com.dvntm.cc18
+Filename: dist/com.kolby.cc27_1.0.3_iphoneos-arm64.deb
+Size: 67838
+MD5sum: 9c711c928244308c3a243761f5089244
+SHA1: 9905d37fa87927f6b8940d1bfa198b132a3dd425
+SHA256: cbb79efdc8f690041dec9f86d3759addd7a1c6bf599d114ebd5da89a9623c935
+Section: Tweaks
+Description: iOS 26-style Control Center for iOS 15–17. 1.0.3 stops the duplicate-add crash, adds Remove in the gallery, liquid-glass 3D UI, and home-screen style drag reflow.
+Author: kolbymaxx
+Name: CC27
+
 Package: com.kolby.rhcompat
 Version: 1.0.2
 Architecture: iphoneos-arm64e
