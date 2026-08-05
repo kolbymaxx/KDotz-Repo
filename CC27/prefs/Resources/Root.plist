@@ -70,7 +70,7 @@
 			<key>label</key>
 			<string>Editing</string>
 			<key>footerText</key>
-			<string>In Control Center: tap + or touch &amp; hold empty space to enter edit mode. Drag modules to rearrange, tap − to remove, use the corner handle to resize, and tap Add a Control to open the searchable gallery.</string>
+			<string>In Control Center: tap + or touch &amp; hold empty space to enter edit mode. Drag modules to rearrange, tap − to remove, and tap Add a Control for the searchable gallery. Resize is experimental and off by default.</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -90,13 +90,13 @@
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
-			<true/>
+			<false/>
 			<key>defaults</key>
 			<string>com.kolby.cc27</string>
 			<key>key</key>
 			<string>allowResize</string>
 			<key>label</key>
-			<string>Allow Resize</string>
+			<string>Allow Resize (experimental)</string>
 			<key>PostNotification</key>
 			<string>com.kolby.cc27/ReloadPrefs</string>
 		</dict>
