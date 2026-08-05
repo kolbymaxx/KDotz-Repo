@@ -98,7 +98,11 @@ static void CC27ReloadPrefs(CFNotificationCenterRef center, void *observer, CFSt
                                         CFNotificationSuspensionBehaviorCoalesce);
         if (CC27Prefs.shared.enabled) {
             %init(CC27);
+<<<<<<< HEAD
             NSLog(@"[CC27] 1.0.4 loaded — snapshot drag, crash-proof reorder, prefs layout editor");
+=======
+            NSLog(@"[CC27] 1.0.2 loaded — round glass, no resize, better icons");
+>>>>>>> origin/main
         } else {
             NSLog(@"[CC27] disabled in prefs");
         }

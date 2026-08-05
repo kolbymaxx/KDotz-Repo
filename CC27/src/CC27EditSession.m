@@ -464,6 +464,7 @@ static char kCC27IdKey;
     BOOL isFixed = [CC27LayoutStore.shared isModuleFixed:identifier] &&
                    ![CC27LayoutStore.shared.enabledIdentifiers containsObject:identifier];
 
+<<<<<<< HEAD
     UIButton *minus = [container viewWithTag:kCC27MinusTag];
     if (isFixed) {
         [minus removeFromSuperview];
@@ -487,6 +488,10 @@ static char kCC27IdKey;
         minus.frame = CGRectMake(-4, -4, 22, 22);
         [container bringSubviewToFront:minus];
     }
+=======
+    // Resize is disabled in 1.0.2 — previous size overrides crashed SpringBoard.
+    [[container viewWithTag:kCC27ResizeTag] removeFromSuperview];
+>>>>>>> origin/main
 
     // Resize stays disabled — size overrides crashed SpringBoard (1.0.2).
     [[container viewWithTag:kCC27ResizeTag] removeFromSuperview];
@@ -534,6 +539,7 @@ static char kCC27IdKey;
     [self performSelector:@selector(_decorateVisibleModules) withObject:nil afterDelay:0.35];
 }
 
+<<<<<<< HEAD
 #pragma mark - Home-screen style drag with live reflow
 
 // Reading-order slots: all small module containers sorted top-to-bottom, left-to-right.
@@ -663,6 +669,11 @@ static char kCC27IdKey;
     self.dragSlotViews = nil;
     self.dragSlotCenters = nil;
     self.dragSlotIds = nil;
+=======
+- (void)_resizeTapped:(UIButton *)sender {
+    (void)sender;
+    // Intentionally disabled — resizing via CCUILayoutSize overrides caused SpringBoard safe mode.
+>>>>>>> origin/main
 }
 
 - (void)_dragModule:(UILongPressGestureRecognizer *)gr {

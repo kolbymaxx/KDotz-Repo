@@ -70,7 +70,11 @@
 			<key>label</key>
 			<string>Editing</string>
 			<key>footerText</key>
+<<<<<<< HEAD
 			<string>In Control Center: tap + or touch &amp; hold empty space to enter edit mode. Drag modules to rearrange, tap − to remove, and tap Add a Control for the searchable gallery. You can also rearrange safely in Edit Control Center Layout below — it commits with a respring.</string>
+=======
+			<string>In Control Center: tap + or touch &amp; hold empty space to enter edit mode. Drag modules to rearrange, tap − to remove, and tap Add a Control for the searchable gallery.</string>
+>>>>>>> origin/main
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -88,6 +92,7 @@
 		</dict>
 		<dict>
 			<key>cell</key>
+<<<<<<< HEAD
 			<string>PSLinkCell</string>
 			<key>detail</key>
 			<string>CC27LayoutEditorController</string>
@@ -96,6 +101,8 @@
 		</dict>
 		<dict>
 			<key>cell</key>
+=======
+>>>>>>> origin/main
 			<string>PSSwitchCell</string>
 			<key>default</key>
 			<true/>
