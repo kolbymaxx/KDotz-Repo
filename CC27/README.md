@@ -12,7 +12,6 @@ Unlike aesthetic-only tweaks (CC26 / CCXVIII), CC27 focuses on the **real custom
 - Liquid-glass module chrome (round 1×1 / pill modules; expanded menus stay unclipped)
 - Built-in CC27 modules: **Respring**, **Safe Mode**, **UICache**, **Userspace Reboot**
 
-<<<<<<< HEAD
 ## 1.0.4 fixes
 
 - **Drag no longer safe-modes**: dragging now moves a snapshot while Control Center keeps
@@ -34,8 +33,6 @@ Unlike aesthetic-only tweaks (CC26 / CCXVIII), CC27 focuses on the **real custom
 - **Home-screen style drag**: while you drag a module, the others reflow live around your finger,
   and the layout commits where you drop it
 
-=======
->>>>>>> origin/main
 ## 1.0.2 fixes
 
 - Restored round / pill module glass (clips collapsed modules; still skips expanded menus)

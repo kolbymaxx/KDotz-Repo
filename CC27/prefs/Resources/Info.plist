@@ -13,15 +13,9 @@
 	<key>CFBundlePackageType</key>
 	<string>BNDL</string>
 	<key>CFBundleShortVersionString</key>
-<<<<<<< HEAD
 	<string>1.0.4</string>
 	<key>CFBundleVersion</key>
 	<string>1.0.4</string>
-=======
-	<string>1.0.2</string>
-	<key>CFBundleVersion</key>
-	<string>1.0.2</string>
->>>>>>> origin/main
 	<key>NSPrincipalClass</key>
 	<string>CC27RootListController</string>
 </dict>

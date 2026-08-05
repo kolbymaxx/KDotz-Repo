@@ -77,7 +77,6 @@
         if (platter && [sub isKindOfClass:platter]) continue;
         if (sub.subviews.count) [self _roundMaterialSubviews:sub radius:radius];
     }
-<<<<<<< HEAD
 }
 
 // The container itself is clipped for roundness, so its own layer can't cast a
@@ -99,8 +98,6 @@
     if (!holder) return;
     holder.layer.shadowOpacity = 0;
     holder.layer.shadowPath = NULL;
-=======
->>>>>>> origin/main
 }
 
 + (void)applyToModuleContainer:(UIView *)view {
@@ -121,10 +118,7 @@
     CGFloat radius = [self cornerRadiusForSize:view.bounds.size];
     [self applyContinuousCorners:view radius:radius];
     [self _roundMaterialSubviews:view radius:radius];
-<<<<<<< HEAD
     [self _applyDepthShadowToContainer:view radius:radius];
-=======
->>>>>>> origin/main
 
     const NSInteger tag = 0x43323747; // 'C27G'
     UIView *highlight = [view viewWithTag:tag];
@@ -132,7 +126,6 @@
         highlight = [[UIView alloc] initWithFrame:CGRectZero];
         highlight.tag = tag;
         highlight.userInteractionEnabled = NO;
-<<<<<<< HEAD
         CAGradientLayer *sheen = [CAGradientLayer layer];
         sheen.colors = @[
             (id)[UIColor colorWithWhite:1.0 alpha:0.18].CGColor,
@@ -141,9 +134,6 @@
         ];
         sheen.locations = @[ @0.0, @0.55, @1.0 ];
         [highlight.layer addSublayer:sheen];
-=======
-        highlight.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.12];
->>>>>>> origin/main
         [view insertSubview:highlight atIndex:0];
     }
     highlight.hidden = NO;
