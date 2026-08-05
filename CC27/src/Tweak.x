@@ -34,12 +34,15 @@ static BOOL CC27ViewIsInControlCenter(UIView *view) {
 - (void)viewWillAppear:(BOOL)animated {
     %orig;
     if (!CC27Prefs.shared.enabled) return;
+    // Fully inert while locked — CC presented over the lock screen stays stock.
+    if ([CC27EditSession deviceUILocked]) return;
     [CC27EditSession.shared setHostVisible:YES host:self];
 }
 
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
     if (!CC27Prefs.shared.enabled) return;
+    if ([CC27EditSession deviceUILocked]) return;
     [CC27EditSession.shared setHostVisible:YES host:self];
 }
 
@@ -68,6 +71,10 @@ static BOOL CC27ViewIsInControlCenter(UIView *view) {
 - (void)setPresentationState:(NSInteger)state {
     %orig;
     if (!CC27Prefs.shared.enabled) return;
+    if ([CC27EditSession deviceUILocked]) {
+        [CC27EditSession.shared setHostVisible:NO host:self];
+        return;
+    }
     [CC27EditSession.shared updateChromeForPresentationState:state host:self];
 }
 
@@ -78,6 +85,8 @@ static BOOL CC27ViewIsInControlCenter(UIView *view) {
 - (void)layoutSubviews {
     %orig;
     if (!CC27Prefs.shared.enabled) return;
+    // Fully inert while the device UI is locked.
+    if ([CC27EditSession deviceUILocked]) return;
     // Never touch module containers hosted outside Control Center (Lock
     // Screen quick actions on iOS 16 use this same class).
     if (!CC27ViewIsInControlCenter(self)) return;
@@ -131,7 +140,7 @@ static BOOL CC27ViewIsInControlCenter(UIView *view) {
                                         CFNotificationSuspensionBehaviorCoalesce);
         if (CC27Prefs.shared.enabled) {
             %init(CC27);
-            NSLog(@"[CC27] 1.0.5 loaded — lock screen exclusion, kill switch, boot hardening");
+            NSLog(@"[CC27] 1.0.6 loaded — fully inert while device is locked");
         } else {
             NSLog(@"[CC27] disabled in prefs");
         }

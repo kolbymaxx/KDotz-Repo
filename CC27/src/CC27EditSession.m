@@ -40,6 +40,18 @@ static char kCC27IdKey;
     return shared;
 }
 
+// While the device UI is locked, CC27 must be fully inert: attaching chrome or
+// styling during a lock screen CC presentation can wedge the transition (iOS 16
+// frozen-input reports). Stock iOS 26 doesn't allow CC editing while locked either.
++ (BOOL)deviceUILocked {
+    @try {
+        SBLockScreenManager *mgr = [NSClassFromString(@"SBLockScreenManager") sharedInstance];
+        if ([mgr respondsToSelector:@selector(isUILocked)]) return mgr.isUILocked;
+        if ([mgr respondsToSelector:@selector(isLockScreenVisible)]) return mgr.isLockScreenVisible;
+    } @catch (__unused NSException *e) {}
+    return NO;
+}
+
 - (void)_haptic:(UIImpactFeedbackStyle)style {
     if (!CC27Prefs.shared.hapticFeedback) return;
     [[[UIImpactFeedbackGenerator alloc] initWithStyle:style] impactOccurred];
@@ -110,6 +122,7 @@ static char kCC27IdKey;
 
 - (void)attachChromeToHost:(UIViewController *)host {
     if (!host || !CC27Prefs.shared.enabled) return;
+    if ([CC27EditSession deviceUILocked]) return;
     self.hostController = host;
     UIView *view = host.view;
 
@@ -180,6 +193,7 @@ static char kCC27IdKey;
 }
 
 - (void)setHostVisible:(BOOL)visible host:(UIViewController *)host {
+    if (visible && [CC27EditSession deviceUILocked]) visible = NO;
     self.hostVisible = visible;
     if (host) self.hostController = host;
     if (visible) {
@@ -265,6 +279,7 @@ static char kCC27IdKey;
 
 - (void)enterEditModeAnimated:(BOOL)animated {
     if (!CC27Prefs.shared.editModeEnabled || self.editing) return;
+    if ([CC27EditSession deviceUILocked]) return;
     self.editing = YES;
     [self _ensureAddControlButton];
     [self _decorateVisibleModules];
@@ -330,6 +345,7 @@ static char kCC27IdKey;
 
 - (void)presentGalleryFrom:(UIViewController *)presenter {
     if (!presenter) return;
+    if ([CC27EditSession deviceUILocked]) return;
     [CC27ModuleCatalog.shared reload];
     CC27GalleryController *gallery = [[CC27GalleryController alloc] initWithCatalog:CC27ModuleCatalog.shared];
     if (@available(iOS 15.0, *)) {

@@ -91,6 +91,12 @@ typedef struct CCUILayoutSize {
 - (void)applicationOpenURL:(NSURL *)url;
 @end
 
+@interface SBLockScreenManager : NSObject
++ (instancetype)sharedInstance;
+@property (nonatomic, readonly) BOOL isUILocked;
+@property (nonatomic, readonly) BOOL isLockScreenVisible;
+@end
+
 @protocol CCUIContentModuleContentViewController <NSObject>
 @property (nonatomic, readonly) CGFloat preferredExpandedContentHeight;
 @optional
