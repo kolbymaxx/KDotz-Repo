@@ -1,34 +1,34 @@
 Package: com.kolby.cc27
-Version: 1.0.0
+Version: 1.0.1
 Architecture: iphoneos-arm64
 Maintainer: kolbymaxx
-Installed-Size: 656
+Installed-Size: 660
 Depends: mobilesubstrate (>= 0.9.5000), preferenceloader, com.opa334.ccsupport, firmware (>= 15.0)
 Conflicts: com.cureux.cc26, com.smfb7.ccxviii, com.dvntm.cc18
-Filename: dist/com.kolby.cc27_1.0.0_iphoneos-arm64.deb
-Size: 52706
-MD5sum: f7a23c190df7a885b7b33353ca9cb338
-SHA1: c8d1cd6335d8029cc96eac5f774b2ce196987a42
-SHA256: c4975201f573a756a31ae637d457ca61d016a8c7668a54b41a54ce5682ce24df
+Filename: dist/com.kolby.cc27_1.0.1_iphoneos-arm64.deb
+Size: 56710
+MD5sum: 90c70a02053f33582ae4ae776d6dcb5f
+SHA1: 2ab3e75961ea2179c9e8a1127af8adfa425acbad
+SHA256: 39df8e830d39b126c776572e2d1b8582e80bc6891ffe49d51e68e795688f89d2
 Section: Tweaks
-Description: iOS 26-style Control Center for iOS 15–17 — hold to edit, resize & rearrange, searchable Add a Control gallery, liquid glass modules, plus CC27 widgets. Third-party CCSupport modules appear in the gallery too.
+Description: iOS 26-style Control Center for iOS 15–17. 1.0.1 keeps +/power visible, fixes Add Control list UI, makes added modules appear, turns resize off by default, and stops glass clipping expanded menus.
 Author: kolbymaxx
 Name: CC27
 
 Package: com.kolby.cc27
-Version: 1.0.0
+Version: 1.0.1
 Architecture: iphoneos-arm64e
 Maintainer: kolbymaxx
-Installed-Size: 656
+Installed-Size: 660
 Depends: mobilesubstrate (>= 0.9.5000), preferenceloader, com.opa334.ccsupport, firmware (>= 15.0)
 Conflicts: com.cureux.cc26, com.smfb7.ccxviii, com.dvntm.cc18
-Filename: dist/com.kolby.cc27_1.0.0_iphoneos-arm64e.deb
-Size: 52704
-MD5sum: 1c5ded5def0f014228f09c374c91e4a6
-SHA1: 99e01c70a9615ebdd1165b40503364e06075b409
-SHA256: f123eaa2646d7ceec4cf7093fcbb7e5e60f2b126dd742044b195d8f3066b12f7
+Filename: dist/com.kolby.cc27_1.0.1_iphoneos-arm64e.deb
+Size: 56712
+MD5sum: 0e57aabadcaee0e73d7cc0e8d1090aad
+SHA1: 09e06273615803e9cab9473069972193ef48d499
+SHA256: 9e0f1c7b124f11b3c37dd53d443d1262dfadbcb1e3224d416408207e7534bb07
 Section: Tweaks
-Description: iOS 26-style Control Center for iOS 15–17 — hold to edit, resize & rearrange, searchable Add a Control gallery, liquid glass modules, plus CC27 widgets. Third-party CCSupport modules appear in the gallery too.
+Description: iOS 26-style Control Center for iOS 15–17. 1.0.1 keeps +/power visible, fixes Add Control list UI, makes added modules appear, turns resize off by default, and stops glass clipping expanded menus.
 Author: kolbymaxx
 Name: CC27
 
