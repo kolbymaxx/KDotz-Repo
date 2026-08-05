@@ -168,6 +168,40 @@ Description: iOS 26-style Control Center for iOS 15–17. 1.0.5 stops CC27 from 
 Author: kolbymaxx
 Name: CC27
 
+Package: com.kolby.cc27
+Version: 1.0.6
+Architecture: iphoneos-arm64
+Maintainer: kolbymaxx
+Installed-Size: 796
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader, com.opa334.ccsupport, firmware (>= 15.0)
+Conflicts: com.cureux.cc26, com.smfb7.ccxviii, com.dvntm.cc18
+Filename: dist/com.kolby.cc27_1.0.6_iphoneos-arm64.deb
+Size: 84060
+MD5sum: c98081fcfc2516d9da8091b1c4ad83c4
+SHA1: 54f00aeeb79c5ea85e7909221d21ee5177d96a69
+SHA256: c100a1ea7183b3002cb3c7033c07c9d9332157be12cbe61a341f88d2d7a59240
+Section: Tweaks
+Description: iOS 26-style Control Center for iOS 15–17. 1.0.6 makes CC27 fully inert while the device is locked, fixing the freeze when opening Control Center from the lock screen on iOS 16.
+Author: kolbymaxx
+Name: CC27
+
+Package: com.kolby.cc27
+Version: 1.0.6
+Architecture: iphoneos-arm64e
+Maintainer: kolbymaxx
+Installed-Size: 796
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader, com.opa334.ccsupport, firmware (>= 15.0)
+Conflicts: com.cureux.cc26, com.smfb7.ccxviii, com.dvntm.cc18
+Filename: dist/com.kolby.cc27_1.0.6_iphoneos-arm64e.deb
+Size: 83428
+MD5sum: 04a4ed459260c491583b9d1ab976e8cc
+SHA1: 5d28ae86721a8e37bf592fce8aca70c862b1aafc
+SHA256: 4c9fd1994e19b445f8cf23b98f61f32b5ddaa435c07778dec9c88de41d01d0a3
+Section: Tweaks
+Description: iOS 26-style Control Center for iOS 15–17. 1.0.6 makes CC27 fully inert while the device is locked, fixing the freeze when opening Control Center from the lock screen on iOS 16.
+Author: kolbymaxx
+Name: CC27
+
 Package: com.kolby.rhcompat
 Version: 1.0.2
 Architecture: iphoneos-arm64e
