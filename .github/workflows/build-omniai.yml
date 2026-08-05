@@ -64,8 +64,13 @@ jobs:
           plutil -p "$FILTER"
           grep -q 'com.apple.UIKit' <(plutil -p "$FILTER")
           grep -q 'com.apple.springboard' <(plutil -p "$FILTER")
-          test -f "$TMP/Library/PreferenceBundles/OmniAIPrefs.bundle/OmniAIPrefs"
-          test -f "$TMP/Library/PreferenceLoader/Preferences/OmniAI.plist"
+          # rootless stages under var/jb/; locate prefs either way
+          PREFS_BIN="$(find "$TMP" -path '*/PreferenceBundles/OmniAIPrefs.bundle/OmniAIPrefs' | head -1)"
+          PREFS_PLIST="$(find "$TMP" -path '*/PreferenceLoader/Preferences/OmniAI.plist' | head -1)"
+          test -n "$PREFS_BIN"
+          test -n "$PREFS_PLIST"
+          echo "prefs binary: $PREFS_BIN"
+          echo "prefs entry: $PREFS_PLIST"
 
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v4
