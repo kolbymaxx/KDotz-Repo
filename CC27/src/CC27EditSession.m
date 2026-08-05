@@ -1,16 +1,19 @@
 #import "CC27.h"
+#import <objc/message.h>
 
 static const NSInteger kCC27PlusTag = 0x4332372B;      // C27+
 static const NSInteger kCC27PowerTag = 0x43323750;     // C27P
 static const NSInteger kCC27AddControlTag = 0x43323741; // C27A
 static const NSInteger kCC27MinusTag = 0x4332372D;      // C27-
 static const NSInteger kCC27ResizeTag = 0x43323752;     // C27R
+static const NSInteger kCC27ToastTag = 0x43323754;      // C27T
 
 static char kCC27DragKey;
 static char kCC27IdKey;
 
 @interface CC27EditSession ()
 @property (nonatomic, assign, readwrite, getter=isEditing) BOOL editing;
+@property (nonatomic, assign, readwrite, getter=isHostVisible) BOOL hostVisible;
 @property (nonatomic, strong) UILongPressGestureRecognizer *backgroundLongPress;
 @property (nonatomic, copy) NSString *draggingIdentifier;
 @property (nonatomic, weak) UIView *draggingView;
@@ -40,7 +43,7 @@ static char kCC27IdKey;
         [btn setImage:[[UIImage systemImageNamed:symbol] imageByApplyingSymbolConfiguration:config] forState:UIControlStateNormal];
     }
     btn.tintColor = UIColor.whiteColor;
-    btn.backgroundColor = [UIColor colorWithWhite:1 alpha:0.14];
+    btn.backgroundColor = [UIColor colorWithWhite:1 alpha:0.18];
     btn.layer.cornerRadius = 18;
     btn.clipsToBounds = YES;
     btn.alpha = 0;
@@ -82,6 +85,10 @@ static char kCC27IdKey;
         self.backgroundLongPress.minimumPressDuration = 0.45;
         [view addGestureRecognizer:self.backgroundLongPress];
     }
+
+    if (self.hostVisible) {
+        [self layoutChromeOnHost:host];
+    }
 }
 
 - (void)_spawn:(NSArray<NSString *> *)args {
@@ -114,28 +121,61 @@ static char kCC27IdKey;
     free(argv);
 }
 
-- (void)updateChromeForPresentationState:(NSInteger)state host:(UIViewController *)host {
+- (void)setHostVisible:(BOOL)visible host:(UIViewController *)host {
+    self.hostVisible = visible;
+    if (host) self.hostController = host;
+    if (visible) {
+        [self attachChromeToHost:host ?: self.hostController];
+        [self layoutChromeOnHost:host ?: self.hostController];
+    } else {
+        if (self.editing) [self exitEditModeAnimated:NO];
+        UIView *view = (host ?: self.hostController).view;
+        UIButton *plus = [view viewWithTag:kCC27PlusTag];
+        UIButton *power = [view viewWithTag:kCC27PowerTag];
+        plus.alpha = 0;
+        power.alpha = 0;
+    }
+}
+
+- (void)layoutChromeOnHost:(UIViewController *)host {
     if (!host) return;
-    [self attachChromeToHost:host];
     UIView *view = host.view;
     CGFloat safeTop = view.safeAreaInsets.top > 0 ? view.safeAreaInsets.top : 20;
     CGFloat safeLeft = view.safeAreaInsets.left > 0 ? view.safeAreaInsets.left : 16;
     CGFloat safeRight = view.safeAreaInsets.right > 0 ? view.safeAreaInsets.right : 16;
+
     UIButton *plus = [view viewWithTag:kCC27PlusTag];
     UIButton *power = [view viewWithTag:kCC27PowerTag];
     plus.frame = CGRectMake(safeLeft + 4, safeTop + 2, 36, 36);
     power.frame = CGRectMake(view.bounds.size.width - safeRight - 40, safeTop + 2, 36, 36);
 
-    BOOL presented = (state == 1); // presented
-    [UIView animateWithDuration:presented ? 0.4 : 0.2 delay:0 usingSpringWithDamping:0.8 initialSpringVelocity:0.4 options:0 animations:^{
-        plus.alpha = presented && CC27Prefs.shared.showTopButtons ? 1 : 0;
-        power.alpha = presented && CC27Prefs.shared.showTopButtons ? 1 : 0;
-        plus.transform = presented ? CGAffineTransformIdentity : CGAffineTransformMakeScale(0.7, 0.7);
-        power.transform = presented ? CGAffineTransformIdentity : CGAffineTransformMakeScale(0.7, 0.7);
-    } completion:nil];
+    BOOL show = self.hostVisible && CC27Prefs.shared.showTopButtons;
+    // No fade-out on intermediate presentation states — keep them up while CC is open.
+    plus.alpha = show ? 1.0 : 0.0;
+    power.alpha = show ? 1.0 : 0.0;
+    plus.transform = CGAffineTransformIdentity;
+    power.transform = CGAffineTransformIdentity;
+    if (show) {
+        [view bringSubviewToFront:plus];
+        [view bringSubviewToFront:power];
+    }
 
-    if (!presented && self.editing) {
-        [self exitEditModeAnimated:NO];
+    if (self.editing) {
+        [self _ensureAddControlButton];
+        UIView *add = [view viewWithTag:kCC27AddControlTag];
+        [view bringSubviewToFront:add];
+    }
+}
+
+- (void)updateChromeForPresentationState:(NSInteger)state host:(UIViewController *)host {
+    if (!host) return;
+    // Known dismissed / dismissing values on iOS 15–17 modular CC.
+    // Anything else while the overlay is up should keep chrome visible.
+    BOOL dismissed = (state == 0 || state == 3 || state == 4);
+    if (dismissed) {
+        [self setHostVisible:NO host:host];
+    } else {
+        [self setHostVisible:YES host:host];
     }
 }
 
@@ -150,7 +190,6 @@ static char kCC27IdKey;
 
 - (void)_backgroundLongPressed:(UILongPressGestureRecognizer *)gr {
     if (gr.state != UIGestureRecognizerStateBegan) return;
-    // Ignore presses that begin on a module container — those are for drag/reorder.
     UIView *hit = [self.hostController.view hitTest:[gr locationInView:self.hostController.view] withEvent:nil];
     UIView *v = hit;
     while (v) {
@@ -182,6 +221,7 @@ static char kCC27IdKey;
     } else {
         work();
     }
+    [self layoutChromeOnHost:self.hostController];
 }
 
 - (void)exitEditModeAnimated:(BOOL)animated {
@@ -241,12 +281,66 @@ static char kCC27IdKey;
         UISheetPresentationController *sheet = gallery.sheetPresentationController;
         sheet.detents = @[ [UISheetPresentationControllerDetent mediumDetent],
                            [UISheetPresentationControllerDetent largeDetent] ];
+        sheet.selectedDetentIdentifier = UISheetPresentationControllerDetentIdentifierLarge;
         sheet.prefersGrabberVisible = YES;
         sheet.preferredCornerRadius = 28;
     } else {
         gallery.modalPresentationStyle = UIModalPresentationFormSheet;
     }
     [presenter presentViewController:gallery animated:YES completion:nil];
+}
+
+- (void)dismissControlCenter {
+    UIViewController *host = self.hostController;
+    if (!host) return;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    for (NSString *name in @[ @"dismissAnimated:", @"_dismissAnimated:", @"dismissControlCenter" ]) {
+        SEL sel = NSSelectorFromString(name);
+        if (![host respondsToSelector:sel]) continue;
+        if ([name hasSuffix:@":"]) {
+            ((void (*)(id, SEL, BOOL))objc_msgSend)(host, sel, YES);
+        } else {
+            [host performSelector:sel];
+        }
+        break;
+    }
+#pragma clang diagnostic pop
+}
+
+- (void)showToast:(NSString *)message {
+    UIView *host = self.hostController.view;
+    if (!host || message.length == 0) return;
+    [[host viewWithTag:kCC27ToastTag] removeFromSuperview];
+
+    UILabel *label = [[UILabel alloc] initWithFrame:CGRectZero];
+    label.tag = kCC27ToastTag;
+    label.text = message;
+    label.textColor = UIColor.whiteColor;
+    label.font = [UIFont systemFontOfSize:14 weight:UIFontWeightSemibold];
+    label.textAlignment = NSTextAlignmentCenter;
+    label.numberOfLines = 2;
+    label.backgroundColor = [UIColor colorWithWhite:0.1 alpha:0.82];
+    label.layer.cornerRadius = 14;
+    label.clipsToBounds = YES;
+    label.alpha = 0;
+
+    CGSize fit = [label sizeThatFits:CGSizeMake(host.bounds.size.width - 48, 80)];
+    CGFloat w = MIN(host.bounds.size.width - 40, MAX(180, fit.width + 28));
+    CGFloat h = MAX(40, fit.height + 16);
+    label.frame = CGRectMake((host.bounds.size.width - w) / 2.0,
+                             host.safeAreaInsets.top + 52,
+                             w, h);
+    [host addSubview:label];
+    [host bringSubviewToFront:label];
+
+    [UIView animateWithDuration:0.2 animations:^{ label.alpha = 1; } completion:^(__unused BOOL f) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.6 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [UIView animateWithDuration:0.25 animations:^{ label.alpha = 0; } completion:^(__unused BOOL f2) {
+                [label removeFromSuperview];
+            }];
+        });
+    }];
 }
 
 #pragma mark - Module decoration
@@ -294,6 +388,14 @@ static char kCC27IdKey;
 - (void)decorateModuleContainer:(UIView *)container identifier:(NSString *)identifier {
     if (!container || !self.editing) return;
 
+    // Skip decorating expanded popovers.
+    if (container.bounds.size.width > 220.0 || container.bounds.size.height > 220.0) {
+        [[container viewWithTag:kCC27MinusTag] removeFromSuperview];
+        [[container viewWithTag:kCC27ResizeTag] removeFromSuperview];
+        [container.layer removeAnimationForKey:@"cc27.jiggle"];
+        return;
+    }
+
     UIButton *minus = [container viewWithTag:kCC27MinusTag];
     if (!minus) {
         minus = [UIButton buttonWithType:UIButtonTypeSystem];
@@ -327,21 +429,20 @@ static char kCC27IdKey;
         }
         resize.frame = CGRectMake(container.bounds.size.width - 22, container.bounds.size.height - 22, 24, 24);
         [container bringSubviewToFront:resize];
+    } else {
+        [[container viewWithTag:kCC27ResizeTag] removeFromSuperview];
     }
 
-    // Jiggle
     if (![container.layer animationForKey:@"cc27.jiggle"]) {
         CAKeyframeAnimation *anim = [CAKeyframeAnimation animationWithKeyPath:@"transform.rotation.z"];
-        anim.values = @[ @(-0.02), @(0.02), @(-0.02) ];
-        anim.duration = 0.22;
+        anim.values = @[ @(-0.015), @(0.015), @(-0.015) ];
+        anim.duration = 0.25;
         anim.repeatCount = HUGE_VALF;
         anim.removedOnCompletion = NO;
-        // Slight per-view phase so they don't sync perfectly.
         anim.beginTime = CACurrentMediaTime() + ((uintptr_t)container % 7) * 0.02;
         [container.layer addAnimation:anim forKey:@"cc27.jiggle"];
     }
 
-    // Drag to reorder
     if (![objc_getAssociatedObject(container, &kCC27DragKey) boolValue]) {
         UILongPressGestureRecognizer *drag = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(_dragModule:)];
         drag.minimumPressDuration = 0.15;
@@ -376,12 +477,12 @@ static char kCC27IdKey;
 }
 
 - (void)_resizeTapped:(UIButton *)sender {
+    if (!CC27Prefs.shared.allowResize) return;
     UIView *container = sender.superview;
     NSString *identifier = objc_getAssociatedObject(container, &kCC27IdKey) ?: [self _identifierForContainer:container];
     if (!identifier) return;
     CCUILayoutSize current = {1, 1};
     CGSize px = container.bounds.size;
-    // Heuristic from pixel size → grid size before cycling.
     if (px.width > 200 && px.height > 100) { current.width = 2; current.height = 2; }
     else if (px.width > 200) { current.width = 2; current.height = 1; }
     else if (px.height > 160) { current.width = 1; current.height = 2; }
@@ -417,7 +518,6 @@ static char kCC27IdKey;
         }
         case UIGestureRecognizerStateEnded:
         case UIGestureRecognizerStateCancelled: {
-            // Drop onto nearest sibling module → swap / move before that index.
             NSMutableArray *containers = [NSMutableArray array];
             [self _collectContainers:host into:containers];
             UIView *nearest = nil;

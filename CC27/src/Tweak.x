@@ -15,20 +15,35 @@ static void CC27ReloadPrefs(CFNotificationCenterRef center, void *observer, CFSt
     [CC27EditSession.shared attachChromeToHost:self];
 }
 
+- (void)viewWillAppear:(BOOL)animated {
+    %orig;
+    if (!CC27Prefs.shared.enabled) return;
+    [CC27EditSession.shared setHostVisible:YES host:self];
+}
+
+- (void)viewDidAppear:(BOOL)animated {
+    %orig;
+    if (!CC27Prefs.shared.enabled) return;
+    [CC27EditSession.shared setHostVisible:YES host:self];
+}
+
+- (void)viewWillDisappear:(BOOL)animated {
+    %orig;
+    if (!CC27Prefs.shared.enabled) return;
+    [CC27EditSession.shared setHostVisible:NO host:self];
+}
+
+- (void)viewDidDisappear:(BOOL)animated {
+    %orig;
+    if (!CC27Prefs.shared.enabled) return;
+    [CC27EditSession.shared setHostVisible:NO host:self];
+}
+
 - (void)viewDidLayoutSubviews {
     %orig;
     if (!CC27Prefs.shared.enabled) return;
     [CC27EditSession.shared attachChromeToHost:self];
-    if (CC27EditSession.shared.editing) {
-        // Keep Add a Control pinned while rotating / resizing.
-        UIView *add = [self.view viewWithTag:0x43323741];
-        if (add) {
-            CGFloat w = MIN(220, self.view.bounds.size.width - 48);
-            CGFloat y = self.view.bounds.size.height - self.view.safeAreaInsets.bottom - 56;
-            add.frame = CGRectMake((self.view.bounds.size.width - w) / 2.0, y, w, 44);
-            [self.view bringSubviewToFront:add];
-        }
-    }
+    [CC27EditSession.shared layoutChromeOnHost:self];
 }
 
 - (void)setPresentationState:(NSInteger)state {
@@ -49,7 +64,6 @@ static void CC27ReloadPrefs(CFNotificationCenterRef center, void *observer, CFSt
     }
     if (CC27EditSession.shared.editing) {
         NSString *identifier = nil;
-        // Best-effort identifier resolution for decorations after layout.
         UIView *v = self;
         while (v) {
 #pragma clang diagnostic push
@@ -121,7 +135,7 @@ static void CC27ReloadPrefs(CFNotificationCenterRef center, void *observer, CFSt
                                         CFNotificationSuspensionBehaviorCoalesce);
         if (CC27Prefs.shared.enabled) {
             %init(CC27);
-            NSLog(@"[CC27] loaded — glass + edit mode + gallery");
+            NSLog(@"[CC27] 1.0.1 loaded — sticky chrome, list gallery, non-clipping glass");
         } else {
             NSLog(@"[CC27] disabled in prefs");
         }

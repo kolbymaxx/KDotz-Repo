@@ -23,18 +23,26 @@ FOUNDATION_EXPORT NSString * const CC27LayoutDidChangeNotification;
 + (void)applyContinuousCorners:(UIView *)view radius:(CGFloat)radius;
 @end
 
+typedef NS_ENUM(NSInteger, CC27LayoutApplyResult) {
+    CC27LayoutApplyFailed = 0,
+    CC27LayoutApplyVisible,   // module instances refreshed in the open CC
+    CC27LayoutApplyNeedsReopen // saved, but CC must be reopened to see it
+};
+
 @interface CC27LayoutStore : NSObject
 + (instancetype)shared;
 - (void)reload;
 - (NSArray<NSString *> *)enabledIdentifiers;
 - (NSArray<NSString *> *)disabledIdentifiers;
 - (BOOL)enableModule:(NSString *)identifier;
+- (CC27LayoutApplyResult)enableModuleWithResult:(NSString *)identifier;
 - (BOOL)disableModule:(NSString *)identifier;
 - (BOOL)moveModule:(NSString *)identifier toIndex:(NSUInteger)index;
 - (CCUILayoutSize)sizeForModule:(NSString *)identifier fallback:(CCUILayoutSize)fallback;
 - (CCUILayoutSize)cycleSizeForModule:(NSString *)identifier current:(CCUILayoutSize)current;
 - (void)setSize:(CCUILayoutSize)size forModule:(NSString *)identifier;
 - (void)refreshControlCenterLayout;
+- (BOOL)isModuleInstantiated:(NSString *)identifier;
 @end
 
 @interface CC27ModuleInfo : NSObject
@@ -60,14 +68,19 @@ FOUNDATION_EXPORT NSString * const CC27LayoutDidChangeNotification;
 + (instancetype)shared;
 @property (nonatomic, weak, nullable) UIViewController *hostController;
 @property (nonatomic, readonly, getter=isEditing) BOOL editing;
+@property (nonatomic, readonly, getter=isHostVisible) BOOL hostVisible;
 - (void)enterEditModeAnimated:(BOOL)animated;
 - (void)exitEditModeAnimated:(BOOL)animated;
 - (void)toggleEditMode;
 - (void)presentGalleryFrom:(UIViewController *)presenter;
 - (void)attachChromeToHost:(UIViewController *)host;
+- (void)setHostVisible:(BOOL)visible host:(UIViewController *)host;
 - (void)updateChromeForPresentationState:(NSInteger)state host:(UIViewController *)host;
+- (void)layoutChromeOnHost:(UIViewController *)host;
 - (void)decorateModuleContainer:(UIView *)container identifier:(NSString *)identifier;
 - (void)undecorateAll;
+- (void)dismissControlCenter;
+- (void)showToast:(NSString *)message;
 @end
 
 @interface CC27GalleryController : UIViewController

@@ -74,17 +74,132 @@ static NSString *CC27SizeOverridesPath(void) {
     return all.allObjects;
 }
 
-- (BOOL)enableModule:(NSString *)identifier {
+- (BOOL)isModuleInstantiated:(NSString *)identifier {
     if (identifier.length == 0) return NO;
+    Class mgrCls = NSClassFromString(@"CCUIModuleInstanceManager");
+    id mgr = [mgrCls respondsToSelector:@selector(sharedInstance)] ? [mgrCls sharedInstance] : nil;
+    if (!mgr) return NO;
+    if ([mgr respondsToSelector:@selector(instanceForModuleIdentifier:)]) {
+        id inst = [mgr instanceForModuleIdentifier:identifier];
+        if (inst) return YES;
+    }
+    @try {
+        NSDictionary *map = [mgr valueForKey:@"_moduleInstanceByIdentifier"];
+        if ([map isKindOfClass:NSDictionary.class] && map[identifier]) return YES;
+    } @catch (__unused NSException *e) {}
+    return NO;
+}
+
+- (void)_forceSettingsReload {
     CCSModuleSettingsProvider *provider = self._provider;
-    if (!provider) return NO;
+    if (!provider) return;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    for (NSString *name in @[ @"_handleConfigurationFileUpdate", @"_loadSettings", @"_queue_loadSettings" ]) {
+        SEL sel = NSSelectorFromString(name);
+        if ([provider respondsToSelector:sel]) {
+            [provider performSelector:sel];
+            break;
+        }
+    }
+#pragma clang diagnostic pop
+}
+
+- (void)_forceInstanceRebuild {
+    Class mgrCls = NSClassFromString(@"CCUIModuleInstanceManager");
+    id mgr = [mgrCls respondsToSelector:@selector(sharedInstance)] ? [mgrCls sharedInstance] : nil;
+    if (!mgr) return;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    for (NSString *name in @[
+        @"_updateModuleInstances",
+        @"updateModuleInstances",
+        @"_reloadModuleInstances",
+        @"loadModuleInstances",
+        @"_loadModuleInstances"
+    ]) {
+        SEL sel = NSSelectorFromString(name);
+        if ([mgr respondsToSelector:sel]) {
+            [mgr performSelector:sel];
+            break;
+        }
+    }
+#pragma clang diagnostic pop
+}
+
+- (void)refreshControlCenterLayout {
+    [self _forceSettingsReload];
+    [self _forceInstanceRebuild];
+
+    Class coll = NSClassFromString(@"CCUIModuleCollectionViewController");
+    Class mod = NSClassFromString(@"CCUIModularControlCenterViewController");
+    Class overlay = NSClassFromString(@"CCUIModularControlCenterOverlayViewController");
+
+    CCUIModuleCollectionViewController *vc = nil;
+    if ([mod respondsToSelector:@selector(_sharedCollectionViewController)]) {
+        vc = [mod _sharedCollectionViewController];
+    } else if ([overlay respondsToSelector:@selector(_sharedCollectionViewController)]) {
+        vc = [overlay _sharedCollectionViewController];
+    } else if ([coll respondsToSelector:@selector(_sharedCollectionViewController)]) {
+        vc = [coll _sharedCollectionViewController];
+    }
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    if (vc) {
+        for (NSString *name in @[
+            @"_refreshPositionProviders",
+            @"_updatePositionProviders",
+            @"_repopulateModuleViews",
+            @"reloadData"
+        ]) {
+            SEL sel = NSSelectorFromString(name);
+            if ([vc respondsToSelector:sel]) {
+                [vc performSelector:sel];
+            }
+        }
+        [vc.view setNeedsLayout];
+        [vc.view layoutIfNeeded];
+    }
+#pragma clang diagnostic pop
+
+    CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(),
+                                         CFSTR("com.opa334.ccsupport/ReloadSizes"),
+                                         NULL, NULL, TRUE);
+}
+
+- (BOOL)enableModule:(NSString *)identifier {
+    return [self enableModuleWithResult:identifier] != CC27LayoutApplyFailed;
+}
+
+- (CC27LayoutApplyResult)enableModuleWithResult:(NSString *)identifier {
+    if (identifier.length == 0) return CC27LayoutApplyFailed;
+    CCSModuleSettingsProvider *provider = self._provider;
+    if (!provider) {
+        NSLog(@"[CC27] enableModule: CCSModuleSettingsProvider missing — is CCSupport installed?");
+        return CC27LayoutApplyFailed;
+    }
+
     NSMutableArray *ordered = self.enabledIdentifiers.mutableCopy ?: [NSMutableArray new];
-    if ([ordered containsObject:identifier]) return YES;
-    [ordered addObject:identifier];
-    [provider setAndSaveOrderedUserEnabledModuleIdentifiers:ordered];
+    if (![ordered containsObject:identifier]) {
+        [ordered addObject:identifier];
+        [provider setAndSaveOrderedUserEnabledModuleIdentifiers:ordered];
+    }
+
     [self refreshControlCenterLayout];
+    // Give SpringBoard a beat to instantiate.
+    [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.05]];
+    [self refreshControlCenterLayout];
+
     [[NSNotificationCenter defaultCenter] postNotificationName:CC27LayoutDidChangeNotification object:nil];
-    return YES;
+
+    if ([self.enabledIdentifiers containsObject:identifier] && [self isModuleInstantiated:identifier]) {
+        return CC27LayoutApplyVisible;
+    }
+    if ([self.enabledIdentifiers containsObject:identifier]) {
+        return CC27LayoutApplyNeedsReopen;
+    }
+    return CC27LayoutApplyFailed;
 }
 
 - (BOOL)disableModule:(NSString *)identifier {
@@ -139,7 +254,6 @@ static NSString *CC27SizeOverridesPath(void) {
 }
 
 - (NSArray<NSValue *> *)_allowedSizesForModule:(NSString *)identifier current:(CCUILayoutSize)current {
-    // Connectivity / media tend to break if forced tiny; keep a sensible allow-list.
     NSSet *preferLarge = [NSSet setWithArray:@[
         @"com.apple.control-center.ConnectivityModule",
         @"com.apple.mediaremote.controlcenter.nowplaying",
@@ -165,7 +279,6 @@ static NSString *CC27SizeOverridesPath(void) {
         add(1, 1); add(2, 1); add(1, 2); add(2, 2);
     }
 
-    // Ensure current size is represented.
     BOOL hasCurrent = NO;
     for (NSValue *v in options) {
         CCUILayoutSize s; [v getValue:&s];
@@ -188,35 +301,6 @@ static NSString *CC27SizeOverridesPath(void) {
     CCUILayoutSize result; [options[next] getValue:&result];
     [self setSize:result forModule:identifier];
     return result;
-}
-
-- (void)refreshControlCenterLayout {
-    Class coll = NSClassFromString(@"CCUIModuleCollectionViewController");
-    Class mod = NSClassFromString(@"CCUIModularControlCenterViewController");
-    Class overlay = NSClassFromString(@"CCUIModularControlCenterOverlayViewController");
-
-    CCUIModuleCollectionViewController *vc = nil;
-    if ([mod respondsToSelector:@selector(_sharedCollectionViewController)]) {
-        vc = [mod _sharedCollectionViewController];
-    } else if ([overlay respondsToSelector:@selector(_sharedCollectionViewController)]) {
-        vc = [overlay _sharedCollectionViewController];
-    } else if ([coll respondsToSelector:@selector(_sharedCollectionViewController)]) {
-        vc = [coll _sharedCollectionViewController];
-    }
-    if ([vc respondsToSelector:@selector(_refreshPositionProviders)]) {
-        [vc _refreshPositionProviders];
-    }
-
-    // Ask module instance manager to poke layout when available.
-    Class mgrCls = NSClassFromString(@"CCUIModuleInstanceManager");
-    id mgr = [mgrCls respondsToSelector:@selector(sharedInstance)] ? [mgrCls sharedInstance] : nil;
-    if (mgr) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-        SEL sel = NSSelectorFromString(@"_updateModuleInstances");
-        if ([mgr respondsToSelector:sel]) [mgr performSelector:sel];
-#pragma clang diagnostic pop
-    }
 }
 
 @end
