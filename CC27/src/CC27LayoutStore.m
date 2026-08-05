@@ -131,7 +131,9 @@ static NSString *CC27SizeOverridesPath(void) {
     for (NSString *name in @[ @"_handleConfigurationFileUpdate", @"_loadSettings", @"_queue_loadSettings" ]) {
         SEL sel = NSSelectorFromString(name);
         if ([provider respondsToSelector:sel]) {
-            [provider performSelector:sel];
+            @try { [provider performSelector:sel]; } @catch (NSException *e) {
+                NSLog(@"[CC27] settings reload %@ threw: %@", name, e);
+            }
             break;
         }
     }
@@ -153,29 +155,66 @@ static NSString *CC27SizeOverridesPath(void) {
     ]) {
         SEL sel = NSSelectorFromString(name);
         if ([mgr respondsToSelector:sel]) {
-            [mgr performSelector:sel];
+            @try { [mgr performSelector:sel]; } @catch (NSException *e) {
+                NSLog(@"[CC27] instance rebuild %@ threw: %@", name, e);
+            }
             break;
         }
     }
 #pragma clang diagnostic pop
 }
 
+- (CCUIModuleCollectionViewController *)_collectionViewController {
+    Class coll = NSClassFromString(@"CCUIModuleCollectionViewController");
+    Class mod = NSClassFromString(@"CCUIModularControlCenterViewController");
+    Class overlay = NSClassFromString(@"CCUIModularControlCenterOverlayViewController");
+    if ([mod respondsToSelector:@selector(_sharedCollectionViewController)]) {
+        return [mod _sharedCollectionViewController];
+    }
+    if ([overlay respondsToSelector:@selector(_sharedCollectionViewController)]) {
+        return [overlay _sharedCollectionViewController];
+    }
+    if ([coll respondsToSelector:@selector(_sharedCollectionViewController)]) {
+        return [coll _sharedCollectionViewController];
+    }
+    return nil;
+}
+
+// Reorder-only refresh: the module instances are unchanged, so skip the
+// aggressive instance rebuild that can throw mid-gesture and safe-mode
+// SpringBoard. Just reload settings and ask the collection to re-place views.
+- (void)refreshModulePositionsOnly {
+    [self _forceSettingsReload];
+
+    CCUIModuleCollectionViewController *vc = [self _collectionViewController];
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    if (vc) {
+        for (NSString *name in @[ @"_refreshPositionProviders", @"_updatePositionProviders" ]) {
+            SEL sel = NSSelectorFromString(name);
+            if ([vc respondsToSelector:sel]) {
+                @try { [vc performSelector:sel]; } @catch (NSException *e) {
+                    NSLog(@"[CC27] position refresh %@ threw: %@", name, e);
+                }
+            }
+        }
+        @try {
+            [vc.view setNeedsLayout];
+            [vc.view layoutIfNeeded];
+        } @catch (NSException *e) {
+            NSLog(@"[CC27] position relayout threw: %@", e);
+        }
+    }
+#pragma clang diagnostic pop
+
+    [[NSNotificationCenter defaultCenter] postNotificationName:CC27LayoutDidChangeNotification object:nil];
+}
+
 - (void)refreshControlCenterLayout {
     [self _forceSettingsReload];
     [self _forceInstanceRebuild];
 
-    Class coll = NSClassFromString(@"CCUIModuleCollectionViewController");
-    Class mod = NSClassFromString(@"CCUIModularControlCenterViewController");
-    Class overlay = NSClassFromString(@"CCUIModularControlCenterOverlayViewController");
-
-    CCUIModuleCollectionViewController *vc = nil;
-    if ([mod respondsToSelector:@selector(_sharedCollectionViewController)]) {
-        vc = [mod _sharedCollectionViewController];
-    } else if ([overlay respondsToSelector:@selector(_sharedCollectionViewController)]) {
-        vc = [overlay _sharedCollectionViewController];
-    } else if ([coll respondsToSelector:@selector(_sharedCollectionViewController)]) {
-        vc = [coll _sharedCollectionViewController];
-    }
+    CCUIModuleCollectionViewController *vc = [self _collectionViewController];
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
@@ -188,11 +227,17 @@ static NSString *CC27SizeOverridesPath(void) {
         ]) {
             SEL sel = NSSelectorFromString(name);
             if ([vc respondsToSelector:sel]) {
-                [vc performSelector:sel];
+                @try { [vc performSelector:sel]; } @catch (NSException *e) {
+                    NSLog(@"[CC27] layout refresh %@ threw: %@", name, e);
+                }
             }
         }
-        [vc.view setNeedsLayout];
-        [vc.view layoutIfNeeded];
+        @try {
+            [vc.view setNeedsLayout];
+            [vc.view layoutIfNeeded];
+        } @catch (NSException *e) {
+            NSLog(@"[CC27] layout relayout threw: %@", e);
+        }
     }
 #pragma clang diagnostic pop
 
@@ -268,8 +313,9 @@ static NSString *CC27SizeOverridesPath(void) {
     NSUInteger to = MIN(index, ordered.count);
     [ordered insertObject:identifier atIndex:to];
     [provider setAndSaveOrderedUserEnabledModuleIdentifiers:ordered];
-    [self refreshControlCenterLayout];
-    [[NSNotificationCenter defaultCenter] postNotificationName:CC27LayoutDidChangeNotification object:nil];
+    // Reorder keeps the same instances alive — use the gentle refresh. The
+    // full refresh (instance rebuild) mid-gesture could throw and safe-mode.
+    [self refreshModulePositionsOnly];
     return YES;
 }
 

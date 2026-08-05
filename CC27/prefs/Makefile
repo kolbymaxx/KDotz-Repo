@@ -5,7 +5,7 @@ include $(THEOS)/makefiles/common.mk
 
 BUNDLE_NAME = CC27Prefs
 
-CC27Prefs_FILES = CC27RootListController.m
+CC27Prefs_FILES = CC27RootListController.m CC27LayoutEditorController.m
 CC27Prefs_FRAMEWORKS = UIKit
 CC27Prefs_PRIVATE_FRAMEWORKS = Preferences
 CC27Prefs_INSTALL_PATH = /Library/PreferenceBundles

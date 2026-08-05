@@ -12,6 +12,16 @@ Unlike aesthetic-only tweaks (CC26 / CCXVIII), CC27 focuses on the **real custom
 - Liquid-glass module chrome (round 1×1 / pill modules; expanded menus stay unclipped)
 - Built-in CC27 modules: **Respring**, **Safe Mode**, **UICache**, **Userspace Reboot**
 
+## 1.0.4 fixes
+
+- **Drag no longer safe-modes**: dragging now moves a snapshot while Control Center keeps
+  owning the real views, and the reorder commit uses a gentle settings-only refresh wrapped
+  in exception guards — the aggressive instance rebuild that crashed SpringBoard is gone
+- Modules move freely under your finger (CC's layout can no longer fight the drag)
+- **New: Settings → CC27 → Edit Control Center Layout** — a mirror of your CC grid
+  (2×2 connectivity/media, tall brightness/volume sliders, 1×1 toggles) where you hold &
+  drag tiles to rearrange with native reflow, then Apply & Respring commits the order
+
 ## 1.0.3 fixes
 
 - **No more duplicate-add crash**: built-in controls (Volume, Brightness, Connectivity, …) are marked

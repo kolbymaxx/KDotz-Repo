@@ -46,6 +46,7 @@ typedef NS_ENUM(NSInteger, CC27LayoutApplyResult) {
 - (CCUILayoutSize)cycleSizeForModule:(NSString *)identifier current:(CCUILayoutSize)current;
 - (void)setSize:(CCUILayoutSize)size forModule:(NSString *)identifier;
 - (void)refreshControlCenterLayout;
+- (void)refreshModulePositionsOnly;
 - (BOOL)isModuleInstantiated:(NSString *)identifier;
 @end
 

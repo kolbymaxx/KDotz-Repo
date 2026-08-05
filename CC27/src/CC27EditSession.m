@@ -18,9 +18,12 @@ static char kCC27IdKey;
 @property (nonatomic, copy) NSString *draggingIdentifier;
 @property (nonatomic, weak) UIView *draggingView;
 
-// Live-reflow drag state (home-screen style)
+// Live-reflow drag state (home-screen style). The real CC-owned views are
+// never repositioned: a snapshot follows the finger and neighbours preview
+// with transforms, which survive CC layout passes and can't corrupt them.
+@property (nonatomic, strong) UIView *dragSnapshot;
 @property (nonatomic, strong) NSArray<UIView *> *dragSlotViews;      // original reading order
-@property (nonatomic, strong) NSArray<NSValue *> *dragSlotCenters;   // original slot centers
+@property (nonatomic, strong) NSArray<NSValue *> *dragSlotCenters;   // original slot centers (host coords)
 @property (nonatomic, strong) NSArray<NSString *> *dragSlotIds;
 @property (nonatomic, assign) NSInteger dragOriginalIndex;
 @property (nonatomic, assign) NSInteger dragProposedIndex;
@@ -578,37 +581,88 @@ static char kCC27IdKey;
 
 // Animate every non-dragged module toward the slot it would occupy if the
 // dragged module were dropped at `proposedIndex` — the home-screen reflow.
+// Uses transforms only: CC's layout passes overwrite frames/centers, but they
+// leave `transform` alone, so the preview is stable and fully reversible.
 - (void)_previewReflowToIndex:(NSInteger)proposedIndex {
     if (proposedIndex == NSNotFound || !self.dragSlotViews.count) return;
-    UIView *host = self.hostController.view;
     UIView *dragged = self.draggingView;
 
     NSMutableArray<UIView *> *order = self.dragSlotViews.mutableCopy;
-    [order removeObject:dragged];
+    if (dragged) [order removeObject:dragged];
     NSInteger clamped = MAX(0, MIN(proposedIndex, (NSInteger)order.count));
-    [order insertObject:dragged atIndex:clamped];
+    if (dragged) [order insertObject:dragged atIndex:clamped];
 
     [UIView animateWithDuration:0.3 delay:0 usingSpringWithDamping:0.8 initialSpringVelocity:0.3
                         options:UIViewAnimationOptionAllowUserInteraction | UIViewAnimationOptionBeginFromCurrentState
                      animations:^{
         for (NSUInteger slot = 0; slot < order.count && slot < self.dragSlotCenters.count; slot++) {
             UIView *v = order[slot];
-            if (v == dragged) continue; // dragged view follows the finger
-            CGPoint target = [self.dragSlotCenters[slot] CGPointValue];
-            CGPoint local = [host convertPoint:target toView:v.superview];
-            v.center = local;
+            if (v == dragged) continue; // the snapshot follows the finger instead
+            NSUInteger home = [self.dragSlotViews indexOfObject:v];
+            if (home == NSNotFound) continue;
+            CGPoint from = [self.dragSlotCenters[home] CGPointValue];
+            CGPoint to = [self.dragSlotCenters[slot] CGPointValue];
+            v.transform = CGAffineTransformMakeTranslation(to.x - from.x, to.y - from.y);
         }
     } completion:nil];
 }
 
-- (void)_resetPreviewPositions {
-    UIView *host = self.hostController.view;
-    for (NSUInteger i = 0; i < self.dragSlotViews.count && i < self.dragSlotCenters.count; i++) {
-        UIView *v = self.dragSlotViews[i];
-        if (v == self.draggingView) continue;
-        CGPoint target = [self.dragSlotCenters[i] CGPointValue];
-        v.center = [host convertPoint:target toView:v.superview];
-    }
+- (void)_endDragCommitting:(BOOL)commit {
+    UIView *container = self.draggingView;
+    NSString *identifier = self.draggingIdentifier;
+    NSInteger proposed = self.dragProposedIndex;
+    NSInteger original = self.dragOriginalIndex;
+    UIView *snapshot = self.dragSnapshot;
+    NSArray<UIView *> *slotViews = self.dragSlotViews;
+    NSArray<NSValue *> *centers = self.dragSlotCenters;
+    NSArray<NSString *> *slotIds = self.dragSlotIds;
+
+    BOOL wantsMove = commit && identifier.length &&
+                     proposed != NSNotFound && proposed != original;
+
+    // Land the snapshot on its slot, then reveal the real module again.
+    CGPoint landing = (proposed != NSNotFound && proposed < (NSInteger)centers.count)
+        ? [centers[proposed] CGPointValue]
+        : (original != NSNotFound && original < (NSInteger)centers.count
+            ? [centers[original] CGPointValue] : snapshot.center);
+
+    [UIView animateWithDuration:0.25 delay:0 usingSpringWithDamping:0.85 initialSpringVelocity:0.3 options:0 animations:^{
+        snapshot.center = landing;
+        snapshot.transform = CGAffineTransformIdentity;
+    } completion:^(__unused BOOL done) {
+        [snapshot removeFromSuperview];
+        container.alpha = 1.0;
+        for (UIView *v in slotViews) v.transform = CGAffineTransformIdentity;
+
+        if (wantsMove) {
+            // Convert the visual slot index into an index in the persisted
+            // user-enabled list: count enabled modules occupying slots before
+            // the proposed slot (fixed modules aren't reorderable).
+            @try {
+                NSArray *enabledOrder = CC27LayoutStore.shared.enabledIdentifiers;
+                NSUInteger target = 0;
+                for (NSInteger i = 0; i < proposed && i < (NSInteger)slotIds.count; i++) {
+                    NSString *slotId = slotIds[i];
+                    if ([slotId isEqualToString:identifier]) continue;
+                    if ([enabledOrder containsObject:slotId]) target++;
+                }
+                if ([CC27LayoutStore.shared moveModule:identifier toIndex:target]) {
+                    [self _haptic:UIImpactFeedbackStyleMedium];
+                }
+            } @catch (NSException *e) {
+                NSLog(@"[CC27] drag commit threw: %@", e);
+            }
+        }
+
+        [self performSelector:@selector(_decorateVisibleModules) withObject:nil afterDelay:0.4];
+    }];
+
+    self.draggingIdentifier = nil;
+    self.draggingView = nil;
+    self.dragSnapshot = nil;
+    self.dragSlotViews = nil;
+    self.dragSlotCenters = nil;
+    self.dragSlotIds = nil;
 }
 
 - (void)_dragModule:(UILongPressGestureRecognizer *)gr {
@@ -625,21 +679,41 @@ static char kCC27IdKey;
             [self _captureDragSlotsExcludingNone];
             self.dragOriginalIndex = (NSInteger)[self.dragSlotViews indexOfObject:container];
             self.dragProposedIndex = self.dragOriginalIndex;
+
+            // Freeze the module into a snapshot the finger can move freely —
+            // CC keeps owning the real view, so its layout can't fight us and
+            // we can't corrupt it.
+            [container.layer removeAnimationForKey:@"cc27.jiggle"];
+            UIView *snapshot = [container snapshotViewAfterScreenUpdates:NO];
+            if (!snapshot) {
+                self.draggingIdentifier = nil;
+                self.draggingView = nil;
+                self.dragSlotViews = nil;
+                self.dragSlotCenters = nil;
+                self.dragSlotIds = nil;
+                return;
+            }
+            CGRect frame = [container.superview convertRect:container.frame toView:host];
+            snapshot.frame = frame;
+            snapshot.layer.zPosition = 2000;
+            snapshot.layer.shadowColor = UIColor.blackColor.CGColor;
+            snapshot.layer.shadowOpacity = 0.45;
+            snapshot.layer.shadowRadius = 16;
+            snapshot.layer.shadowOffset = CGSizeMake(0, 10);
+            snapshot.userInteractionEnabled = NO;
+            [host addSubview:snapshot];
+            self.dragSnapshot = snapshot;
+            container.alpha = 0.06; // leave a faint ghost in the vacated slot
+
             [self _haptic:UIImpactFeedbackStyleMedium];
             [UIView animateWithDuration:0.15 animations:^{
-                container.alpha = 0.9;
-                container.transform = CGAffineTransformMakeScale(1.08, 1.08);
-                container.layer.zPosition = 1000;
+                snapshot.transform = CGAffineTransformMakeScale(1.08, 1.08);
             }];
-            container.layer.shadowColor = UIColor.blackColor.CGColor;
-            container.layer.shadowOpacity = 0.45;
-            container.layer.shadowRadius = 16;
-            container.layer.shadowOffset = CGSizeMake(0, 10);
             break;
         }
         case UIGestureRecognizerStateChanged: {
             CGPoint p = [gr locationInView:host];
-            container.center = [host convertPoint:p toView:container.superview];
+            self.dragSnapshot.center = p;
 
             NSInteger proposed = [self _slotIndexNearestToPoint:p];
             if (proposed != NSNotFound && proposed != self.dragProposedIndex) {
@@ -649,44 +723,13 @@ static char kCC27IdKey;
             }
             break;
         }
-        case UIGestureRecognizerStateEnded:
-        case UIGestureRecognizerStateCancelled: {
-            NSInteger proposed = self.dragProposedIndex;
-            BOOL moved = NO;
-            if (proposed != NSNotFound && proposed != self.dragOriginalIndex) {
-                // Convert the visual slot index into an index in the persisted
-                // user-enabled list: count enabled modules occupying slots
-                // before the proposed slot (fixed modules aren't reorderable).
-                NSArray *enabledOrder = CC27LayoutStore.shared.enabledIdentifiers;
-                NSUInteger target = 0;
-                for (NSInteger i = 0; i < proposed && i < (NSInteger)self.dragSlotIds.count; i++) {
-                    NSString *slotId = self.dragSlotIds[i];
-                    if ([slotId isEqualToString:identifier]) continue;
-                    if ([enabledOrder containsObject:slotId]) target++;
-                }
-                moved = [CC27LayoutStore.shared moveModule:identifier toIndex:target];
-                if (moved) [self _haptic:UIImpactFeedbackStyleMedium];
-            }
-
-            container.layer.zPosition = 0;
-            container.layer.shadowOpacity = 0;
-            [UIView animateWithDuration:0.25 delay:0 usingSpringWithDamping:0.8 initialSpringVelocity:0.3 options:0 animations:^{
-                container.transform = CGAffineTransformIdentity;
-                container.alpha = 1;
-                if (!moved) [self _resetPreviewPositions];
-                if (!moved && self.dragOriginalIndex != NSNotFound &&
-                    self.dragOriginalIndex < (NSInteger)self.dragSlotCenters.count) {
-                    CGPoint origin = [self.dragSlotCenters[self.dragOriginalIndex] CGPointValue];
-                    container.center = [host convertPoint:origin toView:container.superview];
-                }
-            } completion:nil];
-
-            self.draggingIdentifier = nil;
-            self.draggingView = nil;
-            self.dragSlotViews = nil;
-            self.dragSlotCenters = nil;
-            self.dragSlotIds = nil;
-            [self performSelector:@selector(_decorateVisibleModules) withObject:nil afterDelay:0.4];
+        case UIGestureRecognizerStateEnded: {
+            [self _endDragCommitting:YES];
+            break;
+        }
+        case UIGestureRecognizerStateCancelled:
+        case UIGestureRecognizerStateFailed: {
+            [self _endDragCommitting:NO];
             break;
         }
         default:
