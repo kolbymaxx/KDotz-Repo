@@ -1,0 +1,45 @@
+#!/bin/bash
+# Remove legacy FloatingSiri package + leftover files so they cannot overlap Siri27.
+
+set -e
+
+remove_floating_siri_files() {
+	local root="$1"
+	# Normalize trailing slash
+	root="${root%/}"
+	rm -f "$root/Library/MobileSubstrate/DynamicLibraries/FloatingSiri.dylib" \
+		"$root/Library/MobileSubstrate/DynamicLibraries/FloatingSiri.plist" \
+		"$root/Library/PreferenceLoader/Preferences/FloatingSiri.plist"
+	rm -rf "$root/Library/Application Support/FloatingSiri.bundle"
+}
+
+# Uninstall the old package if dpkg still has it registered (Conflicts/Replaces
+# also handle this; this covers partial / force installs).
+if command -v dpkg >/dev/null 2>&1; then
+	if dpkg-query -W -f='${Status}' com.kolby.floatingsiri 2>/dev/null | grep -q 'ok installed'; then
+		dpkg --remove --force-depends com.kolby.floatingsiri >/dev/null 2>&1 || true
+	fi
+fi
+
+# Rootless (/var/jb) and absolute / classic layout
+remove_floating_siri_files /var/jb
+remove_floating_siri_files /
+
+# RootHide randomized jbroot, if present
+if command -v jbroot >/dev/null 2>&1; then
+	JB="$(jbroot / 2>/dev/null || true)"
+	if [ -n "$JB" ] && [ "$JB" != "/" ]; then
+		remove_floating_siri_files "$JB"
+	fi
+fi
+for d in /var/containers/Bundle/Application/.jbroot-*; do
+	[ -d "$d" ] || continue
+	remove_floating_siri_files "$d"
+done
+
+# Leftover prefs domain (harmless if missing)
+rm -f /var/mobile/Library/Preferences/com.kolby.floatingsiri.plist \
+	/var/jb/var/mobile/Library/Preferences/com.kolby.floatingsiri.plist \
+	2>/dev/null || true
+
+exit 0

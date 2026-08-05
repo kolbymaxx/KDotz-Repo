@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>entry</key>
+	<dict>
+		<key>cell</key>
+		<string>PSLinkCell</string>
+		<key>icon</key>
+		<string></string>
+		<key>label</key>
+		<string>RHCompat</string>
+	</dict>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>RHCompat</string>
+			<key>footerText</key>
+			<string>Preferences.app only (1.0.2+). Complements official rootless-compat for binary /var/jb patching. If 1.0.1 black-screened your device, remove 000RHCompat via SSH — see the package README/RECOVERY.md.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.kolby.rhcompat</string>
+			<key>key</key>
+			<string>enabled</string>
+			<key>label</key>
+			<string>Enable path shim</string>
+			<key>PostNotification</key>
+			<string>com.kolby.rhcompat/ReloadPrefs</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Rewrites: /var/jb, /Library/PreferenceLoader, /Library/PreferenceBundles, and non-Apple plists under /var/mobile/Library/Preferences when the jbroot copy should win. Respring after changing the toggle.</string>
+		</dict>
+	</array>
+	<key>title</key>
+	<string>RHCompat</string>
+</dict>
+</plist>

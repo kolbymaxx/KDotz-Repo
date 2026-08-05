@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>title</key>
+	<string>GrokAgent</string>
+	<key>items</key>
+	<array>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>General</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Enabled</string>
+			<key>key</key>
+			<string>GAEnabled</string>
+			<key>default</key>
+			<true/>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Model</string>
+			<key>footerText</key>
+			<string>Your xAI API key is stored in the tweak's preferences plist, readable by anything running as mobile. Do not reuse a key you care about until this moves to the keychain.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>label</key>
+			<string>API Key</string>
+			<key>key</key>
+			<string>GAAPIKey</string>
+			<key>isSecure</key>
+			<true/>
+			<key>placeholder</key>
+			<string>xai-…</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSegmentCell</string>
+			<key>label</key>
+			<string>Model</string>
+			<key>key</key>
+			<string>GAModel</string>
+			<key>default</key>
+			<string>grok-4.5</string>
+			<key>validValues</key>
+			<array>
+				<string>grok-4.5</string>
+				<string>grok-4.3</string>
+				<string>grok-4</string>
+			</array>
+			<key>validTitles</key>
+			<array>
+				<string>4.5</string>
+				<string>4.3</string>
+				<string>4</string>
+			</array>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>label</key>
+			<string>Base URL</string>
+			<key>key</key>
+			<string>GABaseURL</string>
+			<key>default</key>
+			<string>https://api.x.ai/v1</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Activation</string>
+			<key>footerText</key>
+			<string>The Darwin notification trigger is always available: notifyutil -p com.kolby.grokagent/activate</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSegmentCell</string>
+			<key>label</key>
+			<string>Method</string>
+			<key>key</key>
+			<string>GAActivationMethod</string>
+			<key>default</key>
+			<integer>0</integer>
+			<key>validValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+				<integer>2</integer>
+			</array>
+			<key>validTitles</key>
+			<array>
+				<string>Notify</string>
+				<string>Volume ×2</string>
+				<string>Siri</string>
+			</array>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Device Control</string>
+			<key>footerText</key>
+			<string>GrokAgent drives the device through an MCP server running locally. Install iOS MCP by witchan and start its service, then test the connection here.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>label</key>
+			<string>Host</string>
+			<key>key</key>
+			<string>GAMCPHost</string>
+			<key>default</key>
+			<string>127.0.0.1</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>label</key>
+			<string>Port</string>
+			<key>key</key>
+			<string>GAMCPPort</string>
+			<key>default</key>
+			<string>8090</string>
+			<key>keyboardType</key>
+			<string>NumbersAndPunctuation</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>label</key>
+			<string>Path</string>
+			<key>key</key>
+			<string>GAMCPPath</string>
+			<key>default</key>
+			<string>/mcp</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Test Connection</string>
+			<key>action</key>
+			<string>testConnection:</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Agent</string>
+			<key>footerText</key>
+			<string>Shell access lets the model run arbitrary commands. Leave it off unless you are actively testing it.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>label</key>
+			<string>Max Steps</string>
+			<key>key</key>
+			<string>GAMaxSteps</string>
+			<key>default</key>
+			<string>12</string>
+			<key>keyboardType</key>
+			<string>NumbersAndPunctuation</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Speak Replies</string>
+			<key>key</key>
+			<string>GASpeakReplies</string>
+			<key>default</key>
+			<false/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Overlay Safe Mode</string>
+			<key>key</key>
+			<string>GAOverlaySafeMode</string>
+			<key>default</key>
+			<false/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Allow Shell Tool</string>
+			<key>key</key>
+			<string>GAAllowShell</string>
+			<key>default</key>
+			<false/>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Debug</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Debug Logging</string>
+			<key>key</key>
+			<string>GADebugLogging</string>
+			<key>default</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Respring</string>
+			<key>action</key>
+			<string>respring:</string>
+		</dict>
+
+	</array>
+</dict>
+</plist>

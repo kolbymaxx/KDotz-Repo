@@ -1,0 +1,9 @@
+{
+    entry = {
+        bundle = GrokAgentPrefs;
+        cell = PSLinkCell;
+        detail = GAPrefsRootListController;
+        isController = 1;
+        label = GrokAgent;
+    };
+}

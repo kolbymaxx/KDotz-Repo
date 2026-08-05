@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>title</key>
+	<string>CC27</string>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>General</string>
+			<key>footerText</key>
+			<string>CC27 brings iOS 26-style Control Center editing to iOS 15–17: hold an empty area to edit, drag to rearrange, remove with −, and add controls from a searchable gallery — including third-party CCSupport modules.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.kolby.cc27</string>
+			<key>key</key>
+			<string>enabled</string>
+			<key>label</key>
+			<string>Enabled</string>
+			<key>PostNotification</key>
+			<string>com.kolby.cc27/ReloadPrefs</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Look</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.kolby.cc27</string>
+			<key>key</key>
+			<string>glassChrome</string>
+			<key>label</key>
+			<string>Liquid Glass Modules</string>
+			<key>PostNotification</key>
+			<string>com.kolby.cc27/ReloadPrefs</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.kolby.cc27</string>
+			<key>key</key>
+			<string>showTopButtons</string>
+			<key>label</key>
+			<string>Top + / Power Buttons</string>
+			<key>PostNotification</key>
+			<string>com.kolby.cc27/ReloadPrefs</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Editing</string>
+			<key>footerText</key>
+			<string>In Control Center: tap + or touch &amp; hold empty space to enter edit mode. Drag modules to rearrange, tap − to remove, and tap Add a Control for the searchable gallery. You can also rearrange safely in Edit Control Center Layout below — it commits with a respring.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.kolby.cc27</string>
+			<key>key</key>
+			<string>editModeEnabled</string>
+			<key>label</key>
+			<string>In-CC Edit Mode</string>
+			<key>PostNotification</key>
+			<string>com.kolby.cc27/ReloadPrefs</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>detail</key>
+			<string>CC27LayoutEditorController</string>
+			<key>label</key>
+			<string>Edit Control Center Layout</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.kolby.cc27</string>
+			<key>key</key>
+			<string>hapticFeedback</string>
+			<key>label</key>
+			<string>Haptics</string>
+			<key>PostNotification</key>
+			<string>com.kolby.cc27/ReloadPrefs</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Requires CCSupport so third-party and CC27 modules can load. Respring after install.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>action</key>
+			<string>respring:</string>
+			<key>label</key>
+			<string>Respring</string>
+		</dict>
+	</array>
+</dict>
+</plist>

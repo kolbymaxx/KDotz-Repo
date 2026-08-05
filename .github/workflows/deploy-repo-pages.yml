@@ -9,6 +9,10 @@ on:
       - 'Release'
       - 'dist/**'
       - 'repo-site/**'
+      - 'CydiaIcon.png'
+      - 'CydiaIcon@2x.png'
+      - 'CydiaIcon@3x.png'
+      - '.nojekyll'
       - '.github/workflows/deploy-repo-pages.yml'
   workflow_dispatch:
 

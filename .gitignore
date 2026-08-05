@@ -3,8 +3,8 @@ packages/*.deb
 **/.DS_Store
 **/obj/
 **/packages/
-FloatingSiri/.theos/
-FloatingSiri/packages/
+Siri27/.theos/
+Siri27/packages/
 *.deb
 liquidsiri-ref/
 liquidass-ref/
@@ -13,3 +13,13 @@ packages/
 # Built packages for phone install (tracked)
 !dist/
 !dist/*.deb
+Music27/.theos/
+Music27/packages/
+SwiftPeek/.theos/
+SwiftPeek/packages/
+GrokAgent/.theos/
+GrokAgent/packages/
+
+# Host-side tool binary (rebuild with: cc -O2 -o tools/swiftmd tools/swiftmd.c)
+tools/swiftmd
+

@@ -1,0 +1,12 @@
+Package: com.kolby.siri27
+Name: Siri27
+Depends: mobilesubstrate, preferenceloader
+Version: 1.40.3
+Architecture: iphoneos-arm64
+Description: iOS 27-style liquid glass Siri orb — no pop-in box, idle rainbow stays colorful, white under the wave. rootless + roothide (Relaxin'), iOS 14–17.3. Replaces FloatingSiri.
+Maintainer: Kolby
+Author: Kolby
+Section: Tweaks
+Conflicts: com.kolby.floatingsiri
+Replaces: com.kolby.floatingsiri
+Provides: com.kolby.floatingsiri

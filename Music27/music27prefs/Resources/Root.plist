@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Music27</string>
+			<key>footerText</key>
+			<string>1.1.8: dock overlays without crushing Library. Keep Floating Glass Dock ON, force-quit Music, reopen. Pins are local only.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.music27.tweak</string>
+			<key>key</key>
+			<string>enabled</string>
+			<key>label</key>
+			<string>Enable Music27</string>
+			<key>PostNotification</key>
+			<string>com.music27.tweak/ReloadPrefs</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Features</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.music27.tweak</string>
+			<key>key</key>
+			<string>glassTabBar</string>
+			<key>label</key>
+			<string>Floating Glass Dock</string>
+			<key>PostNotification</key>
+			<string>com.music27.tweak/ReloadPrefs</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.music27.tweak</string>
+			<key>key</key>
+			<string>colorTheme</string>
+			<key>label</key>
+			<string>Artwork Color Theme</string>
+			<key>PostNotification</key>
+			<string>com.music27.tweak/ReloadPrefs</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.music27.tweak</string>
+			<key>key</key>
+			<string>libraryPins</string>
+			<key>label</key>
+			<string>Library Pins</string>
+			<key>PostNotification</key>
+			<string>com.music27.tweak/ReloadPrefs</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Relaunch Music after changing toggles if a surface does not update.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Clear All Pins</string>
+			<key>action</key>
+			<string>clearPins</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Music27 1.1.8 — safe dock overlay (fixes blank Library). Force-quit Music after toggling.</string>
+		</dict>
+	</array>
+	<key>title</key>
+	<string>Music27</string>
+</dict>
+</plist>
