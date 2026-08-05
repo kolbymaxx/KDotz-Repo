@@ -1,0 +1,460 @@
+#import <UIKit/UIKit.h>
+#import <objc/runtime.h>
+#import <dlfcn.h>
+#import <mach-o/dyld.h>
+#import "SPPrefs.h"
+#import "SPSwiftMeta.h"
+#import "SPDumpWriter.h"
+#import "SPFieldWalk.h"
+#import "SwiftPeek-Swift.h"
+
+// -----------------------------------------------------------------------------
+// SwiftPeek — read-only SwiftUI inspector (Phase 1 / milestones 1–2)
+// -----------------------------------------------------------------------------
+
+static NSMutableSet *gSPLoggedHosts;
+static NSInteger gSPAttachCount = 0;
+static const NSInteger kSPMaxAttachLogs = 48;
+static BOOL gSPHookedHostingView = NO;
+static BOOL gSPHookedHostingController = NO;
+static NSString *gSPHookedViewClassName;
+static NSString *gSPHookedControllerClassName;
+static NSMutableSet *gSPSwizzledKeys;
+
+static void (*gSPOrigLayoutSubviews)(UIView *, SEL) = NULL;
+static void (*gSPOrigViewDidLayout)(UIViewController *, SEL) = NULL;
+
+static void SPPrefsChangedCallback(CFNotificationCenterRef center, void *observer,
+                                   CFStringRef name, const void *object,
+                                   CFDictionaryRef userInfo) {
+    SPPrefsInvalidate();
+}
+
+static void SPEnsureSwiftUILoaded(void) {
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        if (!dlopen("/System/Library/Frameworks/SwiftUI.framework/SwiftUI",
+                    RTLD_LAZY | RTLD_NOLOAD)) {
+            dlopen("/System/Library/Frameworks/SwiftUI.framework/SwiftUI", RTLD_LAZY);
+        }
+        NSBundle *b = [NSBundle bundleWithPath:@"/System/Library/Frameworks/SwiftUI.framework"];
+        if (b && !b.isLoaded) [b load];
+    });
+}
+
+static BOOL SPIsBoringTypeName(NSString *name) {
+    if (name.length == 0) return YES;
+    static NSSet *boring;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        boring = [NSSet setWithArray:@[
+            @"UIView", @"UIViewController", @"UIWindow", @"UIWindowController",
+            @"UILayoutContainerView", @"UITransitionView", @"UIDropShadowView",
+            @"UINavigationController", @"UITabBarController", @"UIApplicationRotationFollowingController",
+            @"<unknown>",
+        ]];
+    });
+    if ([boring containsObject:name]) return YES;
+    // Still boring if it's a plain UIKit class with no SwiftUI / app module signal.
+    if ([name hasPrefix:@"UI"] && [name rangeOfString:@"Hosting"].location == NSNotFound) {
+        return YES;
+    }
+    return NO;
+}
+
+static BOOL SPClassNameLooksLikeHostingView(const char *name) {
+    if (!name) return NO;
+    if (strcmp(name, "_UIHostingView") == 0) return YES;
+    if (strstr(name, "_UIHostingView") != NULL) return YES;
+    if (strstr(name, "UIHostingView") != NULL) return YES;
+    return NO;
+}
+
+static BOOL SPClassNameLooksLikeHostingController(const char *name) {
+    if (!name) return NO;
+    if (strcmp(name, "UIHostingController") == 0) return YES;
+    if (strstr(name, "UIHostingController") != NULL) return YES;
+    // Music / app wrappers: …HostingController (but not every *Controller).
+    if (strstr(name, "HostingController") != NULL &&
+        strstr(name, "SecureHosting") == NULL &&
+        strstr(name, "DocumentHosting") == NULL) {
+        return YES;
+    }
+    return NO;
+}
+
+static NSInteger SPHostingControllerRank(const char *name) {
+    if (!name) return 0;
+    if (strcmp(name, "UIHostingController") == 0) return 100;
+    if (strstr(name, "SwiftUI") && strstr(name, "UIHostingController")) return 90;
+    if (strstr(name, "UIHostingController") != NULL) return 80;
+    if (strstr(name, "HostingController") != NULL) return 40;
+    return 10;
+}
+
+static void SPWriteHeartbeat(NSString *message, BOOL hooked,
+                             NSArray *viewNames, NSArray *controllerNames) {
+    NSMutableArray *prefsInfo = [NSMutableArray array];
+    for (NSString *p in SPPrefsCandidatePaths()) {
+        BOOL exists = [[NSFileManager defaultManager] fileExistsAtPath:p];
+        [prefsInfo addObject:@{ @"path": p, @"exists": @(exists) }];
+    }
+    SPWriteStatus(@{
+        @"status": hooked ? @"hooked" : @"loaded",
+        @"enabled": @(SPPrefBool(@"enabled", NO)),
+        @"jbroot": SPJailbreakRootPrefix() ?: @"",
+        @"prefs_paths": prefsInfo,
+        @"hosting_view": @((viewNames.count > 0) || gSPHookedHostingView),
+        @"hosting_controller": @((controllerNames.count > 0) || gSPHookedHostingController),
+        @"hosting_view_names": viewNames ?: @[],
+        @"hosting_controller_names": controllerNames ?: @[],
+        @"hooked_view_class": gSPHookedViewClassName ?: [NSNull null],
+        @"hooked_controller_class": gSPHookedControllerClassName ?: [NSNull null],
+        @"hooked": @(hooked),
+        @"message": message ?: @"",
+    });
+}
+
+static UIView *SPFindHostingViewBFS(UIView *root, NSInteger maxNodes) {
+    if (!root) return nil;
+    NSMutableArray *q = [NSMutableArray arrayWithObject:root];
+    NSInteger seen = 0;
+    while (q.count && seen < maxNodes) {
+        UIView *v = q.firstObject;
+        [q removeObjectAtIndex:0];
+        seen++;
+        const char *cn = object_getClassName(v);
+        if (SPClassNameLooksLikeHostingView(cn)) return v;
+        for (UIView *sub in v.subviews) {
+            [q addObject:sub];
+        }
+    }
+    return nil;
+}
+
+/// Visible UIKit strings under a view — pixel correspondence for milestone 2.
+static NSArray<NSString *> *SPScreenStrings(UIView *root) {
+    if (!root) return @[];
+    NSMutableArray *out = [NSMutableArray array];
+    NSMutableSet *seen = [NSMutableSet set];
+    NSMutableArray *q = [NSMutableArray arrayWithObject:root];
+    NSInteger budget = 80;
+    while (q.count && budget-- > 0) {
+        UIView *v = q.firstObject;
+        [q removeObjectAtIndex:0];
+        if ([v isKindOfClass:[UILabel class]]) {
+            NSString *t = [[(UILabel *)v text] ?: @"" stringByTrimmingCharactersInSet:
+                           [NSCharacterSet whitespaceAndNewlineCharacterSet]];
+            if (t.length >= 2 && t.length <= 80 && ![seen containsObject:t]) {
+                [seen addObject:t];
+                [out addObject:t];
+            }
+        }
+        if ([v isKindOfClass:[UIButton class]]) {
+            NSString *t = [[(UIButton *)v titleForState:UIControlStateNormal] ?: @""
+                           stringByTrimmingCharactersInSet:
+                           [NSCharacterSet whitespaceAndNewlineCharacterSet]];
+            if (t.length >= 2 && t.length <= 80 && ![seen containsObject:t]) {
+                [seen addObject:t];
+                [out addObject:t];
+            }
+        }
+        NSString *acc = v.accessibilityLabel;
+        if (acc.length >= 2 && acc.length <= 80 && ![seen containsObject:acc]) {
+            [seen addObject:acc];
+            [out addObject:acc];
+        }
+        for (UIView *sub in v.subviews) [q addObject:sub];
+        if (out.count >= 24) break;
+    }
+    return out;
+}
+
+static void SPLogAttachObject(id object, NSString *role) {
+    if (!object) return;
+
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        gSPLoggedHosts = [NSMutableSet set];
+    });
+
+    NSValue *key = [NSValue valueWithNonretainedObject:object];
+    if ([gSPLoggedHosts containsObject:key]) return;
+    if (gSPAttachCount >= kSPMaxAttachLogs) return;
+
+    NSString *objcName = @(object_getClassName(object) ?: "?");
+    NSString *typeName = SPSwiftTypeNameFromObject(object) ?: objcName;
+
+    // Milestone 1 proof needs a real SwiftUI / app type — skip plain UIKit noise.
+    if (SPIsBoringTypeName(typeName) && SPIsBoringTypeName(objcName)) {
+        return;
+    }
+
+    [gSPLoggedHosts addObject:key];
+    gSPAttachCount++;
+
+    uintptr_t addr = (uintptr_t)(__bridge void *)object;
+    if (SPPrefBool(@"logAttach", YES)) {
+        NSLog(@"[SwiftPeek] attach process=%@ role=%@ type=%@ objc=%@ addr=0x%lx",
+              NSProcessInfo.processInfo.processName ?: @"?",
+              role, typeName, objcName, (unsigned long)addr);
+    }
+
+    // Heavy field / mirror work off the layout path.
+    id obj = object;
+    NSString *roleCopy = [role copy] ?: @"";
+    NSString *objcCopy = objcName;
+    NSString *typeCopy = typeName;
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+        NSMutableDictionary *node = [@{
+            @"address": [NSString stringWithFormat:@"0x%lx", (unsigned long)addr],
+            @"objc_class": objcCopy,
+            @"role": roleCopy,
+            @"type": typeCopy,
+        } mutableCopy];
+
+        NSInteger milestone = 1;
+        if (SPPrefBool(@"dumpFields", YES)) {
+            @try {
+                NSArray *fields = SPWalkFields(obj, 2, 64);
+                if (fields.count) {
+                    node[@"fields"] = fields;
+                    milestone = 2;
+                }
+                NSArray *mirrorTitles = [SPMirrorDump titleStringsInObject:obj maxNodes:80];
+                if (mirrorTitles.count) {
+                    node[@"mirror_strings"] = mirrorTitles;
+                    milestone = 2;
+                }
+                UIView *view = nil;
+                if ([obj isKindOfClass:[UIView class]]) view = (UIView *)obj;
+                else if ([obj isKindOfClass:[UIViewController class]]) view = [(UIViewController *)obj view];
+                NSArray *screen = SPScreenStrings(view);
+                if (screen.count) {
+                    node[@"screen_strings"] = screen;
+                    milestone = 2;
+                }
+            } @catch (__unused id e) {
+                // fail closed — still write the attach node
+            }
+        }
+
+        NSDictionary *payload = @{
+            @"milestone": @(milestone),
+            @"nodes": @[node],
+        };
+        NSString *path = SPWriteJSONDump(payload);
+        SPWriteHeartbeat(path ? @"attach dump written" : @"attach seen but dump write failed",
+                         YES, @[], @[]);
+        if (path) NSLog(@"[SwiftPeek] dump written %@ milestone=%ld", path, (long)milestone);
+    });
+}
+
+static void SPHookedLayoutSubviews(UIView *self, SEL _cmd) {
+    if (gSPOrigLayoutSubviews) gSPOrigLayoutSubviews(self, _cmd);
+    @try { SPLogAttachObject(self, @"hosting_view"); } @catch (__unused id e) {}
+}
+
+static void SPHookedViewDidLayout(UIViewController *self, SEL _cmd) {
+    if (gSPOrigViewDidLayout) gSPOrigViewDidLayout(self, _cmd);
+    @try {
+        // Controller type is usually the useful Swift name (MusicRootHostingController, etc.).
+        SPLogAttachObject(self, @"hosting_controller");
+        UIView *hosting = SPFindHostingViewBFS(self.view, 64);
+        if (hosting) SPLogAttachObject(hosting, @"hosting_view");
+    } @catch (__unused id e) {}
+}
+
+static BOOL SPSwizzle(Class cls, SEL sel, IMP replacement, IMP *origOut) {
+    if (!cls || !sel || !replacement || !origOut) return NO;
+    Method m = class_getInstanceMethod(cls, sel);
+    if (!m) return NO;
+
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        gSPSwizzledKeys = [NSMutableSet set];
+    });
+    NSString *key = [NSString stringWithFormat:@"%s|%s", class_getName(cls), sel_getName(sel)];
+    if ([gSPSwizzledKeys containsObject:key]) return YES;
+
+    IMP current = method_getImplementation(m);
+    if (current == replacement) {
+        [gSPSwizzledKeys addObject:key];
+        return YES;
+    }
+    if (*origOut != NULL && current == (IMP)(*origOut)) {
+        method_setImplementation(m, replacement);
+        [gSPSwizzledKeys addObject:key];
+        return YES;
+    }
+
+    IMP prev = method_setImplementation(m, replacement);
+    if (!prev) return NO;
+    if (*origOut == NULL) *origOut = prev;
+    [gSPSwizzledKeys addObject:key];
+    return YES;
+}
+
+static void SPTryInstallHooks(void) {
+    SPEnsureSwiftUILoaded();
+
+    NSMutableArray *viewClasses = [NSMutableArray array];
+    NSMutableArray *viewNames = [NSMutableArray array];
+    NSMutableArray *vcClasses = [NSMutableArray array];
+    NSMutableArray *vcNames = [NSMutableArray array];
+
+    Class directView = NSClassFromString(@"_UIHostingView");
+    if (directView && [directView isSubclassOfClass:[UIView class]]) {
+        [viewNames addObject:@"_UIHostingView"];
+        [viewClasses addObject:[NSValue valueWithPointer:(__bridge void *)directView]];
+    }
+
+    Class directVC = NSClassFromString(@"UIHostingController");
+    if (directVC && [directVC isSubclassOfClass:[UIViewController class]]) {
+        [vcNames addObject:@"UIHostingController"];
+        [vcClasses addObject:[NSValue valueWithPointer:(__bridge void *)directVC]];
+    }
+
+    unsigned int n = 0;
+    Class *list = objc_copyClassList(&n);
+    if (list) {
+        for (unsigned int i = 0; i < n; i++) {
+            const char *name = class_getName(list[i]);
+            if (!name) continue;
+
+            if (SPClassNameLooksLikeHostingView(name)) {
+                [viewNames addObject:@(name)];
+                if ([list[i] isSubclassOfClass:[UIView class]]) {
+                    [viewClasses addObject:[NSValue valueWithPointer:(__bridge void *)list[i]]];
+                }
+            }
+            if (SPClassNameLooksLikeHostingController(name)) {
+                [vcNames addObject:@(name)];
+                if ([list[i] isSubclassOfClass:[UIViewController class]]) {
+                    [vcClasses addObject:[NSValue valueWithPointer:(__bridge void *)list[i]]];
+                }
+            }
+        }
+        free(list);
+    }
+
+    NSInteger viewHooks = 0;
+    for (NSValue *v in viewClasses) {
+        Class cls = (Class)v.pointerValue;
+        if (SPSwizzle(cls, @selector(layoutSubviews),
+                      (IMP)SPHookedLayoutSubviews,
+                      (IMP *)&gSPOrigLayoutSubviews)) {
+            viewHooks++;
+            if (!gSPHookedViewClassName) {
+                gSPHookedViewClassName = @(class_getName(cls));
+            }
+        }
+    }
+    if (viewHooks > 0) gSPHookedHostingView = YES;
+
+    // Prefer real SwiftUI UIHostingController over incidental *HostingController names.
+    Class bestVC = Nil;
+    NSInteger bestRank = -1;
+    NSUInteger bestLen = NSUIntegerMax;
+    for (NSValue *v in vcClasses) {
+        Class cls = (Class)v.pointerValue;
+        const char *cn = class_getName(cls);
+        NSInteger rank = SPHostingControllerRank(cn);
+        NSUInteger len = cn ? strlen(cn) : NSUIntegerMax;
+        if (rank > bestRank || (rank == bestRank && len < bestLen)) {
+            bestVC = cls;
+            bestRank = rank;
+            bestLen = len;
+        }
+    }
+    // Swizzle top few controller candidates (ranked), not only one.
+    NSInteger vcHooks = 0;
+    NSArray *sorted = [vcClasses sortedArrayUsingComparator:^NSComparisonResult(NSValue *a, NSValue *b) {
+        const char *an = class_getName((Class)a.pointerValue);
+        const char *bn = class_getName((Class)b.pointerValue);
+        NSInteger ar = SPHostingControllerRank(an);
+        NSInteger br = SPHostingControllerRank(bn);
+        if (ar != br) return ar > br ? NSOrderedAscending : NSOrderedDescending;
+        size_t al = an ? strlen(an) : 9999;
+        size_t bl = bn ? strlen(bn) : 9999;
+        if (al == bl) return NSOrderedSame;
+        return al < bl ? NSOrderedAscending : NSOrderedDescending;
+    }];
+    for (NSValue *v in sorted) {
+        if (vcHooks >= 6) break;
+        Class cls = (Class)v.pointerValue;
+        if (SPSwizzle(cls, @selector(viewDidLayoutSubviews),
+                      (IMP)SPHookedViewDidLayout,
+                      (IMP *)&gSPOrigViewDidLayout)) {
+            vcHooks++;
+            if (!gSPHookedControllerClassName) {
+                gSPHookedControllerClassName = @(class_getName(cls));
+            }
+        }
+    }
+    if (vcHooks > 0) gSPHookedHostingController = YES;
+    (void)bestVC;
+
+    BOOL hooked = gSPHookedHostingView || gSPHookedHostingController;
+    if (hooked) {
+        NSString *msg = [NSString stringWithFormat:@"hooks installed (views=%ld controllers=%ld)",
+                                                   (long)viewHooks, (long)vcHooks];
+        SPWriteHeartbeat(msg, YES, viewNames, vcNames);
+        NSLog(@"[SwiftPeek] %@", msg);
+    } else if (viewNames.count || vcNames.count) {
+        SPWriteHeartbeat(@"found candidate classes but swizzle failed", NO, viewNames, vcNames);
+    } else {
+        SPWriteHeartbeat(@"enabled but no hosting classes visible yet", NO, viewNames, vcNames);
+    }
+}
+
+static void SPOnImageAdded(const struct mach_header *mh, intptr_t slide) {
+    (void)slide;
+    const char *imageName = NULL;
+    uint32_t count = _dyld_image_count();
+    for (uint32_t i = 0; i < count; i++) {
+        if (_dyld_get_image_header(i) == mh) {
+            imageName = _dyld_get_image_name(i);
+            break;
+        }
+    }
+    if (!imageName || !strstr(imageName, "SwiftUI")) return;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        SPTryInstallHooks();
+    });
+}
+
+__attribute__((constructor)) static void SPConstructor(void) {
+    @autoreleasepool {
+        BOOL enabled = SPPrefBool(@"enabled", NO);
+        SPWriteHeartbeat(enabled ? @"ctor enabled" : @"ctor disabled (kill switch)",
+                         NO, @[], @[]);
+        if (!enabled) {
+            NSLog(@"[SwiftPeek] disabled — idle");
+            return;
+        }
+
+        NSLog(@"[SwiftPeek] loaded in %@ jbroot='%@'",
+              NSProcessInfo.processInfo.processName ?: @"?",
+              SPJailbreakRootPrefix() ?: @"");
+
+        SPTryInstallHooks();
+        _dyld_register_func_for_add_image(SPOnImageAdded);
+
+        NSArray *delays = @[ @0.5, @1.5, @3.0, @6.0, @12.0 ];
+        for (NSNumber *sec in delays) {
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
+                                         (int64_t)(sec.doubleValue * NSEC_PER_SEC)),
+                           dispatch_get_main_queue(), ^{
+                if (!gSPHookedHostingView) SPTryInstallHooks();
+            });
+        }
+
+        CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
+                                        NULL,
+                                        SPPrefsChangedCallback,
+                                        CFSTR("com.kolby.swiftpeek/prefschanged"),
+                                        NULL,
+                                        CFNotificationSuspensionBehaviorDeliverImmediately);
+    }
+}
