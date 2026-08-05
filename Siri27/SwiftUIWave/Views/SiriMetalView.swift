@@ -145,7 +145,8 @@ public struct SiriMetalView: UIViewRepresentable {
                 float high = clamp(0.30f + 0.30f*sin(t*2.9f+4.0f)*sin(t*0.71f+2.0f), 0.0f, 1.0f);
                 
                 // talkingFactor is already 0 idle → 1 loud (Siri27 WaveManager)
-                float activeFactor = clamp(talkingFactor, 0.0f, 1.0f);
+                // Lift quiet/mid speech while preserving a true zero at idle.
+                float activeFactor = pow(clamp(talkingFactor, 0.0f, 1.0f), 0.72f);
                 
                 float res   = clamp(RESOLVED, 0.0f, 1.0f);
                 float drift = fmod(t, 20.0f * PI) * SPEED;

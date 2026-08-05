@@ -49,6 +49,7 @@
 static NSInteger globalSiriState = 1;
 static NSString * const kFSPrefsDomain = @"com.kolby.siri27";
 static const char *kFSDarwinLevel = "com.kolby.siri27/level";
+static const char *kFSOrbPopGate = "com.kolby.siri27/popgate";
 
 OBJC_EXTERN UIImage *_UICreateScreenUIImage(void);
 
@@ -436,6 +437,33 @@ static const void *kFSOrbBackdropViewKey = &kFSOrbBackdropViewKey;
 - (void)fsFallBackToSnapshot;
 @end
 
+static __weak FSOrbState *gFSActiveOrbState = nil;
+
+// Siri can transition between two host controllers (and sometimes two
+// processes) during one invocation. Gate the pull-down animation globally so
+// the replacement host adopts the visible state instead of popping again.
+static BOOL FSClaimOrbPopAnimation(void) {
+    static int token = -1;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        notify_register_check(kFSOrbPopGate, &token);
+    });
+    if (token < 0) return YES;
+
+    uint64_t packed = 0;
+    notify_get_state(token, &packed);
+    CFTimeInterval lastPop = 0;
+    memcpy(&lastPop, &packed, sizeof(lastPop));
+
+    CFTimeInterval now = CACurrentMediaTime();
+    if (lastPop > 0 && (now - lastPop) < 2.0) return NO;
+
+    memcpy(&packed, &now, sizeof(now));
+    notify_set_state(token, packed);
+    notify_post(kFSOrbPopGate);
+    return YES;
+}
+
 // Probe the backdrop view's actual content — if it renders black, live capture
 // doesn't work in this process and we must fall back to snapshots.
 static BOOL FSBackdropViewLooksBlack(UIView *backdropView) {
@@ -777,10 +805,36 @@ static void FSOrbViewDidAppear(UIViewController *vc) {
     // viewDidAppear often fires twice for Siri hosts — only pop once per cycle.
     if (st.orbPresented || st.popInFlight) {
         st.glassOrbView.hidden = NO;
+        st.externalWhiteGlowView.hidden = NO;
         st.glassOrbView.transform = CGAffineTransformIdentity;
         st.glassOrbView.alpha = orbOpacity;
         st.externalWhiteGlowView.transform = CGAffineTransformIdentity;
         st.externalWhiteGlowView.alpha = 1.0;
+        return;
+    }
+
+    FSOrbState *previous = gFSActiveOrbState;
+    if (previous && previous != st) {
+        [previous fsStopLiveCapture];
+        previous.appearGeneration++;
+        previous.orbPresented = NO;
+        previous.popInFlight = NO;
+        previous.glassOrbView.hidden = YES;
+        previous.externalWhiteGlowView.hidden = YES;
+    }
+    gFSActiveOrbState = st;
+
+    // A second host in the same Siri invocation should appear in-place, not
+    // replay the pull-down animation.
+    if (!FSClaimOrbPopAnimation()) {
+        st.glassOrbView.hidden = NO;
+        st.externalWhiteGlowView.hidden = NO;
+        st.glassOrbView.transform = CGAffineTransformIdentity;
+        st.glassOrbView.alpha = orbOpacity;
+        st.externalWhiteGlowView.transform = CGAffineTransformIdentity;
+        st.externalWhiteGlowView.alpha = 1.0;
+        st.orbPresented = YES;
+        st.popInFlight = NO;
         return;
     }
 
@@ -792,6 +846,7 @@ static void FSOrbViewDidAppear(UIViewController *vc) {
         CGAffineTransformMakeScale(0.82, 0.82));
     st.glassOrbView.alpha = 0.0;
     st.glassOrbView.hidden = NO;
+    st.externalWhiteGlowView.hidden = NO;
     st.externalWhiteGlowView.alpha = 0.0;
     st.externalWhiteGlowView.transform = CGAffineTransformMakeTranslation(0, tuckY);
 
@@ -838,6 +893,11 @@ static void FSOrbViewWillDisappear(UIViewController *vc) {
     st.popInFlight = NO;
     [st fsStopLiveCapture];
     [st.glassOrbView.layer removeAnimationForKey:@"orbBreathing"];
+    if (gFSActiveOrbState != st) {
+        st.glassOrbView.hidden = YES;
+        st.externalWhiteGlowView.hidden = YES;
+        return;
+    }
     CGFloat tuckY = -(CGRectGetHeight(st.glassOrbView.bounds) + 40.0);
     [UIView animateWithDuration:0.32 delay:0.0 options:UIViewAnimationOptionCurveEaseIn | UIViewAnimationOptionBeginFromCurrentState animations:^{
         st.glassOrbView.transform = CGAffineTransformConcat(
@@ -847,6 +907,13 @@ static void FSOrbViewWillDisappear(UIViewController *vc) {
         st.externalWhiteGlowView.transform = CGAffineTransformMakeTranslation(0, tuckY);
         st.externalWhiteGlowView.alpha = 0.0;
     } completion:nil];
+}
+
+static void FSOrbViewDidDisappear(UIViewController *vc) {
+    FSOrbState *st = FSOrbStateFor(vc);
+    if (gFSActiveOrbState != st) return;
+    gFSActiveOrbState = nil;
+    [[WaveManager shared] stopRecording];
 }
 
 void LG_registerGlassView(UIView *view, LGUpdateGroup group) {}
@@ -863,31 +930,9 @@ void LG_redrawRegisteredGlassViews(LGUpdateGroup group) {}
 - (id)initWithFrame:(CGRect)arg1 {
     id view = %orig(arg1);
     if ([view isKindOfClass:[UIView class]]) {
-        [(UIView *)view setAlpha:0.01];
+        [(UIView *)view setAlpha:0.0];
     }
     return view;
-}
-
-- (void)setAlpha:(CGFloat)alpha {
-    // Siri repeatedly restores the stock orb's alpha during activation.
-    // Keep it technically visible so its audio-level callbacks continue.
-    %orig(MIN(alpha, 0.01));
-}
-
-- (void)didMoveToWindow {
-    %orig;
-    if (self.window) self.alpha = 0.01;
-}
-
-- (void)didMoveToSuperview {
-    %orig;
-    if (self.superview) self.alpha = 0.01;
-}
-
-- (void)layoutSubviews {
-    %orig;
-    self.layer.opacity = 0.01f;
-    [self.layer removeAnimationForKey:@"opacity"];
 }
 
 - (void)setMode:(NSInteger)mode {
@@ -909,24 +954,8 @@ void LG_redrawRegisteredGlassViews(LGUpdateGroup group) {}
 %hook SiriSharedUIOrbView
 - (id)initWithFrame:(CGRect)arg1 {
     id view = %orig(arg1);
-    if ([view isKindOfClass:[UIView class]]) [(UIView *)view setAlpha:0.01];
+    if ([view isKindOfClass:[UIView class]]) [(UIView *)view setAlpha:0.0];
     return view;
-}
-- (void)setAlpha:(CGFloat)alpha {
-    %orig(MIN(alpha, 0.01));
-}
-- (void)didMoveToWindow {
-    %orig;
-    if (self.window) self.alpha = 0.01;
-}
-- (void)didMoveToSuperview {
-    %orig;
-    if (self.superview) self.alpha = 0.01;
-}
-- (void)layoutSubviews {
-    %orig;
-    self.layer.opacity = 0.01f;
-    [self.layer removeAnimationForKey:@"opacity"];
 }
 - (void)setPowerLevel:(float)arg1 {
     %orig;
@@ -964,8 +993,7 @@ void LG_redrawRegisteredGlassViews(LGUpdateGroup group) {}
 
 - (void)viewDidDisappear:(BOOL)animated {
     %orig;
-    [[WaveManager shared] stopRecording];
-    FSSendLevel(0);
+    FSOrbViewDidDisappear(self);
 }
 
 %end
@@ -1018,6 +1046,11 @@ void LG_redrawRegisteredGlassViews(LGUpdateGroup group) {}
 - (void)viewWillDisappear:(BOOL)animated {
     %orig;
     FSOrbViewWillDisappear(self);
+}
+
+- (void)viewDidDisappear:(BOOL)animated {
+    %orig;
+    FSOrbViewDidDisappear(self);
 }
 
 %end

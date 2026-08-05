@@ -31,8 +31,8 @@ import AVFoundation
     private var currentSpeed: Double = 1.0
     @Published public var rawMicLevel: Double = 0.0
 
-    private var micGain: Double = 10.0
-    private var micDeadzone: Double = 0.012
+    private var micGain: Double = 14.0
+    private var micDeadzone: Double = 0.006
     private var waveSpeedDivisor: Double = 3.8
 
     private override init() {
@@ -81,14 +81,16 @@ import AVFoundation
             if d.object(forKey: key) != nil { return d.double(forKey: key) }
             return fallback
         }
-        let configuredGain = num("micGain", fallback: 10.0)
-        let configuredDeadzone = num("micDeadzone", fallback: 0.012)
-        // Migrate the old defaults automatically. Otherwise an upgrade keeps
-        // 22 / 0.002 in the prefs file and still looks permanently maxed-out.
-        micGain = abs(configuredGain - 22.0) < 0.001 ? 10.0 : max(1.0, configuredGain)
+        let configuredGain = num("micGain", fallback: 14.0)
+        let configuredDeadzone = num("micDeadzone", fallback: 0.006)
+        // Migrate both older default pairs automatically; explicit custom
+        // values remain untouched.
+        micGain = (abs(configuredGain - 22.0) < 0.001 || abs(configuredGain - 10.0) < 0.001)
+            ? 14.0
+            : max(1.0, configuredGain)
         micDeadzone = abs(configuredDeadzone - 0.002) < 0.0001
-            ? 0.012
-            : max(0.0, configuredDeadzone)
+            ? 0.006
+            : (abs(configuredDeadzone - 0.012) < 0.0001 ? 0.006 : max(0.0, configuredDeadzone))
         waveSpeedDivisor = max(0.4, num("waveSpeed", fallback: 3.8))
     }
 
