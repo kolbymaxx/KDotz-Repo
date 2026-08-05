@@ -81,8 +81,14 @@ import AVFoundation
             if d.object(forKey: key) != nil { return d.double(forKey: key) }
             return fallback
         }
-        micGain = max(1.0, num("micGain", fallback: 10.0))
-        micDeadzone = max(0.0, num("micDeadzone", fallback: 0.012))
+        let configuredGain = num("micGain", fallback: 10.0)
+        let configuredDeadzone = num("micDeadzone", fallback: 0.012)
+        // Migrate the old defaults automatically. Otherwise an upgrade keeps
+        // 22 / 0.002 in the prefs file and still looks permanently maxed-out.
+        micGain = abs(configuredGain - 22.0) < 0.001 ? 10.0 : max(1.0, configuredGain)
+        micDeadzone = abs(configuredDeadzone - 0.002) < 0.0001
+            ? 0.012
+            : max(0.0, configuredDeadzone)
         waveSpeedDivisor = max(0.4, num("waveSpeed", fallback: 3.8))
     }
 
