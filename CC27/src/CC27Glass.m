@@ -79,6 +79,27 @@
     }
 }
 
+// The container itself is clipped for roundness, so its own layer can't cast a
+// shadow. Instead we draw an explicit shadowPath on the unclipped superview,
+// which renders even though that layer has no contents of its own.
++ (void)_applyDepthShadowToContainer:(UIView *)view radius:(CGFloat)radius {
+    UIView *holder = view.superview;
+    if (!holder) return;
+    holder.layer.masksToBounds = NO;
+    holder.layer.shadowColor = UIColor.blackColor.CGColor;
+    holder.layer.shadowOpacity = 0.32;
+    holder.layer.shadowRadius = 9.0;
+    holder.layer.shadowOffset = CGSizeMake(0, 5);
+    holder.layer.shadowPath = [UIBezierPath bezierPathWithRoundedRect:view.frame cornerRadius:radius].CGPath;
+}
+
++ (void)_clearDepthShadowOnContainer:(UIView *)view {
+    UIView *holder = view.superview;
+    if (!holder) return;
+    holder.layer.shadowOpacity = 0;
+    holder.layer.shadowPath = NULL;
+}
+
 + (void)applyToModuleContainer:(UIView *)view {
     if (!view || !CC27Prefs.shared.glassChrome) return;
 
@@ -90,12 +111,14 @@
         view.layer.borderWidth = 0;
         UIView *highlight = [view viewWithTag:0x43323747];
         highlight.hidden = YES;
+        [self _clearDepthShadowOnContainer:view];
         return;
     }
 
     CGFloat radius = [self cornerRadiusForSize:view.bounds.size];
     [self applyContinuousCorners:view radius:radius];
     [self _roundMaterialSubviews:view radius:radius];
+    [self _applyDepthShadowToContainer:view radius:radius];
 
     const NSInteger tag = 0x43323747; // 'C27G'
     UIView *highlight = [view viewWithTag:tag];
@@ -103,13 +126,22 @@
         highlight = [[UIView alloc] initWithFrame:CGRectZero];
         highlight.tag = tag;
         highlight.userInteractionEnabled = NO;
-        highlight.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.12];
+        CAGradientLayer *sheen = [CAGradientLayer layer];
+        sheen.colors = @[
+            (id)[UIColor colorWithWhite:1.0 alpha:0.18].CGColor,
+            (id)[UIColor colorWithWhite:1.0 alpha:0.04].CGColor,
+            (id)UIColor.clearColor.CGColor
+        ];
+        sheen.locations = @[ @0.0, @0.55, @1.0 ];
+        [highlight.layer addSublayer:sheen];
         [view insertSubview:highlight atIndex:0];
     }
     highlight.hidden = NO;
     CGFloat w = view.bounds.size.width;
     CGFloat h = view.bounds.size.height;
-    highlight.frame = CGRectMake(1.0, 1.0, MAX(0, w - 2.0), MAX(1.0, h * 0.42));
+    highlight.frame = CGRectMake(1.0, 1.0, MAX(0, w - 2.0), MAX(1.0, h * 0.5));
+    CAGradientLayer *sheen = (CAGradientLayer *)highlight.layer.sublayers.firstObject;
+    if ([sheen isKindOfClass:CAGradientLayer.class]) sheen.frame = highlight.bounds;
     highlight.layer.cornerRadius = MAX(0, radius - 1.0);
     if (@available(iOS 13.0, *)) {
         highlight.layer.cornerCurve = kCACornerCurveContinuous;

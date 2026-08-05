@@ -1,8 +1,8 @@
 Package: com.kolby.cc27
 Name: CC27
-Version: 1.0.2
+Version: 1.0.3
 Architecture: iphoneos-arm64
-Description: iOS 26-style Control Center for iOS 15–17. 1.0.2 restores round modules, removes crashy resize, improves gallery icons, and fixes prefs Respring.
+Description: iOS 26-style Control Center for iOS 15–17. 1.0.3 stops the duplicate-add crash, adds Remove in the gallery, liquid-glass 3D UI, and home-screen style drag reflow.
 Depends: mobilesubstrate (>= 0.9.5000), preferenceloader, com.opa334.ccsupport, firmware (>= 15.0)
 Conflicts: com.cureux.cc26, com.smfb7.ccxviii, com.dvntm.cc18
 Maintainer: kolbymaxx

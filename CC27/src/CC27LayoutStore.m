@@ -65,6 +65,39 @@ static NSString *CC27SizeOverridesPath(void) {
     return ids ?: @[];
 }
 
+- (NSArray<NSString *> *)fixedIdentifiers {
+    NSMutableOrderedSet *fixed = [NSMutableOrderedSet orderedSet];
+    CCSModuleSettingsProvider *provider = self._provider;
+    if ([provider respondsToSelector:@selector(orderedFixedModuleIdentifiers)]) {
+        @try {
+            NSArray *ids = provider.orderedFixedModuleIdentifiers;
+            if ([ids isKindOfClass:NSArray.class]) [fixed addObjectsFromArray:ids];
+        } @catch (__unused NSException *e) {}
+    }
+    // Known always-present modules on iOS 15–17 in case the provider API moves.
+    [fixed addObjectsFromArray:@[
+        @"com.apple.control-center.ConnectivityModule",
+        @"com.apple.mediaremote.controlcenter.nowplaying",
+        @"com.apple.control-center.OrientationLockModule",
+        @"com.apple.donotdisturb.DoNotDisturbModule",
+        @"com.apple.FocusUIModule",
+        @"com.apple.control-center.DisplayModule",
+        @"com.apple.control-center.AudioModule",
+        @"com.apple.mediaremote.controlcenter.audio",
+    ]];
+    return fixed.array;
+}
+
+- (BOOL)isModuleFixed:(NSString *)identifier {
+    return identifier.length > 0 && [[self fixedIdentifiers] containsObject:identifier];
+}
+
+- (BOOL)isModuleInControlCenter:(NSString *)identifier {
+    if (identifier.length == 0) return NO;
+    if ([self.enabledIdentifiers containsObject:identifier]) return YES;
+    return [self isModuleFixed:identifier];
+}
+
 - (NSArray<NSString *> *)disabledIdentifiers {
     NSMutableSet *all = [NSMutableSet set];
     for (CC27ModuleInfo *info in CC27ModuleCatalog.shared.allModules) {
@@ -180,6 +213,14 @@ static NSString *CC27SizeOverridesPath(void) {
         return CC27LayoutApplyFailed;
     }
 
+    // Never add a module that is already in Control Center. Fixed system modules
+    // (Volume, Brightness, Connectivity, …) live outside the user-enabled list;
+    // appending them there spawns a duplicate instance and crashes SpringBoard.
+    if ([self isModuleInControlCenter:identifier]) {
+        NSLog(@"[CC27] enableModule: %@ is already present — skipping", identifier);
+        return CC27LayoutApplyAlreadyPresent;
+    }
+
     NSMutableArray *ordered = self.enabledIdentifiers.mutableCopy ?: [NSMutableArray new];
     if (![ordered containsObject:identifier]) {
         [ordered addObject:identifier];
@@ -204,6 +245,8 @@ static NSString *CC27SizeOverridesPath(void) {
 
 - (BOOL)disableModule:(NSString *)identifier {
     if (identifier.length == 0) return NO;
+    // Fixed system modules can't be removed — they aren't in the user list.
+    if ([self isModuleFixed:identifier] && ![self.enabledIdentifiers containsObject:identifier]) return NO;
     CCSModuleSettingsProvider *provider = self._provider;
     if (!provider) return NO;
     NSMutableArray *ordered = self.enabledIdentifiers.mutableCopy ?: [NSMutableArray new];

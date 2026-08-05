@@ -40,6 +40,7 @@ typedef struct CCUILayoutSize {
 + (NSURL *)_configurationFileURL;
 + (NSArray *)_defaultUserEnabledModuleIdentifiers;
 @property (nonatomic, copy, readonly) NSArray *orderedUserEnabledModuleIdentifiers;
+@property (nonatomic, copy, readonly) NSArray *orderedFixedModuleIdentifiers;
 - (void)setAndSaveOrderedUserEnabledModuleIdentifiers:(NSArray *)identifiers;
 @end
 
