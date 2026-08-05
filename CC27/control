@@ -1,8 +1,8 @@
 Package: com.kolby.cc27
 Name: CC27
-Version: 1.0.5
+Version: 1.0.6
 Architecture: iphoneos-arm64
-Description: iOS 26-style Control Center for iOS 15–17. 1.0.5 stops CC27 from touching Lock Screen quick-action modules (iOS 16 frozen lock screen), hardens boot, and adds an emergency kill switch file.
+Description: iOS 26-style Control Center for iOS 15–17. 1.0.6 makes CC27 fully inert while the device is locked, fixing the freeze when opening Control Center from the lock screen on iOS 16.
 Depends: mobilesubstrate (>= 0.9.5000), preferenceloader, com.opa334.ccsupport, firmware (>= 15.0)
 Conflicts: com.cureux.cc26, com.smfb7.ccxviii, com.dvntm.cc18
 Maintainer: kolbymaxx
