@@ -1,0 +1,132 @@
+name: Build CC27
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'CC27/**'
+      - '.github/workflows/build-cc27.yml'
+
+jobs:
+  build:
+    name: Build rootless .deb
+    runs-on: macos-14
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build deps
+        run: |
+          brew install ldid dpkg make
+          echo "$(brew --prefix make)/libexec/gnubin" >> "$GITHUB_PATH"
+
+      - name: Setup Theos
+        uses: waruhachi/theos-action@v2.4.6
+        with:
+          theos-src: 'theos/theos'
+          theos-branch: 'master'
+          sdks-src: 'theos/sdks'
+          sdks-branch: 'master'
+          libgcuniversal: 'false'
+          altlist: 'false'
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+          xcrun -sdk iphoneos --show-sdk-version
+
+      - name: Build CC27 (rootless)
+        working-directory: CC27
+        env:
+          THEOS: ${{ env.THEOS }}
+        run: |
+          set -euo pipefail
+          SDK_VER="$(ls "$THEOS/sdks" | sed -n 's/iPhoneOS\([0-9.]*\)\.sdk/\1/p' | sort -V | tail -1 || true)"
+          if [ -n "${SDK_VER:-}" ]; then
+            sed -i '' "s/^TARGET :=.*/TARGET := iphone:clang:${SDK_VER}:15.0/" Makefile
+            sed -i '' "s/^TARGET :=.*/TARGET := iphone:clang:${SDK_VER}:15.0/" prefs/Makefile
+            sed -i '' "s/^TARGET :=.*/TARGET := iphone:clang:${SDK_VER}:15.0/" provider/Makefile
+            echo "Using SDK $SDK_VER"
+          fi
+          sed -i '' 's/^Architecture: .*/Architecture: iphoneos-arm64/' control
+          make clean package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
+          echo "Built packages:"
+          ls -lah packages || ls -lah ../packages || true
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          find . .. -name '*.deb' -path '*/packages/*' -print -exec cp {} "$GITHUB_WORKSPACE/out/" \;
+          ls -lah "$GITHUB_WORKSPACE/out"
+
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CC27-rootless-deb
+          path: out/*.deb
+          if-no-files-found: error
+
+  build-roothide:
+    name: Build roothide .deb
+    runs-on: macos-14
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build deps
+        run: |
+          brew install ldid dpkg make
+          echo "$(brew --prefix make)/libexec/gnubin" >> "$GITHUB_PATH"
+
+      - name: Setup Theos (roothide fork)
+        uses: waruhachi/theos-action@v2.4.6
+        with:
+          theos-src: 'roothide/theos'
+          theos-branch: 'master'
+          sdks-src: 'theos/sdks'
+          sdks-branch: 'master'
+          libgcuniversal: 'false'
+          altlist: 'false'
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+          xcrun -sdk iphoneos --show-sdk-version
+
+      - name: Build CC27 (roothide)
+        working-directory: CC27
+        env:
+          THEOS: ${{ env.THEOS }}
+        run: |
+          set -euo pipefail
+          SDK_VER="$(ls "$THEOS/sdks" | sed -n 's/iPhoneOS\([0-9.]*\)\.sdk/\1/p' | sort -V | tail -1 || true)"
+          if [ -n "${SDK_VER:-}" ]; then
+            sed -i '' "s/^TARGET :=.*/TARGET := iphone:clang:${SDK_VER}:15.0/" Makefile
+            sed -i '' "s/^TARGET :=.*/TARGET := iphone:clang:${SDK_VER}:15.0/" prefs/Makefile
+            sed -i '' "s/^TARGET :=.*/TARGET := iphone:clang:${SDK_VER}:15.0/" provider/Makefile
+            echo "Using SDK $SDK_VER"
+          fi
+          sed -i '' 's/^Architecture: .*/Architecture: iphoneos-arm64e/' control
+          make clean package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=roothide
+          echo "Built packages:"
+          ls -lah packages || ls -lah ../packages || true
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          find . .. -name '*.deb' -path '*/packages/*' -print -exec cp {} "$GITHUB_WORKSPACE/out/" \;
+          ls -lah "$GITHUB_WORKSPACE/out"
+          DEB="$(ls "$GITHUB_WORKSPACE/out"/*.deb | head -1)"
+          dpkg-deb -I "$DEB"
+          dpkg-deb -c "$DEB" | head -40
+          if dpkg-deb -c "$DEB" | grep -q ' var/jb/'; then
+            echo "ERROR: roothide deb still contains /var/jb paths" >&2
+            exit 1
+          fi
+
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CC27-roothide-deb
+          path: out/*.deb
+          if-no-files-found: error
