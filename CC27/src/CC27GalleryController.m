@@ -41,9 +41,12 @@
     self.detailTextLabel.text = info.category ?: @"";
     UIImage *icon = info.icon;
     if (icon) {
+        // SF Symbols and most CC glyphs look correct as templates.
         self.imageView.image = [icon imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+        self.imageView.tintColor = UIColor.whiteColor;
     } else if (@available(iOS 13.0, *)) {
-        self.imageView.image = [UIImage systemImageNamed:@"switch.2"];
+        self.imageView.image = [[UIImage systemImageNamed:@"square.grid.2x2.fill"] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+        self.imageView.tintColor = UIColor.whiteColor;
     }
 
     UILabel *trailing = (UILabel *)self.accessoryView;

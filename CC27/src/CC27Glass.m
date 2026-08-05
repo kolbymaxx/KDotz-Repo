@@ -8,33 +8,26 @@
     CGFloat h = size.height;
     if (w < 1 || h < 1) return 19.0;
 
-    // Expanded / popup-sized containers: soft continuous radius only.
-    // Never force a full circle — that clips Camera / Connectivity menus.
     CGFloat minSide = fmin(w, h);
-    CGFloat maxSide = fmax(w, h);
-    if (maxSide > 220.0 || (w > 160.0 && h > 160.0 && fabs(w - h) > 40.0)) {
-        return 28.0;
+    // Compact near-square → circle (iOS 26 1x1 look)
+    if (fabs(w - h) < 12.0 && minSide <= 120.0) {
+        return minSide * 0.5;
     }
-
-    // Compact 1x1-ish modules: near-pill / circle look without over-clipping.
-    if (fabs(w - h) < 10.0 && minSide < 120.0) {
-        return minSide * 0.42;
+    // Pills / sliders → half of the short side
+    if (fabs(w - h) >= 12.0) {
+        return minSide * 0.5;
     }
-    // Tall/wide pills (sliders, 2x1)
-    if (fabs(w - h) >= 10.0) {
-        return minSide * 0.42;
-    }
+    // Larger squares (2x2 connectivity / media)
     return minSide * 0.28;
 }
 
 + (BOOL)_looksExpanded:(UIView *)view {
     if (!view) return NO;
     CGSize size = view.bounds.size;
-    if (size.width > 240.0 || size.height > 240.0) return YES;
-    // Expanded modules often grow far beyond the compact grid cell.
-    if (size.width > 180.0 && size.height > 180.0) return YES;
+    // Expanded long-press menus are much larger than grid cells.
+    if (size.width > 260.0 || size.height > 260.0) return YES;
+    if (size.width > 200.0 && size.height > 200.0 && fabs(size.width - size.height) > 30.0) return YES;
 
-    // Walk up for an expanded-state flag when present.
     UIView *v = view;
     while (v) {
         @try {
@@ -50,13 +43,11 @@
     return NO;
 }
 
-+ (void)applyContinuousCorners:(UIView *)view radius:(CGFloat)radius {
++ (void)_roundView:(UIView *)view radius:(CGFloat)radius clip:(BOOL)clip {
     if (!view) return;
     view.layer.cornerRadius = radius;
-    // Critical: never clip module containers — expanded menus draw outside
-    // the collapsed bounds and get cut into circles otherwise.
-    view.clipsToBounds = NO;
-    view.layer.masksToBounds = NO;
+    view.clipsToBounds = clip;
+    view.layer.masksToBounds = clip;
     if (@available(iOS 13.0, *)) {
         view.layer.cornerCurve = kCACornerCurveContinuous;
     }
@@ -66,17 +57,36 @@
         ((void (*)(id, SEL, BOOL))objc_msgSend)(view.layer, @selector(setContinuousCorners:), YES);
     }
 #pragma clang diagnostic pop
+}
+
++ (void)applyContinuousCorners:(UIView *)view radius:(CGFloat)radius {
+    // Collapsed modules: clip so materials actually look round.
+    [self _roundView:view radius:radius clip:YES];
     view.layer.borderWidth = 0.55;
-    view.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.26].CGColor;
+    view.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.28].CGColor;
+}
+
++ (void)_roundMaterialSubviews:(UIView *)view radius:(CGFloat)radius {
+    Class mat = NSClassFromString(@"MTMaterialView");
+    Class platter = NSClassFromString(@"CCUIContentModuleContentContainerView");
+    for (UIView *sub in view.subviews) {
+        if (mat && [sub isKindOfClass:mat]) {
+            [self _roundView:sub radius:radius clip:YES];
+        }
+        // Don't recurse into nested module containers.
+        if (platter && [sub isKindOfClass:platter]) continue;
+        if (sub.subviews.count) [self _roundMaterialSubviews:sub radius:radius];
+    }
 }
 
 + (void)applyToModuleContainer:(UIView *)view {
     if (!view || !CC27Prefs.shared.glassChrome) return;
 
-    // Expanded popovers / long-press menus: leave stock chrome alone.
+    // Expanded popovers: do not clip — that cut Camera / Connectivity menus.
     if ([self _looksExpanded:view]) {
         view.clipsToBounds = NO;
         view.layer.masksToBounds = NO;
+        view.layer.cornerRadius = 28.0;
         view.layer.borderWidth = 0;
         UIView *highlight = [view viewWithTag:0x43323747];
         highlight.hidden = YES;
@@ -85,6 +95,7 @@
 
     CGFloat radius = [self cornerRadiusForSize:view.bounds.size];
     [self applyContinuousCorners:view radius:radius];
+    [self _roundMaterialSubviews:view radius:radius];
 
     const NSInteger tag = 0x43323747; // 'C27G'
     UIView *highlight = [view viewWithTag:tag];
@@ -92,7 +103,7 @@
         highlight = [[UIView alloc] initWithFrame:CGRectZero];
         highlight.tag = tag;
         highlight.userInteractionEnabled = NO;
-        highlight.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.10];
+        highlight.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.12];
         [view insertSubview:highlight atIndex:0];
     }
     highlight.hidden = NO;
