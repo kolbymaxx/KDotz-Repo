@@ -100,6 +100,40 @@ Description: iOS 26-style Control Center for iOS 15–17. 1.0.3 stops the duplic
 Author: kolbymaxx
 Name: CC27
 
+Package: com.kolby.cc27
+Version: 1.0.4
+Architecture: iphoneos-arm64e
+Maintainer: kolbymaxx
+Installed-Size: 780
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader, com.opa334.ccsupport, firmware (>= 15.0)
+Conflicts: com.cureux.cc26, com.smfb7.ccxviii, com.dvntm.cc18
+Filename: dist/com.kolby.cc27_1.0.4_iphoneos-arm64e.deb
+Size: 83820
+MD5sum: 5ecdfb689f639b049adbe7c4d163c2cb
+SHA1: 39c1f98f47731c3998d8d6f8360a952d37fb8fc9
+SHA256: 53e1a2a8f017da1b91f3f6c650e2168a29a5b5c3cca1ca63fbbafce5f94cecfa
+Section: Tweaks
+Description: iOS 26-style Control Center for iOS 15–17. 1.0.4 fixes the drag safe-mode crash with snapshot dragging and adds a drag-and-drop layout editor in Settings that commits on respring.
+Author: kolbymaxx
+Name: CC27
+
+Package: com.kolby.cc27
+Version: 1.0.4
+Architecture: iphoneos-arm64
+Maintainer: kolbymaxx
+Installed-Size: 780
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader, com.opa334.ccsupport, firmware (>= 15.0)
+Conflicts: com.cureux.cc26, com.smfb7.ccxviii, com.dvntm.cc18
+Filename: dist/com.kolby.cc27_1.0.4_iphoneos-arm64.deb
+Size: 84052
+MD5sum: 1d4710be7cdd49e245ca7ee30c0af0c6
+SHA1: 1c6614d9d26bbd754c7901a0a3fb03f706fc8719
+SHA256: dfee7ecb40caf33e1d2ccc704fd6a03590cb1d04f396cbc9cc6f61a80f01d9f4
+Section: Tweaks
+Description: iOS 26-style Control Center for iOS 15–17. 1.0.4 fixes the drag safe-mode crash with snapshot dragging and adds a drag-and-drop layout editor in Settings that commits on respring.
+Author: kolbymaxx
+Name: CC27
+
 Package: com.kolby.rhcompat
 Version: 1.0.2
 Architecture: iphoneos-arm64e
