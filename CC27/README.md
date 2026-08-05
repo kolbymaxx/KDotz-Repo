@@ -6,12 +6,20 @@ Unlike aesthetic-only tweaks (CC26 / CCXVIII), CC27 focuses on the **real custom
 
 - **Hold empty space** or tap **+** to enter edit mode (jiggle)
 - **Drag** modules to rearrange
-- **Corner handle** to cycle sizes (1×1 → 2×1 → 1×2 → 2×2, with smarter options for sliders / connectivity / media)
 - **−** to remove a control
-- **Add a Control** opens a sheet with a **Search Controls** field
+- **Add a Control** opens a searchable list gallery (Available / All)
 - Gallery lists **system + third-party CCSupport modules + CC27 widgets**
-- Liquid-glass module chrome (continuous corners, specular edge)
+- Liquid-glass module chrome that does **not** clip expanded Camera / Connectivity menus
 - Built-in CC27 modules: **Respring**, **Safe Mode**, **UICache**, **Userspace Reboot**
+- Optional experimental resize (off by default in Settings → CC27)
+
+## 1.0.1 fixes
+
+- Top **+** / power buttons stay visible while Control Center is open
+- Add Control gallery uses readable list rows (no overlapping “System” labels)
+- Adding a control reloads module instances (or prompts one reopen if needed)
+- Resize handles hidden unless the experimental pref is on
+- Expanded menus no longer cut into a circle by glass clipping
 
 ## Install
 

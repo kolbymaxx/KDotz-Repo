@@ -94,7 +94,7 @@ static NSDictionary *CC27ReadPrefsDictionary(void) {
 - (BOOL)enabled { return [self _bool:@"enabled" default:YES]; }
 - (BOOL)glassChrome { return [self _bool:@"glassChrome" default:YES]; }
 - (BOOL)editModeEnabled { return [self _bool:@"editModeEnabled" default:YES]; }
-- (BOOL)allowResize { return [self _bool:@"allowResize" default:YES]; }
+- (BOOL)allowResize { return [self _bool:@"allowResize" default:NO]; }
 - (BOOL)showTopButtons { return [self _bool:@"showTopButtons" default:YES]; }
 - (BOOL)hapticFeedback { return [self _bool:@"hapticFeedback" default:YES]; }
 
