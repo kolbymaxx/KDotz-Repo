@@ -32,6 +32,40 @@ Description: iOS 26-style Control Center for iOS 15–17. 1.0.1 keeps +/power vi
 Author: kolbymaxx
 Name: CC27
 
+Package: com.kolby.cc27
+Version: 1.0.2
+Architecture: iphoneos-arm64e
+Maintainer: kolbymaxx
+Installed-Size: 676
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader, com.opa334.ccsupport, firmware (>= 15.0)
+Conflicts: com.cureux.cc26, com.smfb7.ccxviii, com.dvntm.cc18
+Filename: dist/com.kolby.cc27_1.0.2_iphoneos-arm64e.deb
+Size: 60302
+MD5sum: 8b9343067ee69dece7bdd4858462aef5
+SHA1: cea633aa6ffcef20bfffefab6d2e493f92c508aa
+SHA256: a251001afbd6d7b81e167c2b43c9c8a5ce785fd611214a325f9b382299640984
+Section: Tweaks
+Description: iOS 26-style Control Center for iOS 15–17. 1.0.2 restores round modules, removes crashy resize, improves gallery icons, and fixes prefs Respring.
+Author: kolbymaxx
+Name: CC27
+
+Package: com.kolby.cc27
+Version: 1.0.2
+Architecture: iphoneos-arm64
+Maintainer: kolbymaxx
+Installed-Size: 676
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader, com.opa334.ccsupport, firmware (>= 15.0)
+Conflicts: com.cureux.cc26, com.smfb7.ccxviii, com.dvntm.cc18
+Filename: dist/com.kolby.cc27_1.0.2_iphoneos-arm64.deb
+Size: 60274
+MD5sum: fcae978f23cc8bd0d6fea3267c7e1628
+SHA1: 6bd2b1fdc362d2a8b969f9e7a3cc6711fce3fe73
+SHA256: f0f93b3b2a053a090f8565c3efeb77b9d3a45bbb1ac9d70b7c47538754d8ee3d
+Section: Tweaks
+Description: iOS 26-style Control Center for iOS 15–17. 1.0.2 restores round modules, removes crashy resize, improves gallery icons, and fixes prefs Respring.
+Author: kolbymaxx
+Name: CC27
+
 Package: com.kolby.rhcompat
 Version: 1.0.2
 Architecture: iphoneos-arm64e
