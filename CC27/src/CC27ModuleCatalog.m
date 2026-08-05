@@ -375,8 +375,11 @@
     }
 
     NSSet *enabled = [NSSet setWithArray:CC27LayoutStore.shared.enabledIdentifiers];
+    NSSet *fixed = [NSSet setWithArray:CC27LayoutStore.shared.fixedIdentifiers];
     for (CC27ModuleInfo *info in map.allValues) {
-        info.enabled = [enabled containsObject:info.identifier];
+        info.fixed = [fixed containsObject:info.identifier];
+        // Fixed modules are always in CC even though they're not user-enabled.
+        info.enabled = info.fixed || [enabled containsObject:info.identifier];
     }
 
     _modules = [map.allValues sortedArrayUsingComparator:^NSComparisonResult(CC27ModuleInfo *a, CC27ModuleInfo *b) {

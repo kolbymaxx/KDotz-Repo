@@ -25,14 +25,18 @@ FOUNDATION_EXPORT NSString * const CC27LayoutDidChangeNotification;
 
 typedef NS_ENUM(NSInteger, CC27LayoutApplyResult) {
     CC27LayoutApplyFailed = 0,
-    CC27LayoutApplyVisible,   // module instances refreshed in the open CC
-    CC27LayoutApplyNeedsReopen // saved, but CC must be reopened to see it
+    CC27LayoutApplyVisible,        // module instances refreshed in the open CC
+    CC27LayoutApplyNeedsReopen,    // saved, but CC must be reopened to see it
+    CC27LayoutApplyAlreadyPresent  // module is already in Control Center — nothing done
 };
 
 @interface CC27LayoutStore : NSObject
 + (instancetype)shared;
 - (void)reload;
 - (NSArray<NSString *> *)enabledIdentifiers;
+- (NSArray<NSString *> *)fixedIdentifiers;
+- (BOOL)isModuleFixed:(NSString *)identifier;
+- (BOOL)isModuleInControlCenter:(NSString *)identifier;
 - (NSArray<NSString *> *)disabledIdentifiers;
 - (BOOL)enableModule:(NSString *)identifier;
 - (CC27LayoutApplyResult)enableModuleWithResult:(NSString *)identifier;
@@ -42,6 +46,7 @@ typedef NS_ENUM(NSInteger, CC27LayoutApplyResult) {
 - (CCUILayoutSize)cycleSizeForModule:(NSString *)identifier current:(CCUILayoutSize)current;
 - (void)setSize:(CCUILayoutSize)size forModule:(NSString *)identifier;
 - (void)refreshControlCenterLayout;
+- (void)refreshModulePositionsOnly;
 - (BOOL)isModuleInstantiated:(NSString *)identifier;
 @end
 
@@ -52,6 +57,7 @@ typedef NS_ENUM(NSInteger, CC27LayoutApplyResult) {
 @property (nonatomic, strong, nullable) UIImage *icon;
 @property (nonatomic, copy) NSString *category; // System, Connectivity, Media, Utilities, Third Party, CC27
 @property (nonatomic, assign) BOOL enabled;
+@property (nonatomic, assign) BOOL fixed; // always-present system module (Connectivity, Volume, …)
 @property (nonatomic, assign) BOOL isCC27;
 @property (nonatomic, assign) BOOL isThirdParty;
 @end

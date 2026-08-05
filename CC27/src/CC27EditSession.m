@@ -5,7 +5,7 @@ static const NSInteger kCC27PlusTag = 0x4332372B;      // C27+
 static const NSInteger kCC27PowerTag = 0x43323750;     // C27P
 static const NSInteger kCC27AddControlTag = 0x43323741; // C27A
 static const NSInteger kCC27MinusTag = 0x4332372D;      // C27-
-static const NSInteger kCC27ResizeTag = 0x43323752;     // C27R
+static const NSInteger kCC27ResizeTag = 0x43323752;     // C27R (legacy cleanup)
 static const NSInteger kCC27ToastTag = 0x43323754;      // C27T
 
 static char kCC27DragKey;
@@ -17,6 +17,16 @@ static char kCC27IdKey;
 @property (nonatomic, strong) UILongPressGestureRecognizer *backgroundLongPress;
 @property (nonatomic, copy) NSString *draggingIdentifier;
 @property (nonatomic, weak) UIView *draggingView;
+
+// Live-reflow drag state (home-screen style). The real CC-owned views are
+// never repositioned: a snapshot follows the finger and neighbours preview
+// with transforms, which survive CC layout passes and can't corrupt them.
+@property (nonatomic, strong) UIView *dragSnapshot;
+@property (nonatomic, strong) NSArray<UIView *> *dragSlotViews;      // original reading order
+@property (nonatomic, strong) NSArray<NSValue *> *dragSlotCenters;   // original slot centers (host coords)
+@property (nonatomic, strong) NSArray<NSString *> *dragSlotIds;
+@property (nonatomic, assign) NSInteger dragOriginalIndex;
+@property (nonatomic, assign) NSInteger dragProposedIndex;
 @end
 
 @implementation CC27EditSession
@@ -35,6 +45,56 @@ static char kCC27IdKey;
     [[[UIImpactFeedbackGenerator alloc] initWithStyle:style] impactOccurred];
 }
 
+#pragma mark - Glass chrome construction
+
+// Adds a blur backing + hairline highlight + drop shadow to any control,
+// giving it the layered "liquid glass" depth.
+- (void)_glassifyView:(UIView *)view cornerRadius:(CGFloat)radius {
+    view.backgroundColor = UIColor.clearColor;
+    view.clipsToBounds = NO;
+    view.layer.masksToBounds = NO;
+    view.layer.shadowColor = UIColor.blackColor.CGColor;
+    view.layer.shadowOpacity = 0.4;
+    view.layer.shadowRadius = 9;
+    view.layer.shadowOffset = CGSizeMake(0, 5);
+
+    const NSInteger glassTag = 0x43323767; // 'C27g'
+    if (![view viewWithTag:glassTag]) {
+        UIBlurEffect *blur;
+        if (@available(iOS 13.0, *)) {
+            blur = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark];
+        } else {
+            blur = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
+        }
+        UIVisualEffectView *glass = [[UIVisualEffectView alloc] initWithEffect:blur];
+        glass.tag = glassTag;
+        glass.userInteractionEnabled = NO;
+        glass.frame = view.bounds;
+        glass.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        glass.layer.cornerRadius = radius;
+        if (@available(iOS 13.0, *)) glass.layer.cornerCurve = kCACornerCurveContinuous;
+        glass.clipsToBounds = YES;
+        glass.layer.borderWidth = 0.6;
+        glass.layer.borderColor = [UIColor colorWithWhite:1 alpha:0.25].CGColor;
+
+        // Top sheen for the 3-D pop.
+        CAGradientLayer *sheen = [CAGradientLayer layer];
+        sheen.colors = @[
+            (id)[UIColor colorWithWhite:1.0 alpha:0.20].CGColor,
+            (id)[UIColor colorWithWhite:1.0 alpha:0.03].CGColor,
+            (id)UIColor.clearColor.CGColor
+        ];
+        sheen.locations = @[ @0.0, @0.5, @1.0 ];
+        sheen.frame = glass.bounds;
+        [glass.contentView.layer addSublayer:sheen];
+
+        [view insertSubview:glass atIndex:0];
+    } else {
+        UIView *glass = [view viewWithTag:glassTag];
+        glass.layer.cornerRadius = radius;
+    }
+}
+
 - (UIButton *)_circleButtonWithSymbol:(NSString *)symbol tag:(NSInteger)tag {
     UIButton *btn = [UIButton buttonWithType:UIButtonTypeSystem];
     btn.tag = tag;
@@ -43,9 +103,7 @@ static char kCC27IdKey;
         [btn setImage:[[UIImage systemImageNamed:symbol] imageByApplyingSymbolConfiguration:config] forState:UIControlStateNormal];
     }
     btn.tintColor = UIColor.whiteColor;
-    btn.backgroundColor = [UIColor colorWithWhite:1 alpha:0.18];
-    btn.layer.cornerRadius = 18;
-    btn.clipsToBounds = YES;
+    [self _glassifyView:btn cornerRadius:18];
     btn.alpha = 0;
     return btn;
 }
@@ -254,9 +312,7 @@ static char kCC27IdKey;
         if (@available(iOS 13.0, *)) {
             [add setImage:[UIImage systemImageNamed:@"plus"] forState:UIControlStateNormal];
         }
-        add.backgroundColor = [UIColor colorWithWhite:1 alpha:0.16];
-        add.layer.cornerRadius = 18;
-        if (@available(iOS 13.0, *)) add.layer.cornerCurve = kCACornerCurveContinuous;
+        [self _glassifyView:add cornerRadius:22];
         add.alpha = 0;
         [add addTarget:self action:@selector(_addControlTapped) forControlEvents:UIControlEventTouchUpInside];
         [host addSubview:add];
@@ -283,7 +339,7 @@ static char kCC27IdKey;
                            [UISheetPresentationControllerDetent largeDetent] ];
         sheet.selectedDetentIdentifier = UISheetPresentationControllerDetentIdentifierLarge;
         sheet.prefersGrabberVisible = YES;
-        sheet.preferredCornerRadius = 28;
+        sheet.preferredCornerRadius = 34;
     } else {
         gallery.modalPresentationStyle = UIModalPresentationFormSheet;
     }
@@ -314,30 +370,38 @@ static char kCC27IdKey;
     [[host viewWithTag:kCC27ToastTag] removeFromSuperview];
 
     UILabel *label = [[UILabel alloc] initWithFrame:CGRectZero];
-    label.tag = kCC27ToastTag;
     label.text = message;
     label.textColor = UIColor.whiteColor;
     label.font = [UIFont systemFontOfSize:14 weight:UIFontWeightSemibold];
     label.textAlignment = NSTextAlignmentCenter;
     label.numberOfLines = 2;
-    label.backgroundColor = [UIColor colorWithWhite:0.1 alpha:0.82];
-    label.layer.cornerRadius = 14;
-    label.clipsToBounds = YES;
-    label.alpha = 0;
 
     CGSize fit = [label sizeThatFits:CGSizeMake(host.bounds.size.width - 48, 80)];
-    CGFloat w = MIN(host.bounds.size.width - 40, MAX(180, fit.width + 28));
-    CGFloat h = MAX(40, fit.height + 16);
-    label.frame = CGRectMake((host.bounds.size.width - w) / 2.0,
-                             host.safeAreaInsets.top + 52,
-                             w, h);
-    [host addSubview:label];
-    [host bringSubviewToFront:label];
+    CGFloat w = MIN(host.bounds.size.width - 40, MAX(180, fit.width + 32));
+    CGFloat h = MAX(42, fit.height + 18);
 
-    [UIView animateWithDuration:0.2 animations:^{ label.alpha = 1; } completion:^(__unused BOOL f) {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.6 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [UIView animateWithDuration:0.25 animations:^{ label.alpha = 0; } completion:^(__unused BOOL f2) {
-                [label removeFromSuperview];
+    UIView *toast = [[UIView alloc] initWithFrame:CGRectMake((host.bounds.size.width - w) / 2.0,
+                                                             host.safeAreaInsets.top + 52, w, h)];
+    toast.tag = kCC27ToastTag;
+    [self _glassifyView:toast cornerRadius:h / 2.0];
+    label.frame = toast.bounds;
+    label.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    [toast addSubview:label];
+    toast.alpha = 0;
+    toast.transform = CGAffineTransformMakeTranslation(0, -8);
+    [host addSubview:toast];
+    [host bringSubviewToFront:toast];
+
+    [UIView animateWithDuration:0.25 delay:0 usingSpringWithDamping:0.85 initialSpringVelocity:0.3 options:0 animations:^{
+        toast.alpha = 1;
+        toast.transform = CGAffineTransformIdentity;
+    } completion:^(__unused BOOL f) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.7 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [UIView animateWithDuration:0.25 animations:^{
+                toast.alpha = 0;
+                toast.transform = CGAffineTransformMakeTranslation(0, -8);
+            } completion:^(__unused BOOL f2) {
+                [toast removeFromSuperview];
             }];
         });
     }];
@@ -396,25 +460,35 @@ static char kCC27IdKey;
         return;
     }
 
-    UIButton *minus = [container viewWithTag:kCC27MinusTag];
-    if (!minus) {
-        minus = [UIButton buttonWithType:UIButtonTypeSystem];
-        minus.tag = kCC27MinusTag;
-        minus.backgroundColor = [UIColor colorWithWhite:0.2 alpha:0.92];
-        minus.tintColor = UIColor.whiteColor;
-        minus.layer.cornerRadius = 11;
-        minus.clipsToBounds = YES;
-        if (@available(iOS 13.0, *)) {
-            UIImageSymbolConfiguration *config = [UIImageSymbolConfiguration configurationWithPointSize:11 weight:UIImageSymbolWeightBold];
-            [minus setImage:[[UIImage systemImageNamed:@"minus"] imageByApplyingSymbolConfiguration:config] forState:UIControlStateNormal];
-        }
-        [minus addTarget:self action:@selector(_minusTapped:) forControlEvents:UIControlEventTouchUpInside];
-        [container addSubview:minus];
-    }
-    minus.frame = CGRectMake(-4, -4, 22, 22);
-    [container bringSubviewToFront:minus];
+    // Fixed system modules can't be removed, so no minus badge on them.
+    BOOL isFixed = [CC27LayoutStore.shared isModuleFixed:identifier] &&
+                   ![CC27LayoutStore.shared.enabledIdentifiers containsObject:identifier];
 
-    // Resize is disabled in 1.0.2 — previous size overrides crashed SpringBoard.
+    UIButton *minus = [container viewWithTag:kCC27MinusTag];
+    if (isFixed) {
+        [minus removeFromSuperview];
+    } else {
+        if (!minus) {
+            minus = [UIButton buttonWithType:UIButtonTypeSystem];
+            minus.tag = kCC27MinusTag;
+            minus.backgroundColor = [UIColor colorWithWhite:0.16 alpha:0.94];
+            minus.tintColor = UIColor.whiteColor;
+            minus.layer.cornerRadius = 11;
+            minus.clipsToBounds = YES;
+            minus.layer.borderWidth = 0.6;
+            minus.layer.borderColor = [UIColor colorWithWhite:1 alpha:0.3].CGColor;
+            if (@available(iOS 13.0, *)) {
+                UIImageSymbolConfiguration *config = [UIImageSymbolConfiguration configurationWithPointSize:11 weight:UIImageSymbolWeightBold];
+                [minus setImage:[[UIImage systemImageNamed:@"minus"] imageByApplyingSymbolConfiguration:config] forState:UIControlStateNormal];
+            }
+            [minus addTarget:self action:@selector(_minusTapped:) forControlEvents:UIControlEventTouchUpInside];
+            [container addSubview:minus];
+        }
+        minus.frame = CGRectMake(-4, -4, 22, 22);
+        [container bringSubviewToFront:minus];
+    }
+
+    // Resize stays disabled — size overrides crashed SpringBoard (1.0.2).
     [[container viewWithTag:kCC27ResizeTag] removeFromSuperview];
 
     if (![container.layer animationForKey:@"cc27.jiggle"]) {
@@ -460,9 +534,135 @@ static char kCC27IdKey;
     [self performSelector:@selector(_decorateVisibleModules) withObject:nil afterDelay:0.35];
 }
 
-- (void)_resizeTapped:(UIButton *)sender {
-    (void)sender;
-    // Intentionally disabled — resizing via CCUILayoutSize overrides caused SpringBoard safe mode.
+#pragma mark - Home-screen style drag with live reflow
+
+// Reading-order slots: all small module containers sorted top-to-bottom, left-to-right.
+- (void)_captureDragSlotsExcludingNone {
+    UIView *host = self.hostController.view;
+    NSMutableArray<UIView *> *containers = [NSMutableArray array];
+    [self _collectContainers:host into:containers];
+
+    NSMutableArray<UIView *> *cells = [NSMutableArray array];
+    for (UIView *c in containers) {
+        if (c.bounds.size.width > 220.0 || c.bounds.size.height > 220.0) continue;
+        [cells addObject:c];
+    }
+    [cells sortUsingComparator:^NSComparisonResult(UIView *a, UIView *b) {
+        CGPoint pa = [a.superview convertPoint:a.center toView:host];
+        CGPoint pb = [b.superview convertPoint:b.center toView:host];
+        if (fabs(pa.y - pb.y) > 20.0) return pa.y < pb.y ? NSOrderedAscending : NSOrderedDescending;
+        if (pa.x == pb.x) return NSOrderedSame;
+        return pa.x < pb.x ? NSOrderedAscending : NSOrderedDescending;
+    }];
+
+    NSMutableArray<NSValue *> *centers = [NSMutableArray array];
+    NSMutableArray<NSString *> *ids = [NSMutableArray array];
+    for (UIView *c in cells) {
+        CGPoint p = [c.superview convertPoint:c.center toView:host];
+        [centers addObject:[NSValue valueWithCGPoint:p]];
+        NSString *identifier = objc_getAssociatedObject(c, &kCC27IdKey) ?: [self _identifierForContainer:c] ?: @"";
+        [ids addObject:identifier];
+    }
+    self.dragSlotViews = cells;
+    self.dragSlotCenters = centers;
+    self.dragSlotIds = ids;
+}
+
+- (NSInteger)_slotIndexNearestToPoint:(CGPoint)p {
+    NSInteger best = NSNotFound;
+    CGFloat bestDist = CGFLOAT_MAX;
+    for (NSUInteger i = 0; i < self.dragSlotCenters.count; i++) {
+        CGPoint c = [self.dragSlotCenters[i] CGPointValue];
+        CGFloat d = hypot(c.x - p.x, c.y - p.y);
+        if (d < bestDist) { bestDist = d; best = (NSInteger)i; }
+    }
+    return best;
+}
+
+// Animate every non-dragged module toward the slot it would occupy if the
+// dragged module were dropped at `proposedIndex` — the home-screen reflow.
+// Uses transforms only: CC's layout passes overwrite frames/centers, but they
+// leave `transform` alone, so the preview is stable and fully reversible.
+- (void)_previewReflowToIndex:(NSInteger)proposedIndex {
+    if (proposedIndex == NSNotFound || !self.dragSlotViews.count) return;
+    UIView *dragged = self.draggingView;
+
+    NSMutableArray<UIView *> *order = self.dragSlotViews.mutableCopy;
+    if (dragged) [order removeObject:dragged];
+    NSInteger clamped = MAX(0, MIN(proposedIndex, (NSInteger)order.count));
+    if (dragged) [order insertObject:dragged atIndex:clamped];
+
+    [UIView animateWithDuration:0.3 delay:0 usingSpringWithDamping:0.8 initialSpringVelocity:0.3
+                        options:UIViewAnimationOptionAllowUserInteraction | UIViewAnimationOptionBeginFromCurrentState
+                     animations:^{
+        for (NSUInteger slot = 0; slot < order.count && slot < self.dragSlotCenters.count; slot++) {
+            UIView *v = order[slot];
+            if (v == dragged) continue; // the snapshot follows the finger instead
+            NSUInteger home = [self.dragSlotViews indexOfObject:v];
+            if (home == NSNotFound) continue;
+            CGPoint from = [self.dragSlotCenters[home] CGPointValue];
+            CGPoint to = [self.dragSlotCenters[slot] CGPointValue];
+            v.transform = CGAffineTransformMakeTranslation(to.x - from.x, to.y - from.y);
+        }
+    } completion:nil];
+}
+
+- (void)_endDragCommitting:(BOOL)commit {
+    UIView *container = self.draggingView;
+    NSString *identifier = self.draggingIdentifier;
+    NSInteger proposed = self.dragProposedIndex;
+    NSInteger original = self.dragOriginalIndex;
+    UIView *snapshot = self.dragSnapshot;
+    NSArray<UIView *> *slotViews = self.dragSlotViews;
+    NSArray<NSValue *> *centers = self.dragSlotCenters;
+    NSArray<NSString *> *slotIds = self.dragSlotIds;
+
+    BOOL wantsMove = commit && identifier.length &&
+                     proposed != NSNotFound && proposed != original;
+
+    // Land the snapshot on its slot, then reveal the real module again.
+    CGPoint landing = (proposed != NSNotFound && proposed < (NSInteger)centers.count)
+        ? [centers[proposed] CGPointValue]
+        : (original != NSNotFound && original < (NSInteger)centers.count
+            ? [centers[original] CGPointValue] : snapshot.center);
+
+    [UIView animateWithDuration:0.25 delay:0 usingSpringWithDamping:0.85 initialSpringVelocity:0.3 options:0 animations:^{
+        snapshot.center = landing;
+        snapshot.transform = CGAffineTransformIdentity;
+    } completion:^(__unused BOOL done) {
+        [snapshot removeFromSuperview];
+        container.alpha = 1.0;
+        for (UIView *v in slotViews) v.transform = CGAffineTransformIdentity;
+
+        if (wantsMove) {
+            // Convert the visual slot index into an index in the persisted
+            // user-enabled list: count enabled modules occupying slots before
+            // the proposed slot (fixed modules aren't reorderable).
+            @try {
+                NSArray *enabledOrder = CC27LayoutStore.shared.enabledIdentifiers;
+                NSUInteger target = 0;
+                for (NSInteger i = 0; i < proposed && i < (NSInteger)slotIds.count; i++) {
+                    NSString *slotId = slotIds[i];
+                    if ([slotId isEqualToString:identifier]) continue;
+                    if ([enabledOrder containsObject:slotId]) target++;
+                }
+                if ([CC27LayoutStore.shared moveModule:identifier toIndex:target]) {
+                    [self _haptic:UIImpactFeedbackStyleMedium];
+                }
+            } @catch (NSException *e) {
+                NSLog(@"[CC27] drag commit threw: %@", e);
+            }
+        }
+
+        [self performSelector:@selector(_decorateVisibleModules) withObject:nil afterDelay:0.4];
+    }];
+
+    self.draggingIdentifier = nil;
+    self.draggingView = nil;
+    self.dragSnapshot = nil;
+    self.dragSlotViews = nil;
+    self.dragSlotCenters = nil;
+    self.dragSlotIds = nil;
 }
 
 - (void)_dragModule:(UILongPressGestureRecognizer *)gr {
@@ -476,45 +676,60 @@ static char kCC27IdKey;
         case UIGestureRecognizerStateBegan: {
             self.draggingIdentifier = identifier;
             self.draggingView = container;
+            [self _captureDragSlotsExcludingNone];
+            self.dragOriginalIndex = (NSInteger)[self.dragSlotViews indexOfObject:container];
+            self.dragProposedIndex = self.dragOriginalIndex;
+
+            // Freeze the module into a snapshot the finger can move freely —
+            // CC keeps owning the real view, so its layout can't fight us and
+            // we can't corrupt it.
+            [container.layer removeAnimationForKey:@"cc27.jiggle"];
+            UIView *snapshot = [container snapshotViewAfterScreenUpdates:NO];
+            if (!snapshot) {
+                self.draggingIdentifier = nil;
+                self.draggingView = nil;
+                self.dragSlotViews = nil;
+                self.dragSlotCenters = nil;
+                self.dragSlotIds = nil;
+                return;
+            }
+            CGRect frame = [container.superview convertRect:container.frame toView:host];
+            snapshot.frame = frame;
+            snapshot.layer.zPosition = 2000;
+            snapshot.layer.shadowColor = UIColor.blackColor.CGColor;
+            snapshot.layer.shadowOpacity = 0.45;
+            snapshot.layer.shadowRadius = 16;
+            snapshot.layer.shadowOffset = CGSizeMake(0, 10);
+            snapshot.userInteractionEnabled = NO;
+            [host addSubview:snapshot];
+            self.dragSnapshot = snapshot;
+            container.alpha = 0.06; // leave a faint ghost in the vacated slot
+
             [self _haptic:UIImpactFeedbackStyleMedium];
             [UIView animateWithDuration:0.15 animations:^{
-                container.alpha = 0.85;
-                container.transform = CGAffineTransformMakeScale(1.06, 1.06);
-                container.layer.zPosition = 1000;
+                snapshot.transform = CGAffineTransformMakeScale(1.08, 1.08);
             }];
             break;
         }
         case UIGestureRecognizerStateChanged: {
             CGPoint p = [gr locationInView:host];
-            container.center = p;
+            self.dragSnapshot.center = p;
+
+            NSInteger proposed = [self _slotIndexNearestToPoint:p];
+            if (proposed != NSNotFound && proposed != self.dragProposedIndex) {
+                self.dragProposedIndex = proposed;
+                [self _haptic:UIImpactFeedbackStyleLight];
+                [self _previewReflowToIndex:proposed];
+            }
             break;
         }
-        case UIGestureRecognizerStateEnded:
-        case UIGestureRecognizerStateCancelled: {
-            NSMutableArray *containers = [NSMutableArray array];
-            [self _collectContainers:host into:containers];
-            UIView *nearest = nil;
-            CGFloat best = CGFLOAT_MAX;
-            CGPoint p = [gr locationInView:host];
-            for (UIView *other in containers) {
-                if (other == container) continue;
-                CGFloat d = hypot(other.center.x - p.x, other.center.y - p.y);
-                if (d < best) { best = d; nearest = other; }
-            }
-            if (nearest && best < 120) {
-                NSString *targetId = objc_getAssociatedObject(nearest, &kCC27IdKey) ?: [self _identifierForContainer:nearest];
-                NSArray *ordered = CC27LayoutStore.shared.enabledIdentifiers;
-                NSUInteger to = [ordered indexOfObject:targetId];
-                if (to != NSNotFound) {
-                    [CC27LayoutStore.shared moveModule:identifier toIndex:to];
-                }
-            }
-            self.draggingIdentifier = nil;
-            self.draggingView = nil;
-            container.layer.zPosition = 0;
-            container.transform = CGAffineTransformIdentity;
-            container.alpha = 1;
-            [self performSelector:@selector(_decorateVisibleModules) withObject:nil afterDelay:0.35];
+        case UIGestureRecognizerStateEnded: {
+            [self _endDragCommitting:YES];
+            break;
+        }
+        case UIGestureRecognizerStateCancelled:
+        case UIGestureRecognizerStateFailed: {
+            [self _endDragCommitting:NO];
             break;
         }
         default:

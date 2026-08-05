@@ -65,6 +65,39 @@ static NSString *CC27SizeOverridesPath(void) {
     return ids ?: @[];
 }
 
+- (NSArray<NSString *> *)fixedIdentifiers {
+    NSMutableOrderedSet *fixed = [NSMutableOrderedSet orderedSet];
+    CCSModuleSettingsProvider *provider = self._provider;
+    if ([provider respondsToSelector:@selector(orderedFixedModuleIdentifiers)]) {
+        @try {
+            NSArray *ids = provider.orderedFixedModuleIdentifiers;
+            if ([ids isKindOfClass:NSArray.class]) [fixed addObjectsFromArray:ids];
+        } @catch (__unused NSException *e) {}
+    }
+    // Known always-present modules on iOS 15–17 in case the provider API moves.
+    [fixed addObjectsFromArray:@[
+        @"com.apple.control-center.ConnectivityModule",
+        @"com.apple.mediaremote.controlcenter.nowplaying",
+        @"com.apple.control-center.OrientationLockModule",
+        @"com.apple.donotdisturb.DoNotDisturbModule",
+        @"com.apple.FocusUIModule",
+        @"com.apple.control-center.DisplayModule",
+        @"com.apple.control-center.AudioModule",
+        @"com.apple.mediaremote.controlcenter.audio",
+    ]];
+    return fixed.array;
+}
+
+- (BOOL)isModuleFixed:(NSString *)identifier {
+    return identifier.length > 0 && [[self fixedIdentifiers] containsObject:identifier];
+}
+
+- (BOOL)isModuleInControlCenter:(NSString *)identifier {
+    if (identifier.length == 0) return NO;
+    if ([self.enabledIdentifiers containsObject:identifier]) return YES;
+    return [self isModuleFixed:identifier];
+}
+
 - (NSArray<NSString *> *)disabledIdentifiers {
     NSMutableSet *all = [NSMutableSet set];
     for (CC27ModuleInfo *info in CC27ModuleCatalog.shared.allModules) {
@@ -98,7 +131,9 @@ static NSString *CC27SizeOverridesPath(void) {
     for (NSString *name in @[ @"_handleConfigurationFileUpdate", @"_loadSettings", @"_queue_loadSettings" ]) {
         SEL sel = NSSelectorFromString(name);
         if ([provider respondsToSelector:sel]) {
-            [provider performSelector:sel];
+            @try { [provider performSelector:sel]; } @catch (NSException *e) {
+                NSLog(@"[CC27] settings reload %@ threw: %@", name, e);
+            }
             break;
         }
     }
@@ -120,29 +155,66 @@ static NSString *CC27SizeOverridesPath(void) {
     ]) {
         SEL sel = NSSelectorFromString(name);
         if ([mgr respondsToSelector:sel]) {
-            [mgr performSelector:sel];
+            @try { [mgr performSelector:sel]; } @catch (NSException *e) {
+                NSLog(@"[CC27] instance rebuild %@ threw: %@", name, e);
+            }
             break;
         }
     }
 #pragma clang diagnostic pop
 }
 
+- (CCUIModuleCollectionViewController *)_collectionViewController {
+    Class coll = NSClassFromString(@"CCUIModuleCollectionViewController");
+    Class mod = NSClassFromString(@"CCUIModularControlCenterViewController");
+    Class overlay = NSClassFromString(@"CCUIModularControlCenterOverlayViewController");
+    if ([mod respondsToSelector:@selector(_sharedCollectionViewController)]) {
+        return [mod _sharedCollectionViewController];
+    }
+    if ([overlay respondsToSelector:@selector(_sharedCollectionViewController)]) {
+        return [overlay _sharedCollectionViewController];
+    }
+    if ([coll respondsToSelector:@selector(_sharedCollectionViewController)]) {
+        return [coll _sharedCollectionViewController];
+    }
+    return nil;
+}
+
+// Reorder-only refresh: the module instances are unchanged, so skip the
+// aggressive instance rebuild that can throw mid-gesture and safe-mode
+// SpringBoard. Just reload settings and ask the collection to re-place views.
+- (void)refreshModulePositionsOnly {
+    [self _forceSettingsReload];
+
+    CCUIModuleCollectionViewController *vc = [self _collectionViewController];
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    if (vc) {
+        for (NSString *name in @[ @"_refreshPositionProviders", @"_updatePositionProviders" ]) {
+            SEL sel = NSSelectorFromString(name);
+            if ([vc respondsToSelector:sel]) {
+                @try { [vc performSelector:sel]; } @catch (NSException *e) {
+                    NSLog(@"[CC27] position refresh %@ threw: %@", name, e);
+                }
+            }
+        }
+        @try {
+            [vc.view setNeedsLayout];
+            [vc.view layoutIfNeeded];
+        } @catch (NSException *e) {
+            NSLog(@"[CC27] position relayout threw: %@", e);
+        }
+    }
+#pragma clang diagnostic pop
+
+    [[NSNotificationCenter defaultCenter] postNotificationName:CC27LayoutDidChangeNotification object:nil];
+}
+
 - (void)refreshControlCenterLayout {
     [self _forceSettingsReload];
     [self _forceInstanceRebuild];
 
-    Class coll = NSClassFromString(@"CCUIModuleCollectionViewController");
-    Class mod = NSClassFromString(@"CCUIModularControlCenterViewController");
-    Class overlay = NSClassFromString(@"CCUIModularControlCenterOverlayViewController");
-
-    CCUIModuleCollectionViewController *vc = nil;
-    if ([mod respondsToSelector:@selector(_sharedCollectionViewController)]) {
-        vc = [mod _sharedCollectionViewController];
-    } else if ([overlay respondsToSelector:@selector(_sharedCollectionViewController)]) {
-        vc = [overlay _sharedCollectionViewController];
-    } else if ([coll respondsToSelector:@selector(_sharedCollectionViewController)]) {
-        vc = [coll _sharedCollectionViewController];
-    }
+    CCUIModuleCollectionViewController *vc = [self _collectionViewController];
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
@@ -155,11 +227,17 @@ static NSString *CC27SizeOverridesPath(void) {
         ]) {
             SEL sel = NSSelectorFromString(name);
             if ([vc respondsToSelector:sel]) {
-                [vc performSelector:sel];
+                @try { [vc performSelector:sel]; } @catch (NSException *e) {
+                    NSLog(@"[CC27] layout refresh %@ threw: %@", name, e);
+                }
             }
         }
-        [vc.view setNeedsLayout];
-        [vc.view layoutIfNeeded];
+        @try {
+            [vc.view setNeedsLayout];
+            [vc.view layoutIfNeeded];
+        } @catch (NSException *e) {
+            NSLog(@"[CC27] layout relayout threw: %@", e);
+        }
     }
 #pragma clang diagnostic pop
 
@@ -178,6 +256,14 @@ static NSString *CC27SizeOverridesPath(void) {
     if (!provider) {
         NSLog(@"[CC27] enableModule: CCSModuleSettingsProvider missing — is CCSupport installed?");
         return CC27LayoutApplyFailed;
+    }
+
+    // Never add a module that is already in Control Center. Fixed system modules
+    // (Volume, Brightness, Connectivity, …) live outside the user-enabled list;
+    // appending them there spawns a duplicate instance and crashes SpringBoard.
+    if ([self isModuleInControlCenter:identifier]) {
+        NSLog(@"[CC27] enableModule: %@ is already present — skipping", identifier);
+        return CC27LayoutApplyAlreadyPresent;
     }
 
     NSMutableArray *ordered = self.enabledIdentifiers.mutableCopy ?: [NSMutableArray new];
@@ -204,6 +290,8 @@ static NSString *CC27SizeOverridesPath(void) {
 
 - (BOOL)disableModule:(NSString *)identifier {
     if (identifier.length == 0) return NO;
+    // Fixed system modules can't be removed — they aren't in the user list.
+    if ([self isModuleFixed:identifier] && ![self.enabledIdentifiers containsObject:identifier]) return NO;
     CCSModuleSettingsProvider *provider = self._provider;
     if (!provider) return NO;
     NSMutableArray *ordered = self.enabledIdentifiers.mutableCopy ?: [NSMutableArray new];
@@ -225,8 +313,9 @@ static NSString *CC27SizeOverridesPath(void) {
     NSUInteger to = MIN(index, ordered.count);
     [ordered insertObject:identifier atIndex:to];
     [provider setAndSaveOrderedUserEnabledModuleIdentifiers:ordered];
-    [self refreshControlCenterLayout];
-    [[NSNotificationCenter defaultCenter] postNotificationName:CC27LayoutDidChangeNotification object:nil];
+    // Reorder keeps the same instances alive — use the gentle refresh. The
+    // full refresh (instance rebuild) mid-gesture could throw and safe-mode.
+    [self refreshModulePositionsOnly];
     return YES;
 }
 

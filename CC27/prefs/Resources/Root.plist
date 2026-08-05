@@ -70,7 +70,7 @@
 			<key>label</key>
 			<string>Editing</string>
 			<key>footerText</key>
-			<string>In Control Center: tap + or touch &amp; hold empty space to enter edit mode. Drag modules to rearrange, tap − to remove, and tap Add a Control for the searchable gallery.</string>
+			<string>In Control Center: tap + or touch &amp; hold empty space to enter edit mode. Drag modules to rearrange, tap − to remove, and tap Add a Control for the searchable gallery. You can also rearrange safely in Edit Control Center Layout below — it commits with a respring.</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -85,6 +85,14 @@
 			<string>In-CC Edit Mode</string>
 			<key>PostNotification</key>
 			<string>com.kolby.cc27/ReloadPrefs</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>detail</key>
+			<string>CC27LayoutEditorController</string>
+			<key>label</key>
+			<string>Edit Control Center Layout</string>
 		</dict>
 		<dict>
 			<key>cell</key>
