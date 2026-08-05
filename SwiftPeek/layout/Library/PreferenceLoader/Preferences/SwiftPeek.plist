@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>entry</key>
+	<dict>
+		<key>cell</key>
+		<string>PSLinkCell</string>
+		<key>icon</key>
+		<string></string>
+		<key>label</key>
+		<string>SwiftPeek</string>
+	</dict>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Read-only SwiftUI inspector. Default off. When enabled, dumps land under Library/SwiftPeek/dumps/ (JSON) and post com.kolby.swiftpeek/dump. Relaunch Music (or respring for Control Center) after changing.</string>
+			<key>label</key>
+			<string>SwiftPeek</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.kolby.swiftpeek/prefschanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.kolby.swiftpeek</string>
+			<key>key</key>
+			<string>enabled</string>
+			<key>label</key>
+			<string>Enable SwiftPeek</string>
+		</dict>
+			<dict>
+				<key>PostNotification</key>
+				<string>com.kolby.swiftpeek/prefschanged</string>
+				<key>cell</key>
+				<string>PSSwitchCell</string>
+				<key>default</key>
+				<true/>
+				<key>defaults</key>
+				<string>com.kolby.swiftpeek</string>
+				<key>key</key>
+				<string>logAttach</string>
+				<key>label</key>
+				<string>Log Attach (os_log / NSLog)</string>
+			</dict>
+			<dict>
+				<key>PostNotification</key>
+				<string>com.kolby.swiftpeek/prefschanged</string>
+				<key>cell</key>
+				<string>PSSwitchCell</string>
+				<key>default</key>
+				<true/>
+				<key>defaults</key>
+				<string>com.kolby.swiftpeek</string>
+				<key>key</key>
+				<string>dumpFields</string>
+				<key>label</key>
+				<string>Dump Fields (milestone 2)</string>
+			</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>SwiftPeek • by kolby — inspector only, no mutation</string>
+		</dict>
+	</array>
+	<key>title</key>
+	<string>SwiftPeek</string>
+</dict>
+</plist>

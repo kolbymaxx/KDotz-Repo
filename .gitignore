@@ -15,3 +15,11 @@ packages/
 !dist/*.deb
 Music27/.theos/
 Music27/packages/
+SwiftPeek/.theos/
+SwiftPeek/packages/
+GrokAgent/.theos/
+GrokAgent/packages/
+
+# Host-side tool binary (rebuild with: cc -O2 -o tools/swiftmd tools/swiftmd.c)
+tools/swiftmd
+
