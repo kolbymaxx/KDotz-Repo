@@ -36,6 +36,10 @@ public struct SiriMetalView: UIViewRepresentable {
         mtkView.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
         mtkView.backgroundColor = .clear
         mtkView.isOpaque = false
+        // Critical: otherwise the full drawable reads as an opaque box over glass.
+        if let metalLayer = mtkView.layer as? CAMetalLayer {
+            metalLayer.isOpaque = false
+        }
         
         context.coordinator.setupMetal(mtkView: mtkView)
         
@@ -94,37 +98,39 @@ public struct SiriMetalView: UIViewRepresentable {
             }
 
             constant float PI = 3.14159265359f;
-            constant float AMPLITUDE   = 0.055f; // Subtle idle shimmer; speech grows from here
-            constant float FREQ        = 0.8f; // Further lowered to make waves even wider horizontally
-            constant float ABER_FREQ   = 0.7f;
+            // Idle still flows as a visible rainbow ribbon; speech grows amplitude.
+            constant float AMPLITUDE   = 0.14f;
+            constant float FREQ        = 0.85f;
+            constant float ABER_FREQ   = 0.78f;
             constant float SPEED       = 2.4f;
             constant float WAVE_SCALE  = 0.6f;
-            constant float ABERRATION  = 2.6f;
-            constant float THICKNESS   = 0.5f; // Made extremely sharp/solid
-            constant float INTENSITY   = 2.15f; 
-            constant float FALLOFF     = 0.8f; // Slightly more edge fading
+            constant float ABERRATION  = 3.1f;
+            constant float THICKNESS   = 0.55f;
+            constant float INTENSITY   = 2.35f;
+            constant float FALLOFF     = 0.85f;
             constant float EDGE_MASK   = 0.4f;
             constant float EDGE_INSET  = 0.0f;
-            constant float BAND_FILL   = 25000.0f; // Moderately lighter
-            constant float BAND_THICK  = 0.08f;
-            constant float SOFTNESS    = 0.4f;
-            constant float LOW_AMP     = 18.0f; // High enough for big waves
+            constant float BAND_FILL   = 18000.0f;
+            constant float BAND_THICK  = 0.07f;
+            constant float SOFTNESS    = 0.22f;
+            constant float LOW_AMP     = 18.0f;
             constant float LOW_INT     = 1.5f;
-            constant float MID_ABER    = 0.8f;
+            constant float MID_ABER    = 0.95f;
             constant float MID_ABAMP   = 0.05f;
             constant float MID_BAND    = 20.0f;
-            constant float MID_SOFT    = 0.4f;
-            constant float HIGH_ABER   = 0.5f;
+            constant float MID_SOFT    = 0.25f;
+            constant float HIGH_ABER   = 0.65f;
             constant float HIGH_ABAMP  = 0.06f;
             constant float RESOLVED    = 1.0f;
             constant float UNRES_SCALE = 0.14f;
-            constant float Y_OFFSET    = -0.08f; // Adjusted to be a tiny bit higher than -0.15f
+            constant float Y_OFFSET    = -0.08f;
             
             float3 spectral4(int s){
-                float x = float(s);
-                // Slightly hotter primaries for clearer rainbow bands
-                float3 c = clamp(float3(abs(x-3.0f)-1.0f, 2.0f-abs(x-2.0f), 2.0f-abs(x-4.0f)), 0.0f, 1.0f);
-                return pow(c, float3(0.92f));
+                // Distinct primaries — avoid collapsing toward white.
+                if (s == 0) return float3(1.00f, 0.18f, 0.55f); // magenta/red
+                if (s == 1) return float3(1.00f, 0.72f, 0.12f); // amber
+                if (s == 2) return float3(0.18f, 0.95f, 0.55f); // green
+                return float3(0.25f, 0.55f, 1.00f);             // blue
             }
 
             fragment half4 siriFragmentShader(VertexOut in [[stage_in]], constant Uniforms &u [[buffer(0)]]) {
@@ -133,49 +139,42 @@ public struct SiriMetalView: UIViewRepresentable {
                 float2 p = uv;
                 float yScreen = uv.y;
                 p.y += Y_OFFSET;
-                p.y *= 1.2f; // Squash the wave slightly to keep it inside the bubble
+                p.y *= 1.2f;
                 p.x *= aspect;
                 p /= max(WAVE_SCALE, 0.1f);
                 float t = u.time;
                 float talkingFactor = u.talkingFactor;
                 
-                // Generate base factors
                 float low  = clamp(0.45f + 0.45f*sin(t*0.8f)*sin(t*0.37f+1.0f), 0.0f, 1.0f);
                 float mid  = clamp(0.40f + 0.40f*sin(t*1.7f+2.0f)*sin(t*0.53f), 0.0f, 1.0f);
                 float high = clamp(0.30f + 0.30f*sin(t*2.9f+4.0f)*sin(t*0.71f+2.0f), 0.0f, 1.0f);
                 
-                // talkingFactor is already 0 idle → 1 loud (Siri27 WaveManager)
-                // Lift quiet/mid speech while preserving a true zero at idle.
                 float activeFactor = pow(clamp(talkingFactor, 0.0f, 1.0f), 0.72f);
                 
                 float res   = clamp(RESOLVED, 0.0f, 1.0f);
                 float drift = fmod(t, 20.0f * PI) * SPEED;
                 float xN  = p.x / max(aspect, 1.0f);
                 
-                // Widen envelope horizontally but make it a tiny bit less wide
-                // by multiplying uv.x by 1.15 so it fades out just before the edge.
                 float xNorm = min(abs(uv.x * 1.15f), 1.0f);
                 float env = cos(PI*0.5f * xNorm);
                 
-                // Idle amplitude stays tiny; speech multiplies peak height.
-                float dynamicLowAmp = 0.0f + (activeFactor * LOW_AMP * 5.0f);
-                float dynamicMidAmp = 0.0f + (activeFactor * MID_ABAMP * 5.0f);
-                float dynamicHighAmp = 0.0f + (activeFactor * HIGH_ABAMP * 5.0f);
+                float dynamicLowAmp = activeFactor * LOW_AMP * 5.0f;
+                float dynamicMidAmp = activeFactor * MID_ABAMP * 5.0f;
+                float dynamicHighAmp = activeFactor * HIGH_ABAMP * 5.0f;
                 
                 float A1    = AMPLITUDE + 0.01f*low*dynamicLowAmp;
                 float A2    = A1 + mid*dynamicMidAmp + high*dynamicHighAmp;
                 float AB    = (ABERRATION + mid*MID_ABER + high*HIGH_ABER)*res;
                 
-                // Quiet chromatic fringe when idle; full rainbow when talking
-                AB *= mix(0.12f, 1.0f, clamp(activeFactor * 4.0f, 0.0f, 1.0f));
+                // Keep strong chromatic split even when idle so the ribbon stays rainbow.
+                AB *= mix(0.70f, 1.0f, clamp(activeFactor * 3.0f, 0.0f, 1.0f));
                 
-                // Make it thicker when talking (6.0 = clearly slimmer stroke than 9.0)
-                float currentThickness = THICKNESS + (activeFactor * 6.0f);
+                float currentThickness = THICKNESS + (activeFactor * 5.5f);
                 float th    = mix(0.1f, 0.01f*currentThickness, res);
                 float inten = mix(0.1f, 0.01f*(INTENSITY + low*LOW_INT), res);
                 
-                // Softer idle glow so idle doesn't look like a full talking wave
-                float idleGlowBoost = 2.2f * (1.0f - clamp(activeFactor * 2.0f, 0.0f, 1.0f));
+                // Minimal idle soft glow — soft white haze was washing the rainbow.
+                float idleGlowBoost = 0.35f * (1.0f - clamp(activeFactor * 2.0f, 0.0f, 1.0f));
                 float soft  = 0.01f*res*max(0.0f, SOFTNESS + idleGlowBoost + mid*MID_SOFT);
                 
                 float dUnres = max(length(p) - mix(0.14f, UNRES_SCALE, res), 0.0f);
@@ -185,7 +184,7 @@ public struct SiriMetalView: UIViewRepresentable {
                 float3 num = float3(0.0f);
                 float3 den = float3(0.0f);
                 for(int s = 0; s < 4; s++){
-                    float3 hue = mix(float3(1.0f), spectral4(s), res);
+                    float3 hue = spectral4(s);
                     den += hue;
                     float ab = mix(-AB, AB, float(s)/3.0f);
                     float yL = A2 * env * res * sin(p.x*ABER_FREQ + drift + ab);
@@ -197,26 +196,30 @@ public struct SiriMetalView: UIViewRepresentable {
                     float band  = bandAmt / (dBand + bandFillTh);
                     num += hue * lor * (line + band);
                 }
-                float3 col = num / den;
+                float3 col = num / max(den, float3(1e-4f));
                 float dM    = mix(dUnres, abs(p.y - yMain), res);
                 float lorM  = mix(1.0f/(1.0f + (0.02f*dM)*(0.02f*dM)), 1.0f, res);
-                float boostVal = (1.0f - res) * (14.0f*low + 4.0f);
-                col += 0.5f * inten * (lorM + boostVal) / (sqrt(dM*dM + soft*soft) + th);
-                // Milder gamma keeps mids punchier (was 1.5 → washed)
-                col = pow(max(col, 0.0f), float3(1.18f));
-                float3 preFadeCol = col; // Save raw vibrant color for the glass edge
+                // Colored core boost — do not add a white/neutral core.
+                float core = 0.22f * inten * lorM / (sqrt(dM*dM + soft*soft) + th);
+                col += col * core;
+                col = pow(max(col, 0.0f), float3(0.92f));
                 float emT = clamp((abs(yScreen) - 1.0f + EDGE_INSET) / (-max(EDGE_MASK, 1e-4f)), 0.0f, 1.0f);
                 float em  = emT*emT*(3.0f - 2.0f*emT);
                 float gauss = exp(-pow(xN*FALLOFF, 2.0f));
                 col *= mix(1.0f, em*gauss, res);
                 col *= res;
-                // Hint more contrast + vibrancy without neon blowout
-                col *= 1.05f + (talkingFactor * 1.15f);
-                col *= 0.94f + (talkingFactor * 0.14f);
+                // Idle stays colorful; talking adds punch without bleaching.
+                col *= 1.15f + (activeFactor * 0.95f);
                 float luma = dot(col, float3(0.299f, 0.587f, 0.114f));
-                col = mix(float3(luma), col, 1.16f);
+                col = mix(float3(luma), col, 1.35f);
+                col = clamp(col, 0.0f, 1.8f);
                 
-                return half4(half3(col), 1.0);
+                // Per-pixel alpha so the MTKView isn't an opaque white/washed box.
+                // Premultiply RGB for the .one / .oneMinusSourceAlpha blend.
+                float alpha = clamp(max(max(col.r, col.g), col.b), 0.0f, 1.0f);
+                alpha = pow(alpha, 0.78f);
+                float3 outRGB = min(col, float3(1.0f)) * alpha;
+                return half4(half3(outRGB), half(alpha));
             }
             """
             
@@ -236,14 +239,15 @@ public struct SiriMetalView: UIViewRepresentable {
             pipelineDescriptor.fragmentFunction = fragmentFunc
             pipelineDescriptor.colorAttachments[0].pixelFormat = mtkView.colorPixelFormat
             
-            // Enable additive blending so the black background becomes transparent
+            // Premultiplied-friendly blending: transparent outside the ribbon
+            // (avoids the opaque MTKView box) while keeping additive glow punch.
             pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true
             pipelineDescriptor.colorAttachments[0].rgbBlendOperation = .add
             pipelineDescriptor.colorAttachments[0].alphaBlendOperation = .add
-            pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = .sourceAlpha
-            pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = .sourceAlpha
-            pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = .one
-            pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = .one
+            pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = .one
+            pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = .one
+            pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceAlpha
+            pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceAlpha
             
             do {
                 pipelineState = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
