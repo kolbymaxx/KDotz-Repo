@@ -508,6 +508,7 @@ targetIndexPathForMoveFromItemAtIndexPath:(NSIndexPath *)original
 #pragma mark Apply
 
 - (void)_applyTapped {
+    if (self.userIds.count == 0) return; // never wipe the CC module list
     NSMutableDictionary *config = [[NSDictionary dictionaryWithContentsOfFile:kCC27ModuleConfigPath] mutableCopy]
                                   ?: [NSMutableDictionary dictionary];
     config[kCC27ModuleOrderKey] = self.userIds.copy;

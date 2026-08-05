@@ -1,19 +1,35 @@
 #import "CC27.h"
+#import <objc/runtime.h>
+#import <string.h>
 
 static void CC27ReloadPrefs(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
     [CC27Prefs.shared reload];
     [CC27LayoutStore.shared reload];
 }
 
+// On iOS 16+, the Lock Screen's flashlight / camera quick actions embed real
+// CC module container views — the exact class we hook. CC27 must never style
+// or decorate those: mutating lock screen views can wedge the whole cover
+// sheet. Only views living inside actual Control Center chrome qualify.
+static BOOL CC27ViewIsInControlCenter(UIView *view) {
+    UIView *v = view;
+    while (v) {
+        const char *cls = class_getName(v.class);
+        if (cls) {
+            if (strstr(cls, "QuickAction") || strstr(cls, "CoverSheet") ||
+                strstr(cls, "DashBoard") || strstr(cls, "Dashboard") ||
+                strstr(cls, "LockScreen")) {
+                return NO;
+            }
+        }
+        v = v.superview;
+    }
+    return YES;
+}
+
 %group CC27
 
 %hook CCUIModularControlCenterOverlayViewController
-
-- (void)viewDidLoad {
-    %orig;
-    if (!CC27Prefs.shared.enabled) return;
-    [CC27EditSession.shared attachChromeToHost:self];
-}
 
 - (void)viewWillAppear:(BOOL)animated {
     %orig;
@@ -42,8 +58,11 @@ static void CC27ReloadPrefs(CFNotificationCenterRef center, void *observer, CFSt
 - (void)viewDidLayoutSubviews {
     %orig;
     if (!CC27Prefs.shared.enabled) return;
-    [CC27EditSession.shared attachChromeToHost:self];
-    [CC27EditSession.shared layoutChromeOnHost:self];
+    // Chrome is created lazily on first presentation (viewWillAppear), not at
+    // SpringBoard boot — here we only keep existing chrome positioned.
+    if (CC27EditSession.shared.hostVisible) {
+        [CC27EditSession.shared layoutChromeOnHost:self];
+    }
 }
 
 - (void)setPresentationState:(NSInteger)state {
@@ -59,27 +78,34 @@ static void CC27ReloadPrefs(CFNotificationCenterRef center, void *observer, CFSt
 - (void)layoutSubviews {
     %orig;
     if (!CC27Prefs.shared.enabled) return;
-    if (CC27Prefs.shared.glassChrome) {
-        [CC27Glass applyToModuleContainer:self];
-    }
-    if (CC27EditSession.shared.editing) {
-        NSString *identifier = nil;
-        UIView *v = self;
-        while (v) {
+    // Never touch module containers hosted outside Control Center (Lock
+    // Screen quick actions on iOS 16 use this same class).
+    if (!CC27ViewIsInControlCenter(self)) return;
+    @try {
+        if (CC27Prefs.shared.glassChrome) {
+            [CC27Glass applyToModuleContainer:self];
+        }
+        if (CC27EditSession.shared.editing) {
+            NSString *identifier = nil;
+            UIView *v = self;
+            while (v) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-            SEL sel = NSSelectorFromString(@"_viewControllerForAncestor");
-            UIViewController *vc = [v respondsToSelector:sel] ? [v performSelector:sel] : nil;
+                SEL sel = NSSelectorFromString(@"_viewControllerForAncestor");
+                UIViewController *vc = [v respondsToSelector:sel] ? [v performSelector:sel] : nil;
 #pragma clang diagnostic pop
-            if ([vc isKindOfClass:NSClassFromString(@"CCUIContentModuleContainerViewController")]) {
-                @try { identifier = [vc valueForKey:@"moduleIdentifier"]; } @catch (__unused NSException *e) {}
-                break;
+                if ([vc isKindOfClass:NSClassFromString(@"CCUIContentModuleContainerViewController")]) {
+                    @try { identifier = [vc valueForKey:@"moduleIdentifier"]; } @catch (__unused NSException *e) {}
+                    break;
+                }
+                v = v.superview;
             }
-            v = v.superview;
+            if (identifier.length) {
+                [CC27EditSession.shared decorateModuleContainer:self identifier:identifier];
+            }
         }
-        if (identifier.length) {
-            [CC27EditSession.shared decorateModuleContainer:self identifier:identifier];
-        }
+    } @catch (NSException *e) {
+        NSLog(@"[CC27] module styling threw (suppressed): %@", e);
     }
 }
 
@@ -89,6 +115,13 @@ static void CC27ReloadPrefs(CFNotificationCenterRef center, void *observer, CFSt
 
 %ctor {
     @autoreleasepool {
+        // Emergency kill switch: create this file (e.g. via SSH/Filza) and
+        // respring to fully disable CC27 without uninstalling:
+        //   touch /var/mobile/Library/Preferences/com.kolby.cc27.killswitch
+        if ([[NSFileManager defaultManager] fileExistsAtPath:@"/var/mobile/Library/Preferences/com.kolby.cc27.killswitch"]) {
+            NSLog(@"[CC27] kill switch present — not loading");
+            return;
+        }
         [CC27Prefs.shared reload];
         CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
                                         NULL,
@@ -98,7 +131,7 @@ static void CC27ReloadPrefs(CFNotificationCenterRef center, void *observer, CFSt
                                         CFNotificationSuspensionBehaviorCoalesce);
         if (CC27Prefs.shared.enabled) {
             %init(CC27);
-            NSLog(@"[CC27] 1.0.4 loaded — snapshot drag, crash-proof reorder, prefs layout editor");
+            NSLog(@"[CC27] 1.0.5 loaded — lock screen exclusion, kill switch, boot hardening");
         } else {
             NSLog(@"[CC27] disabled in prefs");
         }

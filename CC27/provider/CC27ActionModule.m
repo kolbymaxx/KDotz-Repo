@@ -11,14 +11,14 @@ extern char **environ;
 }
 
 - (instancetype)init {
-    if ((self = [super initWithNibName:nil bundle:nil])) {
-        self.view.backgroundColor = UIColor.clearColor;
-    }
-    return self;
+    // Don't touch self.view here — modules are instantiated during SpringBoard
+    // boot and forcing early view loads there is asking for trouble.
+    return [super initWithNibName:nil bundle:nil];
 }
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    self.view.backgroundColor = UIColor.clearColor;
     _button = [UIButton buttonWithType:UIButtonTypeCustom];
     _button.translatesAutoresizingMaskIntoConstraints = NO;
     [_button addTarget:self action:@selector(_tapped) forControlEvents:UIControlEventTouchUpInside];
