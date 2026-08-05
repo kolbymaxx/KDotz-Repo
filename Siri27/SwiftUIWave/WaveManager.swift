@@ -31,8 +31,8 @@ import AVFoundation
     private var currentSpeed: Double = 1.0
     @Published public var rawMicLevel: Double = 0.0
 
-    private var micGain: Double = 22.0
-    private var micDeadzone: Double = 0.002
+    private var micGain: Double = 10.0
+    private var micDeadzone: Double = 0.012
     private var waveSpeedDivisor: Double = 3.8
 
     private override init() {
@@ -81,8 +81,8 @@ import AVFoundation
             if d.object(forKey: key) != nil { return d.double(forKey: key) }
             return fallback
         }
-        micGain = max(1.0, num("micGain", fallback: 22.0))
-        micDeadzone = max(0.0, num("micDeadzone", fallback: 0.002))
+        micGain = max(1.0, num("micGain", fallback: 10.0))
+        micDeadzone = max(0.0, num("micDeadzone", fallback: 0.012))
         waveSpeedDivisor = max(0.4, num("waveSpeed", fallback: 3.8))
     }
 
@@ -98,28 +98,30 @@ import AVFoundation
         }
         linearLevel = max(0.0, min(1.0, linearLevel))
 
-        // Soft curve so quiet speech still moves the wave
-        let boosted = pow(linearLevel, 0.55)
+        // Soft curve; ambient noise stays below deadzone / soft knee.
+        let boosted = pow(linearLevel, 0.70)
         let signal = max(0.0, boosted - micDeadzone)
+        // Soft compress so quiet room noise can't pin the wave at max.
+        let shaped = signal / (signal + 0.28)
+        let targetVisualPower = min(1.0, shaped * micGain * 0.85)
 
-        // Idle visual power ~0; speech ramps quickly
-        let targetVisualPower = min(1.5, signal * micGain)
-
-        let attack: Double = targetVisualPower > currentPower ? 0.00001 : 0.18
+        // Attack/release with audible range — not instant max-out.
+        let attack: Double = targetVisualPower > currentPower ? 0.10 : 0.22
         currentPower += (targetVisualPower - currentPower) * (1.0 - pow(attack, dt))
+        if currentPower < 0.01 { currentPower = 0 }
 
         bassLevel = currentPower
         midLevel = currentPower
         trebleLevel = currentPower
 
-        let targetSpeed = (1.0 + min(2.5, signal * 5.0)) * (3.8 / waveSpeedDivisor)
-        let speedLerp: Double = targetSpeed > currentSpeed ? 0.01 : 0.15
+        let targetSpeed = (1.0 + min(2.0, signal * 4.0)) * (3.8 / waveSpeedDivisor)
+        let speedLerp: Double = targetSpeed > currentSpeed ? 0.04 : 0.15
         currentSpeed += (targetSpeed - currentSpeed) * (1.0 - pow(speedLerp, dt))
 
         phase += currentSpeed * dt
         if phase > .pi * 100 { phase = phase.truncatingRemainder(dividingBy: .pi * 2) }
 
-        let extraSpeed = min(2.0, signal * 4.0)
+        let extraSpeed = min(1.6, signal * 3.2)
         for i in 0..<7 {
             let individualSpeed = currentSpeed + extraSpeed * Double(i - 3) * 0.2
             phases[i] += individualSpeed * dt
@@ -140,7 +142,16 @@ import AVFoundation
         }
     }
 
-    @objc public func startRecording() {}
+    @objc public func startRecording() {
+        DispatchQueue.main.async {
+            self.rawMicLevel = 0
+            self.currentPower = 0
+            self.bassLevel = 0
+            self.midLevel = 0
+            self.trebleLevel = 0
+            self.power = 0
+        }
+    }
 
     @objc public func stopRecording() {
         DispatchQueue.main.async {
