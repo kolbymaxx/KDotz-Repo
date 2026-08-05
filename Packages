@@ -1,3 +1,71 @@
+Package: com.kolby.cc27
+Version: 1.0.1
+Architecture: iphoneos-arm64
+Maintainer: kolbymaxx
+Installed-Size: 660
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader, com.opa334.ccsupport, firmware (>= 15.0)
+Conflicts: com.cureux.cc26, com.smfb7.ccxviii, com.dvntm.cc18
+Filename: dist/com.kolby.cc27_1.0.1_iphoneos-arm64.deb
+Size: 56710
+MD5sum: 90c70a02053f33582ae4ae776d6dcb5f
+SHA1: 2ab3e75961ea2179c9e8a1127af8adfa425acbad
+SHA256: 39df8e830d39b126c776572e2d1b8582e80bc6891ffe49d51e68e795688f89d2
+Section: Tweaks
+Description: iOS 26-style Control Center for iOS 15–17. 1.0.1 keeps +/power visible, fixes Add Control list UI, makes added modules appear, turns resize off by default, and stops glass clipping expanded menus.
+Author: kolbymaxx
+Name: CC27
+
+Package: com.kolby.cc27
+Version: 1.0.1
+Architecture: iphoneos-arm64e
+Maintainer: kolbymaxx
+Installed-Size: 660
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader, com.opa334.ccsupport, firmware (>= 15.0)
+Conflicts: com.cureux.cc26, com.smfb7.ccxviii, com.dvntm.cc18
+Filename: dist/com.kolby.cc27_1.0.1_iphoneos-arm64e.deb
+Size: 56712
+MD5sum: 0e57aabadcaee0e73d7cc0e8d1090aad
+SHA1: 09e06273615803e9cab9473069972193ef48d499
+SHA256: 9e0f1c7b124f11b3c37dd53d443d1262dfadbcb1e3224d416408207e7534bb07
+Section: Tweaks
+Description: iOS 26-style Control Center for iOS 15–17. 1.0.1 keeps +/power visible, fixes Add Control list UI, makes added modules appear, turns resize off by default, and stops glass clipping expanded menus.
+Author: kolbymaxx
+Name: CC27
+
+Package: com.kolby.cc27
+Version: 1.0.2
+Architecture: iphoneos-arm64e
+Maintainer: kolbymaxx
+Installed-Size: 676
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader, com.opa334.ccsupport, firmware (>= 15.0)
+Conflicts: com.cureux.cc26, com.smfb7.ccxviii, com.dvntm.cc18
+Filename: dist/com.kolby.cc27_1.0.2_iphoneos-arm64e.deb
+Size: 60302
+MD5sum: 8b9343067ee69dece7bdd4858462aef5
+SHA1: cea633aa6ffcef20bfffefab6d2e493f92c508aa
+SHA256: a251001afbd6d7b81e167c2b43c9c8a5ce785fd611214a325f9b382299640984
+Section: Tweaks
+Description: iOS 26-style Control Center for iOS 15–17. 1.0.2 restores round modules, removes crashy resize, improves gallery icons, and fixes prefs Respring.
+Author: kolbymaxx
+Name: CC27
+
+Package: com.kolby.cc27
+Version: 1.0.2
+Architecture: iphoneos-arm64
+Maintainer: kolbymaxx
+Installed-Size: 676
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader, com.opa334.ccsupport, firmware (>= 15.0)
+Conflicts: com.cureux.cc26, com.smfb7.ccxviii, com.dvntm.cc18
+Filename: dist/com.kolby.cc27_1.0.2_iphoneos-arm64.deb
+Size: 60274
+MD5sum: fcae978f23cc8bd0d6fea3267c7e1628
+SHA1: 6bd2b1fdc362d2a8b969f9e7a3cc6711fce3fe73
+SHA256: f0f93b3b2a053a090f8565c3efeb77b9d3a45bbb1ac9d70b7c47538754d8ee3d
+Section: Tweaks
+Description: iOS 26-style Control Center for iOS 15–17. 1.0.2 restores round modules, removes crashy resize, improves gallery icons, and fixes prefs Respring.
+Author: kolbymaxx
+Name: CC27
+
 Package: com.kolby.rhcompat
 Version: 1.0.2
 Architecture: iphoneos-arm64e
@@ -16,26 +84,7 @@ Author: Kolby
 Name: RHCompat
 
 Package: com.kolby.siri27
-Version: 1.39.1
-Architecture: iphoneos-arm64
-Maintainer: Kolby
-Installed-Size: 756
-Depends: mobilesubstrate, preferenceloader
-Conflicts: com.kolby.floatingsiri
-Replaces: com.kolby.floatingsiri
-Provides: com.kolby.floatingsiri
-Filename: dist/com.kolby.siri27_1.39.1_iphoneos-arm64.deb
-Size: 138586
-MD5sum: f1300b419f1c42ce654c2abb2f6ecad0
-SHA1: f72f5ac4a3083397baa5cc9bbae26fe4ff9ddd29
-SHA256: ca1e0f60fbe2fc259ac35ae4b90e84aaaa6a809cc58bd3587069f87aef7f969a
-Section: Tweaks
-Description: iOS 27-style liquid glass Siri orb — half-dark refractive glass, voice-reactive rainbow wave. rootless + roothide (Relaxin'), iOS 14–17.3. Replaces FloatingSiri.
-Author: Kolby
-Name: Siri27
-
-Package: com.kolby.siri27
-Version: 1.39.1
+Version: 1.40.2
 Architecture: iphoneos-arm64e
 Maintainer: Kolby
 Installed-Size: 756
@@ -43,13 +92,70 @@ Depends: mobilesubstrate, preferenceloader
 Conflicts: com.kolby.floatingsiri
 Replaces: com.kolby.floatingsiri
 Provides: com.kolby.floatingsiri
-Filename: dist/com.kolby.siri27_1.39.1_iphoneos-arm64e.deb
-Size: 138554
-MD5sum: d122ee7b6fddfa4b45cc681a5d30304f
-SHA1: 9c3e48ddea53c747b45be7ece15d6e01e5cb468b
-SHA256: cfbc91de66a28f72666884e10720bff351e0b90638b1d81f4dd9e2294655d28c
+Filename: dist/com.kolby.siri27_1.40.2_iphoneos-arm64e.deb
+Size: 140034
+MD5sum: dbac8111ce4e0aefe558d7a9433161eb
+SHA1: 29053634dd0883aef0b1a4baf7e38220e5b51519
+SHA256: 047cfc12bd3e9f5c69d85b41dda8ee58046539483574d236ad8e76ad01542abc
 Section: Tweaks
-Description: iOS 27-style liquid glass Siri orb — half-dark refractive glass, voice-reactive rainbow wave. rootless + roothide (Relaxin'), iOS 14–17.3. Replaces FloatingSiri.
+Description: iOS 27-style liquid glass Siri orb — single pop-in, voice-reactive rainbow wave, richer colors. rootless + roothide (Relaxin'), iOS 14–17.3. Replaces FloatingSiri.
+Author: Kolby
+Name: Siri27
+
+Package: com.kolby.siri27
+Version: 1.40.2
+Architecture: iphoneos-arm64
+Maintainer: Kolby
+Installed-Size: 756
+Depends: mobilesubstrate, preferenceloader
+Conflicts: com.kolby.floatingsiri
+Replaces: com.kolby.floatingsiri
+Provides: com.kolby.floatingsiri
+Filename: dist/com.kolby.siri27_1.40.2_iphoneos-arm64.deb
+Size: 140242
+MD5sum: a456e15ed8b4d614b83f193b12a19dfe
+SHA1: ebd91512aa2eed9d10655bdc839f3f71730f8908
+SHA256: ed1f3dfd2e3535e164d9e60db94fcf341b4bda7f764b024e2f7c3304a84893cf
+Section: Tweaks
+Description: iOS 27-style liquid glass Siri orb — single pop-in, voice-reactive rainbow wave, richer colors. rootless + roothide (Relaxin'), iOS 14–17.3. Replaces FloatingSiri.
+Author: Kolby
+Name: Siri27
+
+Package: com.kolby.siri27
+Version: 1.40.3
+Architecture: iphoneos-arm64e
+Maintainer: Kolby
+Installed-Size: 756
+Depends: mobilesubstrate, preferenceloader
+Conflicts: com.kolby.floatingsiri
+Replaces: com.kolby.floatingsiri
+Provides: com.kolby.floatingsiri
+Filename: dist/com.kolby.siri27_1.40.3_iphoneos-arm64e.deb
+Size: 140390
+MD5sum: 9e6f727928b8c4bd9e9e7b48695918fa
+SHA1: 16a86b4fca986e6a1377ca8be63b9ced5f47676c
+SHA256: 2d84afd9a77e215b5ec367d6fc7863019562440cd3b5017b6837d1cb725bb53b
+Section: Tweaks
+Description: iOS 27-style liquid glass Siri orb — no pop-in box, idle rainbow stays colorful, white under the wave. rootless + roothide (Relaxin'), iOS 14–17.3. Replaces FloatingSiri.
+Author: Kolby
+Name: Siri27
+
+Package: com.kolby.siri27
+Version: 1.40.3
+Architecture: iphoneos-arm64
+Maintainer: Kolby
+Installed-Size: 756
+Depends: mobilesubstrate, preferenceloader
+Conflicts: com.kolby.floatingsiri
+Replaces: com.kolby.floatingsiri
+Provides: com.kolby.floatingsiri
+Filename: dist/com.kolby.siri27_1.40.3_iphoneos-arm64.deb
+Size: 140322
+MD5sum: 47915b2014bea5bec1afd08c8c7762c0
+SHA1: 16e257be48aaa16fd106f021424243b41d6e37bf
+SHA256: 2a216144a62faa8b47ba59ca746b0a9aca63adf17ce095023a71a2e1456e1411
+Section: Tweaks
+Description: iOS 27-style liquid glass Siri orb — no pop-in box, idle rainbow stays colorful, white under the wave. rootless + roothide (Relaxin'), iOS 14–17.3. Replaces FloatingSiri.
 Author: Kolby
 Name: Siri27
 
@@ -146,6 +252,38 @@ SHA1: 86a95707267f78b490dc5f0a58af5915d3556445
 SHA256: 9359095c27c22d96954e88cb8fdf15db06d74051fbd492470970ea77df742d77
 Section: Tweaks
 Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass look — floating glass dock (scroll-collapse / red-button expand), Shuffle·Play·Download album row, library pins, artwork color themes. 1.1.1 fixes blank Music launch.
+Author: Music27
+Name: Music27
+
+Package: com.music27.tweak
+Version: 1.1.11
+Architecture: iphoneos-arm64
+Maintainer: Music27
+Installed-Size: 536
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader
+Filename: dist/com.music27.tweak_1.1.11_iphoneos-arm64.deb
+Size: 59568
+MD5sum: e2aa97ebaa8c69e65fef157e86991c44
+SHA1: d9209881279cbce458fc545a6d475a6567df4c8d
+SHA256: 6221a24ad7eb6063349cca452bfd809a836d56077fb0f01137dddcb28ff352dc
+Section: Tweaks
+Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass look. 1.1.11 uses SwiftPeek MusicApplication host names; window dock overlay; kill switch tears down chrome; never hides Library/MiniPlayer hosts.
+Author: Music27
+Name: Music27
+
+Package: com.music27.tweak
+Version: 1.1.11
+Architecture: iphoneos-arm64e
+Maintainer: Music27
+Installed-Size: 536
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader
+Filename: dist/com.music27.tweak_1.1.11_iphoneos-arm64e.deb
+Size: 59500
+MD5sum: a7c48e3eac844542e1bade10943e5a14
+SHA1: 7babf601c79af01d4f8b7a26b6804f0a219489f0
+SHA256: 6dd08f982a0e1461e5efd81535e19d62df4b3cb54deda209528fd8245ede5328
+Section: Tweaks
+Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass look. 1.1.11 uses SwiftPeek MusicApplication host names; window dock overlay; kill switch tears down chrome; never hides Library/MiniPlayer hosts.
 Author: Music27
 Name: Music27
 

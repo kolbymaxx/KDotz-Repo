@@ -49,6 +49,7 @@
 static NSInteger globalSiriState = 1;
 static NSString * const kFSPrefsDomain = @"com.kolby.siri27";
 static const char *kFSDarwinLevel = "com.kolby.siri27/level";
+static const char *kFSOrbPopGate = "com.kolby.siri27/popgate";
 
 OBJC_EXTERN UIImage *_UICreateScreenUIImage(void);
 
@@ -128,24 +129,33 @@ static CGFloat FSPrefFloat(NSString *key, CGFloat fallback) {
 static void FSSendLevel(float level) {
     [[WaveManager shared] updateTargetPower:@(level)];
 
-    notify_post(kFSDarwinLevel);
-    int token = 0;
-    if (notify_register_check(kFSDarwinLevel, &token) == NOTIFY_STATUS_OK) {
+    // Siri's stock orb and the Siri27 host can live in different processes.
+    // Store the level before posting; posting first made the receiver read the
+    // previous sample, which could leave the visible wave stuck at idle.
+    static int token = -1;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        notify_register_check(kFSDarwinLevel, &token);
+    });
+    if (token >= 0) {
         uint64_t packed = 0;
         memcpy(&packed, &level, sizeof(float));
         notify_set_state(token, packed);
-        notify_cancel(token);
     }
+    notify_post(kFSDarwinLevel);
 }
 
 static void FSDarwinLevelCallback(CFNotificationCenterRef center, void *observer,
                                   CFStringRef name, const void *object,
                                   CFDictionaryRef userInfo) {
-    int token = 0;
-    if (notify_register_check(kFSDarwinLevel, &token) != NOTIFY_STATUS_OK) return;
+    static int token = -1;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        notify_register_check(kFSDarwinLevel, &token);
+    });
+    if (token < 0) return;
     uint64_t state = 0;
     notify_get_state(token, &state);
-    notify_cancel(token);
     float level = 0;
     memcpy(&level, &state, sizeof(float));
     [[WaveManager shared] updateTargetPower:@(level)];
@@ -418,10 +428,41 @@ static const void *kFSOrbBackdropViewKey = &kFSOrbBackdropViewKey;
 @property (nonatomic, assign) NSInteger liveBlackProbes;
 @property (nonatomic, assign) NSInteger liveIdleTicks;
 @property (nonatomic, assign) BOOL liveConfirmed;
+// One-shot pop-in per appearance (viewDidAppear can fire twice on Siri)
+@property (nonatomic, assign) NSInteger appearGeneration;
+@property (nonatomic, assign) BOOL orbPresented;
+@property (nonatomic, assign) BOOL popInFlight;
 - (void)fsLiveTick:(CADisplayLink *)link;
 - (void)fsStopLiveCapture;
 - (void)fsFallBackToSnapshot;
 @end
+
+static __weak FSOrbState *gFSActiveOrbState = nil;
+
+// Siri can transition between two host controllers (and sometimes two
+// processes) during one invocation. Gate the pull-down animation globally so
+// the replacement host adopts the visible state instead of popping again.
+static BOOL FSClaimOrbPopAnimation(void) {
+    static int token = -1;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        notify_register_check(kFSOrbPopGate, &token);
+    });
+    if (token < 0) return YES;
+
+    uint64_t packed = 0;
+    notify_get_state(token, &packed);
+    CFTimeInterval lastPop = 0;
+    memcpy(&lastPop, &packed, sizeof(lastPop));
+
+    CFTimeInterval now = CACurrentMediaTime();
+    if (lastPop > 0 && (now - lastPop) < 2.0) return NO;
+
+    memcpy(&packed, &now, sizeof(now));
+    notify_set_state(token, packed);
+    notify_post(kFSOrbPopGate);
+    return YES;
+}
 
 // Probe the backdrop view's actual content — if it renders black, live capture
 // doesn't work in this process and we must fall back to snapshots.
@@ -712,43 +753,20 @@ static void FSOrbViewDidAppear(UIViewController *vc) {
 
     [st.glassOrbView.layer insertSublayer:blackDomeLayer below:st.glowLineView.layer];
 
-    // Start tucked above the top of the screen — pulled down on activate
-    CGFloat tuckY = -(height + physicalY + 24.0);
-    st.glassOrbView.transform = CGAffineTransformConcat(
-        CGAffineTransformMakeTranslation(0, tuckY),
-        CGAffineTransformMakeScale(0.82, 0.82));
-    st.glassOrbView.alpha = 0.0;
-    st.glassOrbView.hidden = NO;
-    st.externalWhiteGlowView.alpha = 0.0;
-    st.externalWhiteGlowView.transform = CGAffineTransformMakeTranslation(0, tuckY);
-
     CGFloat orbOpacity = FSPrefFloat(@"orbOpacity", 1.0);
+    NSInteger appearGen = ++st.appearGeneration;
 
-    void (^popIn)(void) = ^{
-        st.glassOrbView.hidden = NO;
-        [UIView animateWithDuration:0.58
-                              delay:0.0
-             usingSpringWithDamping:0.76
-              initialSpringVelocity:0.95
-                            options:UIViewAnimationOptionCurveEaseOut | UIViewAnimationOptionAllowUserInteraction
-                         animations:^{
-            st.glassOrbView.transform = CGAffineTransformIdentity;
-            st.glassOrbView.alpha = orbOpacity;
-            st.externalWhiteGlowView.transform = CGAffineTransformIdentity;
-            st.externalWhiteGlowView.alpha = 1.0;
-        } completion:^(BOOL finished) {
-            if (!finished) return;
-            // Gentle infinite breathing so the liquid feels alive
-            CABasicAnimation *breatheAnim = [CABasicAnimation animationWithKeyPath:@"transform.scale"];
-            breatheAnim.fromValue = @(1.0);
-            breatheAnim.toValue = @(1.03);
-            breatheAnim.duration = 1.2;
-            breatheAnim.autoreverses = YES;
-            breatheAnim.repeatCount = HUGE_VALF;
-            breatheAnim.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
-            [st.glassOrbView.layer addAnimation:breatheAnim forKey:@"orbBreathing"];
-        }];
-    };
+    // Reposition wave line with vertical breathing room
+    st.glowLineView.frame = CGRectMake(0, 0, width, height);
+
+    // Remove old wave views to prevent stacking / off-center bugs
+    for (UIView *subview in st.glowLineView.subviews) {
+        [subview removeFromSuperview];
+    }
+
+    UIView *swiftWave = [[WaveManager shared] createWaveViewWithFrame:st.glowLineView.bounds];
+    swiftWave.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    [st.glowLineView addSubview:swiftWave];
 
     BOOL liveGlass = FSPrefBool(@"liveGlass", YES);
     if (liveGlass) {
@@ -767,50 +785,131 @@ static void FSOrbViewDidAppear(UIViewController *vc) {
             st.liveLink = [CADisplayLink displayLinkWithTarget:st selector:@selector(fsLiveTick:)];
             [st.liveLink addToRunLoop:NSRunLoop.mainRunLoop forMode:NSRunLoopCommonModes];
         }
-        // Seed a couple of captures, then pop in — no screenshot delay needed
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.08 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            popIn();
-        });
     } else if (!st.hasCapturedBackdrop) {
-        // 0.45s delay so iOS finishes the transition and resolves the full-res buffer
+        // Snapshot path seeds wallpaper below; do not block the single pop-in.
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.45 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            if (appearGen != st.appearGeneration) return;
             UIImage *img = FSCaptureBackdropImage();
             if (img) {
-                // Good (non-black) capture — safe to cache for future invocations
                 st.capturedWallpaper = img;
                 st.glassOrbView.wallpaperImage = img;
                 st.hasCapturedBackdrop = YES;
             } else {
-                // Never let a black frame reach the glass; use tinted-glass gradient
-                // and DON'T mark as captured so the next invocation retries.
                 st.glassOrbView.wallpaperImage = FSFallbackGradientImage();
             }
-            popIn();
         });
-    } else {
-        if (st.capturedWallpaper) st.glassOrbView.wallpaperImage = st.capturedWallpaper;
+    } else if (st.capturedWallpaper) {
+        st.glassOrbView.wallpaperImage = st.capturedWallpaper;
+    }
+
+    // viewDidAppear often fires twice for Siri hosts — only pop once per cycle.
+    if (st.orbPresented || st.popInFlight) {
+        st.glassOrbView.hidden = NO;
+        st.externalWhiteGlowView.hidden = NO;
+        st.glassOrbView.transform = CGAffineTransformIdentity;
+        st.glassOrbView.alpha = orbOpacity;
+        st.externalWhiteGlowView.transform = CGAffineTransformIdentity;
+        st.externalWhiteGlowView.alpha = 1.0;
+        return;
+    }
+
+    FSOrbState *previous = gFSActiveOrbState;
+    if (previous && previous != st) {
+        [previous fsStopLiveCapture];
+        previous.appearGeneration++;
+        previous.orbPresented = NO;
+        previous.popInFlight = NO;
+        previous.glassOrbView.hidden = YES;
+        previous.externalWhiteGlowView.hidden = YES;
+    }
+    gFSActiveOrbState = st;
+
+    // A second host in the same Siri invocation should appear in-place, not
+    // replay the pull-down animation.
+    if (!FSClaimOrbPopAnimation()) {
+        st.glassOrbView.hidden = NO;
+        st.externalWhiteGlowView.hidden = NO;
+        st.glassOrbView.transform = CGAffineTransformIdentity;
+        st.glassOrbView.alpha = orbOpacity;
+        st.externalWhiteGlowView.transform = CGAffineTransformIdentity;
+        st.externalWhiteGlowView.alpha = 1.0;
+        st.orbPresented = YES;
+        st.popInFlight = NO;
+        return;
+    }
+
+    // Start tucked above the top of the screen — pulled down on activate
+    CGFloat tuckY = -(height + physicalY + 24.0);
+    st.popInFlight = YES;
+    st.glassOrbView.transform = CGAffineTransformConcat(
+        CGAffineTransformMakeTranslation(0, tuckY),
+        CGAffineTransformMakeScale(0.82, 0.82));
+    st.glassOrbView.alpha = 0.0;
+    st.glassOrbView.hidden = NO;
+    // Keep under-glow hidden during pop — its shadowPath reads as a soft box
+    // when translated/scaled with the orb.
+    st.externalWhiteGlowView.hidden = YES;
+    st.externalWhiteGlowView.alpha = 0.0;
+    st.externalWhiteGlowView.transform = CGAffineTransformIdentity;
+
+    void (^popIn)(void) = ^{
+        if (appearGen != st.appearGeneration) return;
+        st.glassOrbView.hidden = NO;
+        st.orbPresented = YES;
+        st.popInFlight = NO;
+        [UIView animateWithDuration:0.58
+                              delay:0.0
+             usingSpringWithDamping:0.76
+              initialSpringVelocity:0.95
+                            options:UIViewAnimationOptionCurveEaseOut | UIViewAnimationOptionAllowUserInteraction | UIViewAnimationOptionBeginFromCurrentState
+                         animations:^{
+            st.glassOrbView.transform = CGAffineTransformIdentity;
+            st.glassOrbView.alpha = orbOpacity;
+        } completion:^(BOOL finished) {
+            if (!finished || appearGen != st.appearGeneration) return;
+            // Soft under-glow only after settle — never rides the pop transform.
+            st.externalWhiteGlowView.hidden = NO;
+            st.externalWhiteGlowView.transform = CGAffineTransformIdentity;
+            st.externalWhiteGlowView.alpha = 0.0;
+            [UIView animateWithDuration:0.4
+                                  delay:0.04
+                                options:UIViewAnimationOptionCurveEaseOut
+                             animations:^{
+                st.externalWhiteGlowView.alpha = 1.0;
+            } completion:nil];
+            // Gentle infinite breathing so the liquid feels alive
+            CABasicAnimation *breatheAnim = [CABasicAnimation animationWithKeyPath:@"transform.scale"];
+            breatheAnim.fromValue = @(1.0);
+            breatheAnim.toValue = @(1.03);
+            breatheAnim.duration = 1.2;
+            breatheAnim.autoreverses = YES;
+            breatheAnim.repeatCount = HUGE_VALF;
+            breatheAnim.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+            [st.glassOrbView.layer addAnimation:breatheAnim forKey:@"orbBreathing"];
+        }];
+    };
+
+    // Tiny delay lets live glass seed a frame; snapshot path uses the same pop.
+    CFTimeInterval delay = liveGlass ? 0.08 : 0.0;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         popIn();
-    }
-
-    // Reposition wave line with vertical breathing room
-    st.glowLineView.frame = CGRectMake(0, 0, width, height);
-
-    // Remove old wave views to prevent stacking / off-center bugs
-    for (UIView *subview in st.glowLineView.subviews) {
-        [subview removeFromSuperview];
-    }
-
-    UIView *swiftWave = [[WaveManager shared] createWaveViewWithFrame:st.glowLineView.bounds];
-    swiftWave.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    [st.glowLineView addSubview:swiftWave];
+    });
 }
 
 static void FSOrbViewWillDisappear(UIViewController *vc) {
     FSOrbState *st = FSOrbStateFor(vc);
+    st.appearGeneration++;
+    st.orbPresented = NO;
+    st.popInFlight = NO;
     [st fsStopLiveCapture];
     [st.glassOrbView.layer removeAnimationForKey:@"orbBreathing"];
+    if (gFSActiveOrbState != st) {
+        st.glassOrbView.hidden = YES;
+        st.externalWhiteGlowView.hidden = YES;
+        return;
+    }
     CGFloat tuckY = -(CGRectGetHeight(st.glassOrbView.bounds) + 40.0);
-    [UIView animateWithDuration:0.32 delay:0.0 options:UIViewAnimationOptionCurveEaseIn animations:^{
+    [UIView animateWithDuration:0.32 delay:0.0 options:UIViewAnimationOptionCurveEaseIn | UIViewAnimationOptionBeginFromCurrentState animations:^{
         st.glassOrbView.transform = CGAffineTransformConcat(
             CGAffineTransformMakeTranslation(0, tuckY),
             CGAffineTransformMakeScale(0.78, 0.78));
@@ -818,6 +917,13 @@ static void FSOrbViewWillDisappear(UIViewController *vc) {
         st.externalWhiteGlowView.transform = CGAffineTransformMakeTranslation(0, tuckY);
         st.externalWhiteGlowView.alpha = 0.0;
     } completion:nil];
+}
+
+static void FSOrbViewDidDisappear(UIViewController *vc) {
+    FSOrbState *st = FSOrbStateFor(vc);
+    if (gFSActiveOrbState != st) return;
+    gFSActiveOrbState = nil;
+    [[WaveManager shared] stopRecording];
 }
 
 void LG_registerGlassView(UIView *view, LGUpdateGroup group) {}
@@ -897,8 +1003,7 @@ void LG_redrawRegisteredGlassViews(LGUpdateGroup group) {}
 
 - (void)viewDidDisappear:(BOOL)animated {
     %orig;
-    [[WaveManager shared] stopRecording];
-    FSSendLevel(0);
+    FSOrbViewDidDisappear(self);
 }
 
 %end
@@ -951,6 +1056,11 @@ void LG_redrawRegisteredGlassViews(LGUpdateGroup group) {}
 - (void)viewWillDisappear:(BOOL)animated {
     %orig;
     FSOrbViewWillDisappear(self);
+}
+
+- (void)viewDidDisappear:(BOOL)animated {
+    %orig;
+    FSOrbViewDidDisappear(self);
 }
 
 %end
