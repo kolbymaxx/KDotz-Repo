@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>title</key>
+	<string>OmniAI</string>
+	<key>items</key>
+	<array>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>General</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Enabled</string>
+			<key>key</key>
+			<string>OAEnabled</string>
+			<key>default</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSegmentCell</string>
+			<key>label</key>
+			<string>Default Provider</string>
+			<key>key</key>
+			<string>OADefaultProvider</string>
+			<key>default</key>
+			<string>grok</string>
+			<key>validValues</key>
+			<array>
+				<string>grok</string>
+				<string>claude</string>
+				<string>gemini</string>
+			</array>
+			<key>validTitles</key>
+			<array>
+				<string>Grok</string>
+				<string>Claude</string>
+				<string>Gemini</string>
+			</array>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Include Screen by Default</string>
+			<key>key</key>
+			<string>OAIncludeScreenByDefault</string>
+			<key>default</key>
+			<false/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Device Agent by Default</string>
+			<key>key</key>
+			<string>OADeviceAgentByDefault</string>
+			<key>default</key>
+			<false/>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Accounts</string>
+			<key>footerText</key>
+			<string>Sign in with the web login for each provider. Sessions are stored in the Keychain (AfterFirstUnlock). Optional API keys are a fallback when a bearer token is not captured.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string></string>
+			<key>footerAlignment</key>
+			<integer>0</integer>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Login with Grok (xAI)</string>
+			<key>action</key>
+			<string>loginGrok:</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Paste Grok API Key</string>
+			<key>action</key>
+			<string>pasteGrokAPIKey:</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Log out Grok</string>
+			<key>action</key>
+			<string>logoutGrok:</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Login with Claude</string>
+			<key>action</key>
+			<string>loginClaude:</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Log out Claude</string>
+			<key>action</key>
+			<string>logoutClaude:</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Login with Google (Gemini)</string>
+			<key>action</key>
+			<string>loginGemini:</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Paste Gemini API Key</string>
+			<key>action</key>
+			<string>pasteGeminiAPIKey:</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Log out Gemini</string>
+			<key>action</key>
+			<string>logoutGemini:</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Activation</string>
+			<key>footerText</key>
+			<string>Always available: notifyutil -p com.kolby.omniai/activate. Text selection → OmniAI appears in the edit menu system-wide.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSegmentCell</string>
+			<key>label</key>
+			<string>Method</string>
+			<key>key</key>
+			<string>OAActivationMethod</string>
+			<key>default</key>
+			<integer>0</integer>
+			<key>validValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+				<integer>2</integer>
+			</array>
+			<key>validTitles</key>
+			<array>
+				<string>Status Bar</string>
+				<string>Volume ×2</string>
+				<string>Notify</string>
+			</array>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Status Bar Tap</string>
+			<key>key</key>
+			<string>OAStatusBarActivate</string>
+			<key>default</key>
+			<true/>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Device Control (iOS MCP)</string>
+			<key>footerText</key>
+			<string>OmniAI's Device Agent drives the phone through witchan's iOS MCP (localhost). Install that package, start its service, then Test Connection. describe_screen / OCR also enrich Screen Context when available.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>label</key>
+			<string>Host</string>
+			<key>key</key>
+			<string>OAMCPHost</string>
+			<key>default</key>
+			<string>127.0.0.1</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>label</key>
+			<string>Port</string>
+			<key>key</key>
+			<string>OAMCPPort</string>
+			<key>default</key>
+			<string>8090</string>
+			<key>keyboard</key>
+			<string>NumbersAndPunctuation</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>label</key>
+			<string>Path</string>
+			<key>key</key>
+			<string>OAMCPPath</string>
+			<key>default</key>
+			<string>/mcp</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>label</key>
+			<string>Max Agent Steps</string>
+			<key>key</key>
+			<string>OAMaxSteps</string>
+			<key>default</key>
+			<string>12</string>
+			<key>keyboard</key>
+			<string>NumbersAndPunctuation</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Allow Shell Tool</string>
+			<key>key</key>
+			<string>OAAllowShell</string>
+			<key>default</key>
+			<false/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Test iOS MCP Connection</string>
+			<key>action</key>
+			<string>testMCP:</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Safety</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Overlay Safe Mode</string>
+			<key>key</key>
+			<string>OAOverlaySafeMode</string>
+			<key>default</key>
+			<false/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Debug Logging</string>
+			<key>key</key>
+			<string>OADebugLogging</string>
+			<key>default</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Respring</string>
+			<key>action</key>
+			<string>respring:</string>
+		</dict>
+
+	</array>
+</dict>
+</plist>
