@@ -12,7 +12,7 @@
 			<key>label</key>
 			<string>General</string>
 			<key>footerText</key>
-			<string>CC27 brings iOS 26-style Control Center editing to iOS 15–17: hold an empty area to edit, resize with the corner handle, and add controls from a searchable gallery — including third-party CCSupport modules.</string>
+			<string>CC27 brings iOS 26-style Control Center editing to iOS 15–17: hold an empty area to edit, drag to rearrange, remove with −, and add controls from a searchable gallery — including third-party CCSupport modules.</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -70,7 +70,7 @@
 			<key>label</key>
 			<string>Editing</string>
 			<key>footerText</key>
-			<string>In Control Center: tap + or touch &amp; hold empty space to enter edit mode. Drag modules to rearrange, tap − to remove, and tap Add a Control for the searchable gallery. Resize is experimental and off by default.</string>
+			<string>In Control Center: tap + or touch &amp; hold empty space to enter edit mode. Drag modules to rearrange, tap − to remove, and tap Add a Control for the searchable gallery.</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -83,20 +83,6 @@
 			<string>editModeEnabled</string>
 			<key>label</key>
 			<string>In-CC Edit Mode</string>
-			<key>PostNotification</key>
-			<string>com.kolby.cc27/ReloadPrefs</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.kolby.cc27</string>
-			<key>key</key>
-			<string>allowResize</string>
-			<key>label</key>
-			<string>Allow Resize (experimental)</string>
 			<key>PostNotification</key>
 			<string>com.kolby.cc27/ReloadPrefs</string>
 		</dict>
@@ -125,7 +111,7 @@
 			<key>cell</key>
 			<string>PSButtonCell</string>
 			<key>action</key>
-			<string>respring</string>
+			<string>respring:</string>
 			<key>label</key>
 			<string>Respring</string>
 		</dict>

@@ -9,16 +9,21 @@ Unlike aesthetic-only tweaks (CC26 / CCXVIII), CC27 focuses on the **real custom
 - **−** to remove a control
 - **Add a Control** opens a searchable list gallery (Available / All)
 - Gallery lists **system + third-party CCSupport modules + CC27 widgets**
-- Liquid-glass module chrome that does **not** clip expanded Camera / Connectivity menus
+- Liquid-glass module chrome (round 1×1 / pill modules; expanded menus stay unclipped)
 - Built-in CC27 modules: **Respring**, **Safe Mode**, **UICache**, **Userspace Reboot**
-- Optional experimental resize (off by default in Settings → CC27)
+
+## 1.0.2 fixes
+
+- Restored round / pill module glass (clips collapsed modules; still skips expanded menus)
+- Removed resize entirely — the old size override path could safe-mode SpringBoard
+- Gallery icons: unique SF Symbols per control (no more blank white squares / identical glyphs)
+- Settings → CC27 → Respring works on rootless / RootHide
 
 ## 1.0.1 fixes
 
 - Top **+** / power buttons stay visible while Control Center is open
 - Add Control gallery uses readable list rows (no overlapping “System” labels)
 - Adding a control reloads module instances (or prompts one reopen if needed)
-- Resize handles hidden unless the experimental pref is on
 - Expanded menus no longer cut into a circle by glass clipping
 
 ## Install

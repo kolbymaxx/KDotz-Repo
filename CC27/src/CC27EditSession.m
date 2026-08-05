@@ -414,24 +414,8 @@ static char kCC27IdKey;
     minus.frame = CGRectMake(-4, -4, 22, 22);
     [container bringSubviewToFront:minus];
 
-    if (CC27Prefs.shared.allowResize) {
-        UIButton *resize = [container viewWithTag:kCC27ResizeTag];
-        if (!resize) {
-            resize = [UIButton buttonWithType:UIButtonTypeSystem];
-            resize.tag = kCC27ResizeTag;
-            resize.tintColor = [UIColor colorWithWhite:1 alpha:0.9];
-            if (@available(iOS 13.0, *)) {
-                UIImageSymbolConfiguration *config = [UIImageSymbolConfiguration configurationWithPointSize:14 weight:UIImageSymbolWeightBold];
-                [resize setImage:[[UIImage systemImageNamed:@"arrow.up.left.and.arrow.down.right"] imageByApplyingSymbolConfiguration:config] forState:UIControlStateNormal];
-            }
-            [resize addTarget:self action:@selector(_resizeTapped:) forControlEvents:UIControlEventTouchUpInside];
-            [container addSubview:resize];
-        }
-        resize.frame = CGRectMake(container.bounds.size.width - 22, container.bounds.size.height - 22, 24, 24);
-        [container bringSubviewToFront:resize];
-    } else {
-        [[container viewWithTag:kCC27ResizeTag] removeFromSuperview];
-    }
+    // Resize is disabled in 1.0.2 — previous size overrides crashed SpringBoard.
+    [[container viewWithTag:kCC27ResizeTag] removeFromSuperview];
 
     if (![container.layer animationForKey:@"cc27.jiggle"]) {
         CAKeyframeAnimation *anim = [CAKeyframeAnimation animationWithKeyPath:@"transform.rotation.z"];
@@ -477,19 +461,8 @@ static char kCC27IdKey;
 }
 
 - (void)_resizeTapped:(UIButton *)sender {
-    if (!CC27Prefs.shared.allowResize) return;
-    UIView *container = sender.superview;
-    NSString *identifier = objc_getAssociatedObject(container, &kCC27IdKey) ?: [self _identifierForContainer:container];
-    if (!identifier) return;
-    CCUILayoutSize current = {1, 1};
-    CGSize px = container.bounds.size;
-    if (px.width > 200 && px.height > 100) { current.width = 2; current.height = 2; }
-    else if (px.width > 200) { current.width = 2; current.height = 1; }
-    else if (px.height > 160) { current.width = 1; current.height = 2; }
-    current = [CC27LayoutStore.shared sizeForModule:identifier fallback:current];
-    [self _haptic:UIImpactFeedbackStyleLight];
-    [CC27LayoutStore.shared cycleSizeForModule:identifier current:current];
-    [self performSelector:@selector(_decorateVisibleModules) withObject:nil afterDelay:0.4];
+    (void)sender;
+    // Intentionally disabled — resizing via CCUILayoutSize overrides caused SpringBoard safe mode.
 }
 
 - (void)_dragModule:(UILongPressGestureRecognizer *)gr {
