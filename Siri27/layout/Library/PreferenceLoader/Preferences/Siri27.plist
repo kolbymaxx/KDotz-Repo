@@ -48,7 +48,7 @@
 				<key>cell</key>
 				<string>PSSliderCell</string>
 				<key>default</key>
-				<real>0.65</real>
+				<real>0.28</real>
 				<key>defaults</key>
 				<string>com.kolby.siri27</string>
 				<key>key</key>

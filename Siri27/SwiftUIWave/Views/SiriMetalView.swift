@@ -98,39 +98,39 @@ public struct SiriMetalView: UIViewRepresentable {
             }
 
             constant float PI = 3.14159265359f;
-            // Idle still flows as a visible rainbow ribbon; speech grows amplitude.
-            constant float AMPLITUDE   = 0.14f;
+            // Separated rainbow ribbons — overlap used to sum to a white bar.
+            constant float AMPLITUDE   = 0.13f;
             constant float FREQ        = 0.85f;
             constant float ABER_FREQ   = 0.78f;
             constant float SPEED       = 2.4f;
             constant float WAVE_SCALE  = 0.6f;
-            constant float ABERRATION  = 3.1f;
-            constant float THICKNESS   = 0.55f;
-            constant float INTENSITY   = 2.35f;
+            constant float ABERRATION  = 6.4f;
+            constant float THICKNESS   = 0.40f;
+            constant float INTENSITY   = 1.70f;
             constant float FALLOFF     = 0.85f;
             constant float EDGE_MASK   = 0.4f;
             constant float EDGE_INSET  = 0.0f;
-            constant float BAND_FILL   = 18000.0f;
-            constant float BAND_THICK  = 0.07f;
-            constant float SOFTNESS    = 0.22f;
+            constant float BAND_FILL   = 3200.0f;
+            constant float BAND_THICK  = 0.045f;
+            constant float SOFTNESS    = 0.06f;
             constant float LOW_AMP     = 18.0f;
-            constant float LOW_INT     = 1.5f;
-            constant float MID_ABER    = 0.95f;
+            constant float LOW_INT     = 1.15f;
+            constant float MID_ABER    = 1.35f;
             constant float MID_ABAMP   = 0.05f;
-            constant float MID_BAND    = 20.0f;
-            constant float MID_SOFT    = 0.25f;
-            constant float HIGH_ABER   = 0.65f;
+            constant float MID_BAND    = 12.0f;
+            constant float MID_SOFT    = 0.08f;
+            constant float HIGH_ABER   = 0.95f;
             constant float HIGH_ABAMP  = 0.06f;
             constant float RESOLVED    = 1.0f;
             constant float UNRES_SCALE = 0.14f;
             constant float Y_OFFSET    = -0.08f;
             
             float3 spectral4(int s){
-                // Distinct primaries — avoid collapsing toward white.
-                if (s == 0) return float3(1.00f, 0.18f, 0.55f); // magenta/red
-                if (s == 1) return float3(1.00f, 0.72f, 0.12f); // amber
-                if (s == 2) return float3(0.18f, 0.95f, 0.55f); // green
-                return float3(0.25f, 0.55f, 1.00f);             // blue
+                // Hot, non-overlapping primaries (low shared RGB → less white).
+                if (s == 0) return float3(1.00f, 0.08f, 0.42f); // magenta/red
+                if (s == 1) return float3(1.00f, 0.55f, 0.02f); // amber
+                if (s == 2) return float3(0.05f, 0.95f, 0.38f); // green
+                return float3(0.12f, 0.42f, 1.00f);             // blue
             }
 
             fragment half4 siriFragmentShader(VertexOut in [[stage_in]], constant Uniforms &u [[buffer(0)]]) {
@@ -166,59 +166,67 @@ public struct SiriMetalView: UIViewRepresentable {
                 float A2    = A1 + mid*dynamicMidAmp + high*dynamicHighAmp;
                 float AB    = (ABERRATION + mid*MID_ABER + high*HIGH_ABER)*res;
                 
-                // Keep strong chromatic split even when idle so the ribbon stays rainbow.
-                AB *= mix(0.70f, 1.0f, clamp(activeFactor * 3.0f, 0.0f, 1.0f));
+                // Always keep a wide chromatic split — idle was collapsing to white.
+                AB *= mix(0.92f, 1.0f, clamp(activeFactor * 2.0f, 0.0f, 1.0f));
                 
-                float currentThickness = THICKNESS + (activeFactor * 5.5f);
+                float currentThickness = THICKNESS + (activeFactor * 4.2f);
                 float th    = mix(0.1f, 0.01f*currentThickness, res);
                 float inten = mix(0.1f, 0.01f*(INTENSITY + low*LOW_INT), res);
                 
-                // Minimal idle soft glow — soft white haze was washing the rainbow.
-                float idleGlowBoost = 0.35f * (1.0f - clamp(activeFactor * 2.0f, 0.0f, 1.0f));
-                float soft  = 0.01f*res*max(0.0f, SOFTNESS + idleGlowBoost + mid*MID_SOFT);
+                // Sharp ribbons; soft haze blends every hue into white.
+                float soft  = 0.01f*res*max(0.0f, SOFTNESS + mid*MID_SOFT);
                 
                 float dUnres = max(length(p) - mix(0.14f, UNRES_SCALE, res), 0.0f);
                 float yMain = A1 * env * res * sin(p.x*FREQ + drift);
                 float bandFillTh = max(BAND_THICK, 1e-4f);
                 float bandAmt    = 1e-4f * BAND_FILL * inten;
                 float3 num = float3(0.0f);
-                float3 den = float3(0.0f);
+                float den = 0.0f;
                 for(int s = 0; s < 4; s++){
                     float3 hue = spectral4(s);
-                    den += hue;
                     float ab = mix(-AB, AB, float(s)/3.0f);
-                    float yL = A2 * env * res * sin(p.x*ABER_FREQ + drift + ab);
+                    // Vertical ribbon stagger so bands don't stack into one white stroke.
+                    float yOff = mix(-0.055f, 0.055f, float(s)/3.0f);
+                    float yL = A2 * env * res * sin(p.x*ABER_FREQ + drift + ab) + yOff;
                     float d   = mix(dUnres, abs(p.y - yL), res);
                     float lor = mix(1.0f/(1.0f + (0.02f*d)*(0.02f*d)), 1.0f, res);
                     float line = inten / (sqrt(d*d + soft*soft) + th);
                     float lo = min(yMain, yL), hi = max(yMain, yL);
                     float dBand = max(0.0f, max(p.y - hi, lo - p.y));
-                    float band  = bandAmt / (dBand + bandFillTh);
-                    num += hue * lor * (line + band);
+                    float band  = 0.28f * bandAmt / (dBand + bandFillTh);
+                    // Competitive weights: local strongest hue wins (avoids RGB→white).
+                    float w = lor * (line + band);
+                    float w2 = w * w;
+                    num += hue * w2;
+                    den += w2;
                 }
-                float3 col = num / max(den, float3(1e-4f));
+                float3 col = num / max(den, 1e-4f);
                 float dM    = mix(dUnres, abs(p.y - yMain), res);
                 float lorM  = mix(1.0f/(1.0f + (0.02f*dM)*(0.02f*dM)), 1.0f, res);
-                // Colored core boost — do not add a white/neutral core.
-                float core = 0.22f * inten * lorM / (sqrt(dM*dM + soft*soft) + th);
+                // Colored core only — never add a neutral/white boost.
+                float core = 0.12f * inten * lorM / (sqrt(dM*dM + soft*soft) + th);
                 col += col * core;
-                col = pow(max(col, 0.0f), float3(0.92f));
+                // Crush shared gray/white so overlapping ribbons stay saturated.
+                float gray = min(col.r, min(col.g, col.b));
+                col -= gray * 0.90f;
+                col = pow(max(col, 0.0f), float3(0.88f));
                 float emT = clamp((abs(yScreen) - 1.0f + EDGE_INSET) / (-max(EDGE_MASK, 1e-4f)), 0.0f, 1.0f);
                 float em  = emT*emT*(3.0f - 2.0f*emT);
                 float gauss = exp(-pow(xN*FALLOFF, 2.0f));
                 col *= mix(1.0f, em*gauss, res);
                 col *= res;
-                // Idle stays colorful; talking adds punch without bleaching.
-                col *= 1.15f + (activeFactor * 0.95f);
+                col *= 1.25f + (activeFactor * 0.85f);
                 float luma = dot(col, float3(0.299f, 0.587f, 0.114f));
-                col = mix(float3(luma), col, 1.35f);
-                col = clamp(col, 0.0f, 1.8f);
+                col = mix(float3(luma), col, 1.90f);
+                // Second crush after saturation boost — kills residual bleach.
+                gray = min(col.r, min(col.g, col.b));
+                col -= gray * 0.55f;
+                col = clamp(col, 0.0f, 1.35f);
                 
-                // Per-pixel alpha so the MTKView isn't an opaque white/washed box.
-                // Premultiply RGB for the .one / .oneMinusSourceAlpha blend.
+                // Per-pixel alpha so the MTKView isn't an opaque washed box.
                 float alpha = clamp(max(max(col.r, col.g), col.b), 0.0f, 1.0f);
-                alpha = pow(alpha, 0.78f);
-                float3 outRGB = min(col, float3(1.0f)) * alpha;
+                alpha = pow(alpha, 0.72f);
+                float3 outRGB = col * alpha;
                 return half4(half3(outRGB), half(alpha));
             }
             """
