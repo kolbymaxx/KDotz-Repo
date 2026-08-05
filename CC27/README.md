@@ -12,6 +12,18 @@ Unlike aesthetic-only tweaks (CC26 / CCXVIII), CC27 focuses on the **real custom
 - Liquid-glass module chrome (round 1×1 / pill modules; expanded menus stay unclipped)
 - Built-in CC27 modules: **Respring**, **Safe Mode**, **UICache**, **Userspace Reboot**
 
+## 1.0.5 fixes
+
+- **Frozen lock screen on iOS 16 fixed**: the Lock Screen flashlight/camera quick actions embed
+  real CC module views — CC27 was styling them too. CC27 now refuses to touch any module
+  container hosted outside Control Center (quick actions, cover sheet, lock screen)
+- Chrome (+/power buttons, gestures) is created on first CC presentation instead of at
+  SpringBoard boot; all module styling is wrapped in exception guards
+- CC27 action modules no longer force-load their views during boot instantiation
+- **Emergency kill switch**: `touch /var/mobile/Library/Preferences/com.kolby.cc27.killswitch`
+  (SSH or Filza) then respring — CC27 stays installed but fully inert. Delete the file to re-enable
+- Settings layout editor refuses to save an empty module list
+
 ## 1.0.4 fixes
 
 - **Drag no longer safe-modes**: dragging now moves a snapshot while Control Center keeps
