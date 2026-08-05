@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>entry</key>
+	<dict>
+		<key>bundle</key>
+		<string>PSListController</string>
+		<key>title</key>
+		<string>Aether</string>
+		<key>items</key>
+		<array>
+			<dict>
+				<key>cell</key>
+				<string>PSGroupCell</string>
+				<key>label</key>
+				<string>Aether</string>
+				<key>footerText</key>
+				<string>Universal context glass for RootHide Bootstrap and rootless jailbreaks. Two-finger double-tap in any enabled app to summon.</string>
+			</dict>
+			<dict>
+				<key>PostNotification</key>
+				<string>com.kolby.aether/prefschanged</string>
+				<key>cell</key>
+				<string>PSSwitchCell</string>
+				<key>default</key>
+				<true/>
+				<key>defaults</key>
+				<string>com.kolby.aether</string>
+				<key>key</key>
+				<string>enabled</string>
+				<key>label</key>
+				<string>Enable Aether</string>
+			</dict>
+
+			<dict>
+				<key>cell</key>
+				<string>PSGroupCell</string>
+				<key>label</key>
+				<string>Summon Gesture</string>
+				<key>footerText</key>
+				<string>Restart the target app after changing the gesture. On RootHide, enable injection for each app in Bootstrap → App List.</string>
+			</dict>
+			<dict>
+				<key>PostNotification</key>
+				<string>com.kolby.aether/prefschanged</string>
+				<key>cell</key>
+				<string>PSSegmentCell</string>
+				<key>default</key>
+				<string>twoFingerDoubleTap</string>
+				<key>defaults</key>
+				<string>com.kolby.aether</string>
+				<key>key</key>
+				<string>summonGesture</string>
+				<key>validTitles</key>
+				<array>
+					<string>2-Finger Tap</string>
+					<string>3-Finger Swipe</string>
+					<string>Both</string>
+				</array>
+				<key>validValues</key>
+				<array>
+					<string>twoFingerDoubleTap</string>
+					<string>threeFingerSwipeDown</string>
+					<string>both</string>
+				</array>
+				<key>label</key>
+				<string>Gesture</string>
+			</dict>
+
+			<dict>
+				<key>cell</key>
+				<string>PSGroupCell</string>
+				<key>label</key>
+				<string>Clipboard Timeline</string>
+			</dict>
+			<dict>
+				<key>PostNotification</key>
+				<string>com.kolby.aether/prefschanged</string>
+				<key>cell</key>
+				<string>PSSwitchCell</string>
+				<key>default</key>
+				<true/>
+				<key>defaults</key>
+				<string>com.kolby.aether</string>
+				<key>key</key>
+				<string>clipboardEnabled</string>
+				<key>label</key>
+				<string>Capture Clipboard</string>
+			</dict>
+			<dict>
+				<key>PostNotification</key>
+				<string>com.kolby.aether/prefschanged</string>
+				<key>cell</key>
+				<string>PSSliderCell</string>
+				<key>default</key>
+				<real>50</real>
+				<key>defaults</key>
+				<string>com.kolby.aether</string>
+				<key>key</key>
+				<string>clipboardLimit</string>
+				<key>label</key>
+				<string>History Limit</string>
+				<key>max</key>
+				<real>200</real>
+				<key>min</key>
+				<real>10</real>
+				<key>isSegmented</key>
+				<true/>
+				<key>segmentCount</key>
+				<integer>10</integer>
+			</dict>
+
+			<dict>
+				<key>cell</key>
+				<string>PSGroupCell</string>
+				<key>label</key>
+				<string>Sculpt</string>
+				<key>footerText</key>
+				<string>Sculpt lets you tap any on-screen chrome to hide it permanently in that app — Reels tabs, suggested rows, nag banners. Rules survive relaunches.</string>
+			</dict>
+			<dict>
+				<key>PostNotification</key>
+				<string>com.kolby.aether/prefschanged</string>
+				<key>cell</key>
+				<string>PSSwitchCell</string>
+				<key>default</key>
+				<true/>
+				<key>defaults</key>
+				<string>com.kolby.aether</string>
+				<key>key</key>
+				<string>sculptEnabled</string>
+				<key>label</key>
+				<string>Enable Sculpt</string>
+			</dict>
+
+			<dict>
+				<key>cell</key>
+				<string>PSGroupCell</string>
+				<key>footerText</key>
+				<string>Aether • by Kolby — built for RootHide Bootstrap 2.x and rootless (Dopamine). iOS 15–17.</string>
+			</dict>
+		</array>
+	</dict>
+</dict>
+</plist>

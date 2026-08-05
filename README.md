@@ -22,9 +22,10 @@ Origin / label: **KDotz Repo**
 
 | Package | ID | Notes |
 |---------|----|--------|
+| **Aether** | `com.kolby.aether` | Universal context glass — clipboard, screen OCR, UI sculpt (rootless + roothide) |
 | **Siri27** | `com.kolby.siri27` | iOS 27-style liquid glass Siri orb (rootless + roothide). Replaces FloatingSiri. |
 | **Music27** | `com.music27.tweak` | Apple Music Liquid Glass UI for iOS 16/17 (rootless + roothide) |
-| **CC27** | `com.kolby.cc27` | iOS 26-style Control Center for iOS 15–17 — edit/resize/add gallery + glass (rootless + roothide). Needs CCSupport. |
+| **CC27** | `com.kolby.cc27` | iOS 26-style Control Center for iOS 15–17 — edit/add gallery + glass (rootless + roothide). Needs CCSupport. |
 | **RHCompat** | `com.kolby.rhcompat` | RootHide PreferenceLoader/prefs companion (**Preferences.app only**, roothide). Use 1.0.2+; 1.0.1 could black-screen. |
 
 One source URL works on both jailbreak types: rootless Sileo installs the
@@ -55,6 +56,7 @@ git push
 - `Siri27/` — Siri27 Theos project
 - `Music27/` — Music27 Theos project
 - `CC27/` — CC27 Control Center Theos project
+- `Aether/` — Aether context-glass Theos project
 - `RHCompat/` — RootHide compatibility companion (roothide-only)
 
 ## Credits
