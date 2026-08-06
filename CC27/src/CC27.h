@@ -72,6 +72,7 @@ typedef NS_ENUM(NSInteger, CC27LayoutApplyResult) {
 
 @interface CC27EditSession : NSObject
 + (instancetype)shared;
++ (BOOL)deviceUILocked;
 @property (nonatomic, weak, nullable) UIViewController *hostController;
 @property (nonatomic, readonly, getter=isEditing) BOOL editing;
 @property (nonatomic, readonly, getter=isHostVisible) BOOL hostVisible;

@@ -12,6 +12,13 @@ Unlike aesthetic-only tweaks (CC26 / CCXVIII), CC27 focuses on the **real custom
 - Liquid-glass module chrome (round 1×1 / pill modules; expanded menus stay unclipped)
 - Built-in CC27 modules: **Respring**, **Safe Mode**, **UICache**, **Userspace Reboot**
 
+## 1.0.6 fixes
+
+- **Freeze when opening CC from the lock screen fixed**: CC27 is now fully inert while the
+  device UI is locked — no chrome, no glass styling, no edit mode until you unlock.
+  (Stock iOS 26 doesn't allow CC editing from the lock screen either.) Control Center
+  opened while locked looks stock; all CC27 features return after unlocking.
+
 ## 1.0.5 fixes
 
 - **Frozen lock screen on iOS 16 fixed**: the Lock Screen flashlight/camera quick actions embed
