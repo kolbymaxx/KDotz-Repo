@@ -17,7 +17,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>0.3.1: Enable + Scan Windows. Dump Fields = on-screen strings only (safe M2). Dump Field Meta walks Swift metadata (can crash Music — leave off). Hooks off.</string>
+			<string>0.3.2 safe M2: Enable + Scan Windows + Dump Fields (screen strings/titles). Leave Dump Field Meta and Install Hooks OFF. Force-quit Music after changes.</string>
 			<key>label</key>
 			<string>SwiftPeek</string>
 		</dict>

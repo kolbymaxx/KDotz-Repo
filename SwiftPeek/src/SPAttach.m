@@ -227,41 +227,52 @@ static UIView *SPFindHostingViewBFS(UIView *root, NSInteger maxNodes) {
     return nil;
 }
 
-/// Visible UIKit strings under a view — pixel correspondence for milestone 2.
+static void SPAddScreenString(NSMutableArray *out, NSMutableSet *seen, NSString *raw) {
+    if (!raw) return;
+    NSString *t = [raw stringByTrimmingCharactersInSet:
+                   [NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if (t.length < 2 || t.length > 80) return;
+    if ([seen containsObject:t]) return;
+    [seen addObject:t];
+    [out addObject:t];
+}
+
+/// Visible UIKit strings under a view — safe M2 pixel correspondence (no Swift meta).
 static NSArray<NSString *> *SPScreenStrings(UIView *root) {
     if (!root) return @[];
     NSMutableArray *out = [NSMutableArray array];
     NSMutableSet *seen = [NSMutableSet set];
     NSMutableArray *q = [NSMutableArray arrayWithObject:root];
-    NSInteger budget = 80;
+    NSInteger budget = 64;
     while (q.count && budget-- > 0) {
         UIView *v = q.firstObject;
         [q removeObjectAtIndex:0];
         if ([v isKindOfClass:[UILabel class]]) {
-            NSString *t = [[(UILabel *)v text] ?: @"" stringByTrimmingCharactersInSet:
-                           [NSCharacterSet whitespaceAndNewlineCharacterSet]];
-            if (t.length >= 2 && t.length <= 80 && ![seen containsObject:t]) {
-                [seen addObject:t];
-                [out addObject:t];
-            }
+            SPAddScreenString(out, seen, [(UILabel *)v text]);
+        } else if ([v isKindOfClass:[UIButton class]]) {
+            SPAddScreenString(out, seen, [(UIButton *)v titleForState:UIControlStateNormal]);
+        } else if ([v isKindOfClass:[UITextField class]]) {
+            UITextField *tf = (UITextField *)v;
+            SPAddScreenString(out, seen, tf.text.length ? tf.text : tf.placeholder);
+        } else if ([v isKindOfClass:[UINavigationBar class]]) {
+            UINavigationItem *item = [(UINavigationBar *)v topItem];
+            SPAddScreenString(out, seen, item.title);
         }
-        if ([v isKindOfClass:[UIButton class]]) {
-            NSString *t = [[(UIButton *)v titleForState:UIControlStateNormal] ?: @""
-                           stringByTrimmingCharactersInSet:
-                           [NSCharacterSet whitespaceAndNewlineCharacterSet]];
-            if (t.length >= 2 && t.length <= 80 && ![seen containsObject:t]) {
-                [seen addObject:t];
-                [out addObject:t];
-            }
-        }
-        NSString *acc = v.accessibilityLabel;
-        if (acc.length >= 2 && acc.length <= 80 && ![seen containsObject:acc]) {
-            [seen addObject:acc];
-            [out addObject:acc];
-        }
+        SPAddScreenString(out, seen, v.accessibilityLabel);
         for (UIView *sub in v.subviews) [q addObject:sub];
-        if (out.count >= 24) break;
+        if (out.count >= 16) break;
     }
+    return out;
+}
+
+/// Cheap titles from a VC without forcing view load.
+static NSArray<NSString *> *SPControllerTitles(UIViewController *vc) {
+    if (!vc) return @[];
+    NSMutableArray *out = [NSMutableArray array];
+    NSMutableSet *seen = [NSMutableSet set];
+    SPAddScreenString(out, seen, vc.title);
+    SPAddScreenString(out, seen, vc.navigationItem.title);
+    SPAddScreenString(out, seen, vc.tabBarItem.title);
     return out;
 }
 
@@ -602,10 +613,17 @@ static void SPScanWindowsForHosts(void) {
                                      (unsigned long)(uintptr_t)(__bridge void *)vc],
                         @"view_loaded": @(vc.isViewLoaded),
                     } mutableCopy];
-                    // Screen strings only on main, only if view already loaded.
-                    if (SPPrefBool(@"dumpFields", NO) && vc.isViewLoaded) {
+                    // Safe M2: titles always; view walk only if already loaded.
+                    if (SPPrefBool(@"dumpFields", NO)) {
                         @try {
-                            NSArray *screen = SPScreenStrings(vc.view);
+                            NSMutableArray *screen = [[SPControllerTitles(vc) mutableCopy]
+                                                      ?: [NSMutableArray array]];
+                            if (vc.isViewLoaded) {
+                                NSArray *fromView = SPScreenStrings(vc.view);
+                                for (NSString *s in fromView) {
+                                    if (![screen containsObject:s]) [screen addObject:s];
+                                }
+                            }
                             if (screen.count) entry[@"screen_strings"] = screen;
                         } @catch (__unused id e) {}
                     }
@@ -730,7 +748,7 @@ static void SPStartIfEnabled(void) {
     dispatch_once(&launchOnce, ^{
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
             NSString *msg = [NSString stringWithFormat:
-                @"Music launch probe (0.3.1) scanWindows=%d installHooks=%d dumpFields=%d dumpFieldMeta=%d",
+                @"Music launch probe (0.3.2) scanWindows=%d installHooks=%d dumpFields=%d dumpFieldMeta=%d",
                 scanOn ? 1 : 0, hooksOn ? 1 : 0, fieldsOn ? 1 : 0, metaOn ? 1 : 0];
             SPWriteHeartbeat(msg, NO, @[], @[]);
             SPWriteJSONDump(@{
