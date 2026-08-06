@@ -11,9 +11,9 @@ Read-only SwiftUI view inspector for jailbroken iOS. Recovers Swift type names
 | Process | Why |
 |---------|-----|
 | Music | Primary — SwiftUI-heavy, present on 16.7 and 17.3 |
-| SpringBoard | Control Center / system SwiftUI surfaces |
 
-Injects only into those two. Prefs default **off**.
+**Music only.** SpringBoard was removed in 0.2.1 — a Swift-linked tweak in SB
+triggered Safe Mode on Dopamine/rootless. Prefs default **off**.
 
 ## Prefs
 
@@ -25,8 +25,8 @@ Domain: `com.kolby.swiftpeek`
 | `logAttach` | `true` | NSLog attach lines when enabled |
 | `dumpFields` | `true` | Walk fields + mirror/screen strings (milestone 2) |
 
-PreferenceLoader entry ships with the package. Toggle on, relaunch Music
-(or respring for Control Center), watch `os_log` / SSH for:
+PreferenceLoader entry ships with the package. Toggle on, **relaunch Music**
+(no respring needed for Music-only), watch `os_log` / Filza dumps for:
 
 ```
 [SwiftPeek] attach process=Music type=… addr=0x…
@@ -60,4 +60,4 @@ See [`../tools/`](../tools/) — `swiftmd` parses Mach-O `__swift5_types` /
 
 - Read-only. No view mutation, no AttributeGraph hooks, no POSIX file hooks.
 - Fail closed on unexpected metadata.
-- Default off. Narrow filter (Music + SpringBoard only).
+- Default off. Narrow filter (Music only). Hard process-name gate refuses SpringBoard.

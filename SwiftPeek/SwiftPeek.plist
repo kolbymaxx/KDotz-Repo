@@ -1,12 +1,10 @@
 {
 	Filter = {
 		Bundles = (
-			"com.apple.Music",
-			"com.apple.springboard"
+			"com.apple.Music"
 		);
 		Executables = (
-			"Music",
-			"SpringBoard"
+			"Music"
 		);
 	};
 }

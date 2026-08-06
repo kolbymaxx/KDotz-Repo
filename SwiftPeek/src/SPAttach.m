@@ -424,37 +424,61 @@ static void SPOnImageAdded(const struct mach_header *mh, intptr_t slide) {
     });
 }
 
+static BOOL SPIsAllowedProcess(void) {
+    NSString *name = NSProcessInfo.processInfo.processName ?: @"";
+    NSString *bundle = NSBundle.mainBundle.bundleIdentifier ?: @"";
+    // Music only — never touch SpringBoard (Swift-linked dylib + SB = Safe Mode).
+    if ([name isEqualToString:@"Music"]) return YES;
+    if ([bundle isEqualToString:@"com.apple.Music"]) return YES;
+    return NO;
+}
+
 __attribute__((constructor)) static void SPConstructor(void) {
     @autoreleasepool {
-        BOOL enabled = SPPrefBool(@"enabled", NO);
-        SPWriteHeartbeat(enabled ? @"ctor enabled" : @"ctor disabled (kill switch)",
-                         NO, @[], @[]);
-        if (!enabled) {
-            NSLog(@"[SwiftPeek] disabled — idle");
+        // Hard gate before prefs / SwiftUI / hooks — filter is Music-only, but
+        // refuse SpringBoard (and anything else) if the plist is wrong.
+        if (!SPIsAllowedProcess()) {
             return;
         }
 
-        NSLog(@"[SwiftPeek] loaded in %@ jbroot='%@'",
-              NSProcessInfo.processInfo.processName ?: @"?",
-              SPJailbreakRootPrefix() ?: @"");
+        BOOL enabled = SPPrefBool(@"enabled", NO);
+        // Defer heartbeat + hooks off the ctor path; loading a Swift dylib into
+        // a process is already risky — keep constructor tiny.
+        dispatch_async(dispatch_get_main_queue(), ^{
+            @try {
+                SPWriteHeartbeat(enabled ? @"ctor enabled" : @"ctor disabled (kill switch)",
+                                 NO, @[], @[]);
+                if (!enabled) {
+                    NSLog(@"[SwiftPeek] disabled — idle");
+                    return;
+                }
 
-        SPTryInstallHooks();
-        _dyld_register_func_for_add_image(SPOnImageAdded);
+                NSLog(@"[SwiftPeek] loaded in %@ jbroot='%@'",
+                      NSProcessInfo.processInfo.processName ?: @"?",
+                      SPJailbreakRootPrefix() ?: @"");
 
-        NSArray *delays = @[ @0.5, @1.5, @3.0, @6.0, @12.0 ];
-        for (NSNumber *sec in delays) {
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
-                                         (int64_t)(sec.doubleValue * NSEC_PER_SEC)),
-                           dispatch_get_main_queue(), ^{
-                if (!gSPHookedHostingView) SPTryInstallHooks();
-            });
-        }
+                SPTryInstallHooks();
+                _dyld_register_func_for_add_image(SPOnImageAdded);
 
-        CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
-                                        NULL,
-                                        SPPrefsChangedCallback,
-                                        CFSTR("com.kolby.swiftpeek/prefschanged"),
-                                        NULL,
-                                        CFNotificationSuspensionBehaviorDeliverImmediately);
+                NSArray *delays = @[ @0.5, @1.5, @3.0, @6.0, @12.0 ];
+                for (NSNumber *sec in delays) {
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
+                                                 (int64_t)(sec.doubleValue * NSEC_PER_SEC)),
+                                   dispatch_get_main_queue(), ^{
+                        if (!SPPrefBool(@"enabled", NO)) return;
+                        if (!gSPHookedHostingView) SPTryInstallHooks();
+                    });
+                }
+
+                CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
+                                                NULL,
+                                                SPPrefsChangedCallback,
+                                                CFSTR("com.kolby.swiftpeek/prefschanged"),
+                                                NULL,
+                                                CFNotificationSuspensionBehaviorDeliverImmediately);
+            } @catch (__unused id e) {
+                NSLog(@"[SwiftPeek] ctor failed closed");
+            }
+        });
     }
 }
