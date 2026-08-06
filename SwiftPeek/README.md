@@ -63,3 +63,4 @@ See [`../tools/`](../tools/) — `swiftmd` parses Mach-O `__swift5_types` /
 - Fail closed on unexpected metadata.
 - Never force-load `vc.view`; never swizzle UIKit bases.
 - Install Hooks remains opt-in and off by default.
+
