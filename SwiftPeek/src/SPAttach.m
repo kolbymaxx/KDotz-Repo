@@ -24,7 +24,9 @@ static NSMutableSet *gSPSwizzledKeys;
 static void (*gSPOrigLayoutSubviews)(UIView *, SEL) = NULL;
 static void (*gSPOrigViewDidLayout)(UIViewController *, SEL) = NULL;
 
-static void SPStartIfEnabled(void); // forward
+static void SPStartIfEnabled(void);
+static void SPWriteHeartbeat(NSString *message, BOOL hooked,
+                             NSArray *viewNames, NSArray *controllerNames);
 
 static void SPPrefsChangedCallback(CFNotificationCenterRef center, void *observer,
                                    CFStringRef name, const void *object,
