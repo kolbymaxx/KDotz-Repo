@@ -12,6 +12,21 @@ Unlike aesthetic-only tweaks (CC26 / CCXVIII), CC27 focuses on the **real custom
 - Liquid-glass module chrome (round 1×1 / pill modules; expanded menus stay unclipped)
 - Built-in CC27 modules: **Respring**, **Safe Mode**, **UICache**, **Userspace Reboot**
 
+## 1.0.8 fixes
+
+- **Rounded / glassy module styling restored.** Two regressions were stripping the
+  liquid-glass look: the expanded-module check could match an unrelated "expanded"
+  property higher in the CC view hierarchy (sending every module down the unstyled
+  path), and the lock screen guard was overly broad. CC detection is now
+  whitelist-first (any `ControlCenter` ancestor ⇒ style it) and expansion is read
+  only from the module's own container view controller.
+- **Glass styling works again when CC is opened from the lock screen.** The lock
+  screen freeze turned out to be caused by a different tweak, so styling is no
+  longer suppressed while locked. Edit mode and the top buttons remain
+  unlock-only, matching stock iOS 26 behavior.
+- The boot-path hardening from 1.0.7 (no hooks until after SpringBoard finishes
+  launching) is kept — it costs nothing and avoids boot-time interference.
+
 ## 1.0.7 fixes
 
 - **Boot hang / black reload screen fixed**: CC27 no longer runs any code during

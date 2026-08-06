@@ -24,21 +24,32 @@
 + (BOOL)_looksExpanded:(UIView *)view {
     if (!view) return NO;
     CGSize size = view.bounds.size;
-    // Expanded long-press menus are much larger than grid cells.
-    if (size.width > 260.0 || size.height > 260.0) return YES;
-    if (size.width > 200.0 && size.height > 200.0 && fabs(size.width - size.height) > 30.0) return YES;
+    CGSize screen = UIScreen.mainScreen.bounds.size;
+    CGFloat shortSide = fmin(screen.width, screen.height);
+    // Expanded long-press platters are near screen-sized; grid cells never are.
+    if (size.width > shortSide * 0.78 && size.height > shortSide * 0.78) return YES;
+    if (size.height > fmax(screen.width, screen.height) * 0.55) return YES;
 
-    UIView *v = view;
-    while (v) {
-        @try {
-            id expanded = [v valueForKey:@"expanded"];
-            if ([expanded respondsToSelector:@selector(boolValue)] && [expanded boolValue]) return YES;
-        } @catch (__unused NSException *e) {}
-        @try {
-            id expanded = [v valueForKey:@"isExpanded"];
-            if ([expanded respondsToSelector:@selector(boolValue)] && [expanded boolValue]) return YES;
-        } @catch (__unused NSException *e) {}
-        v = v.superview;
+    // Only trust the module container VC's own expansion flag. Asking every
+    // ancestor view for an "expanded" value can hit an unrelated always-YES
+    // property higher up the CC hierarchy, which routed every module through
+    // the unstyled expanded path (lost roundness/glass).
+    UIResponder *responder = view;
+    while (responder && ![responder isKindOfClass:UIViewController.class]) {
+        responder = responder.nextResponder;
+    }
+    UIViewController *vc = (UIViewController *)responder;
+    Class containerVC = NSClassFromString(@"CCUIContentModuleContainerViewController");
+    while (vc && containerVC && ![vc isKindOfClass:containerVC]) {
+        vc = vc.parentViewController;
+    }
+    if (vc) {
+        for (NSString *key in @[ @"expanded", @"isExpanded" ]) {
+            @try {
+                id expanded = [vc valueForKey:key];
+                if ([expanded respondsToSelector:@selector(boolValue)] && [expanded boolValue]) return YES;
+            } @catch (__unused NSException *e) {}
+        }
     }
     return NO;
 }
