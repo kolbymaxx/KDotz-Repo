@@ -2,6 +2,8 @@
 #import <objc/runtime.h>
 #import <objc/message.h>
 #import <dlfcn.h>
+#import <unistd.h>
+#import <stdlib.h>
 #import <AVFoundation/AVFoundation.h>
 #import <Accelerate/Accelerate.h>
 #import <notify.h>
@@ -442,26 +444,58 @@ static __weak FSOrbState *gFSActiveOrbState = nil;
 // Siri can transition between two host controllers (and sometimes two
 // processes) during one invocation. Gate the pull-down animation globally so
 // the replacement host adopts the visible state instead of popping again.
-static BOOL FSClaimOrbPopAnimation(void) {
+//
+// The gate value packs a coarse timestamp with a per-process tag so a host can
+// later verify its claim wasn't raced by the other process (get→set here is
+// not atomic across processes; on roothide both hosts often spin up together).
+static uint64_t gFSPopClaimValue = 0;
+
+static uint32_t FSPopProcessTag(void) {
+    static uint32_t tag = 0;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        tag = (uint32_t)getpid() ^ (uint32_t)arc4random();
+        if (tag == 0) tag = 1;
+    });
+    return tag;
+}
+
+static int FSPopGateToken(void) {
     static int token = -1;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
         notify_register_check(kFSOrbPopGate, &token);
     });
+    return token;
+}
+
+static BOOL FSClaimOrbPopAnimation(void) {
+    int token = FSPopGateToken();
     if (token < 0) return YES;
 
     uint64_t packed = 0;
     notify_get_state(token, &packed);
-    CFTimeInterval lastPop = 0;
-    memcpy(&lastPop, &packed, sizeof(lastPop));
+    // High 32 bits: whole seconds of CACurrentMediaTime. Low 32: process tag.
+    uint32_t lastSecs = (uint32_t)(packed >> 32);
 
     CFTimeInterval now = CACurrentMediaTime();
-    if (lastPop > 0 && (now - lastPop) < 2.0) return NO;
+    uint32_t nowSecs = (uint32_t)now;
+    if (lastSecs > 0 && nowSecs >= lastSecs && (nowSecs - lastSecs) < 2) return NO;
 
-    memcpy(&packed, &now, sizeof(now));
-    notify_set_state(token, packed);
+    gFSPopClaimValue = ((uint64_t)nowSecs << 32) | FSPopProcessTag();
+    notify_set_state(token, gFSPopClaimValue);
     notify_post(kFSOrbPopGate);
     return YES;
+}
+
+// After the pre-pop delay, confirm no other host claimed the gate after us.
+// Loser of a simultaneous claim adopts the settled state instead of popping.
+static BOOL FSPopClaimStillOurs(void) {
+    int token = FSPopGateToken();
+    if (token < 0) return YES;
+    uint64_t packed = 0;
+    notify_get_state(token, &packed);
+    return packed == gFSPopClaimValue;
 }
 
 // Probe the backdrop view's actual content — if it renders black, live capture
@@ -855,6 +889,20 @@ static void FSOrbViewDidAppear(UIViewController *vc) {
 
     void (^popIn)(void) = ^{
         if (appearGen != st.appearGeneration) return;
+        // Simultaneous claim race (common on roothide where both Siri hosts
+        // start together): if another process re-claimed the gate after us,
+        // it owns the pop — appear in place instead of popping twice.
+        if (!FSPopClaimStillOurs()) {
+            st.glassOrbView.hidden = NO;
+            st.glassOrbView.transform = CGAffineTransformIdentity;
+            st.glassOrbView.alpha = orbOpacity;
+            st.externalWhiteGlowView.hidden = NO;
+            st.externalWhiteGlowView.transform = CGAffineTransformIdentity;
+            st.externalWhiteGlowView.alpha = 1.0;
+            st.orbPresented = YES;
+            st.popInFlight = NO;
+            return;
+        }
         st.glassOrbView.hidden = NO;
         st.orbPresented = YES;
         st.popInFlight = NO;
@@ -890,8 +938,9 @@ static void FSOrbViewDidAppear(UIViewController *vc) {
         }];
     };
 
-    // Tiny delay lets live glass seed a frame; snapshot path uses the same pop.
-    CFTimeInterval delay = liveGlass ? 0.08 : 0.0;
+    // Small delay lets live glass seed a frame AND gives a racing claim from
+    // the other Siri host time to land in notifyd before we re-check the gate.
+    CFTimeInterval delay = liveGlass ? 0.08 : 0.05;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         popIn();
     });
