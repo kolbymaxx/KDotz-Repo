@@ -202,6 +202,40 @@ Description: iOS 26-style Control Center for iOS 15–17. 1.0.6 makes CC27 fully
 Author: kolbymaxx
 Name: CC27
 
+Package: com.kolby.cc27
+Version: 1.0.7
+Architecture: iphoneos-arm64
+Maintainer: kolbymaxx
+Installed-Size: 796
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader, com.opa334.ccsupport, firmware (>= 15.0)
+Conflicts: com.cureux.cc26, com.smfb7.ccxviii, com.dvntm.cc18
+Filename: dist/com.kolby.cc27_1.0.7_iphoneos-arm64.deb
+Size: 84982
+MD5sum: 6227f95137a2dd0936f948452a0b7079
+SHA1: 8cf12446f9df189132e79a29e5d1c757f35aed14
+SHA256: 98c2ec41d4b6da23811c66381017a9ab9971aec066b5418d01310463bb254d20
+Section: Tweaks
+Description: iOS 26-style Control Center for iOS 15–17. 1.0.7 keeps CC27 completely out of SpringBoard's boot path — hooks install only after launch finishes — fixing the minute-long boot hang and black reload screen.
+Author: kolbymaxx
+Name: CC27
+
+Package: com.kolby.cc27
+Version: 1.0.7
+Architecture: iphoneos-arm64e
+Maintainer: kolbymaxx
+Installed-Size: 796
+Depends: mobilesubstrate (>= 0.9.5000), preferenceloader, com.opa334.ccsupport, firmware (>= 15.0)
+Conflicts: com.cureux.cc26, com.smfb7.ccxviii, com.dvntm.cc18
+Filename: dist/com.kolby.cc27_1.0.7_iphoneos-arm64e.deb
+Size: 85324
+MD5sum: 2bde6daa11adbcb1b87037dec1a2ea68
+SHA1: d49126ba4e6e71b5a18c5b93e98674df0fd91807
+SHA256: ecd9f1156396131db4f47d1457fa308dd198bd129744e00656070590bb5e9edd
+Section: Tweaks
+Description: iOS 26-style Control Center for iOS 15–17. 1.0.7 keeps CC27 completely out of SpringBoard's boot path — hooks install only after launch finishes — fixing the minute-long boot hang and black reload screen.
+Author: kolbymaxx
+Name: CC27
+
 Package: com.kolby.rhcompat
 Version: 1.0.2
 Architecture: iphoneos-arm64e

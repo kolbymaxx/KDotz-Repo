@@ -122,6 +122,21 @@ static BOOL CC27ViewIsInControlCenter(UIView *view) {
 
 %end // group
 
+// Installs the hooks. Called well after SpringBoard finishes launching so that
+// CC27 contributes exactly zero work to the boot-critical path (the ~60 s
+// boot hang + watchdog reload came from tweak code running during launch).
+static void CC27InstallHooks(void) {
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        if (!CC27Prefs.shared.enabled) {
+            NSLog(@"[CC27] disabled in prefs — hooks not installed");
+            return;
+        }
+        %init(CC27);
+        NSLog(@"[CC27] 1.0.7 hooks installed (post-launch)");
+    });
+}
+
 %ctor {
     @autoreleasepool {
         // Emergency kill switch: create this file (e.g. via SSH/Filza) and
@@ -138,11 +153,25 @@ static BOOL CC27ViewIsInControlCenter(UIView *view) {
                                         CFSTR("com.kolby.cc27/ReloadPrefs"),
                                         NULL,
                                         CFNotificationSuspensionBehaviorCoalesce);
-        if (CC27Prefs.shared.enabled) {
-            %init(CC27);
-            NSLog(@"[CC27] 1.0.6 loaded — fully inert while device is locked");
-        } else {
-            NSLog(@"[CC27] disabled in prefs");
-        }
+        // Do NOT hook anything yet. SpringBoard's launch (including the first
+        // lock screen) runs 100% stock; hooks arrive a moment after
+        // UIApplicationDidFinishLaunching, safely outside the watchdog window.
+        // Control Center isn't usable that early anyway, so nothing is lost.
+        __block id token = nil;
+        token = [[NSNotificationCenter defaultCenter]
+            addObserverForName:UIApplicationDidFinishLaunchingNotification
+                        object:nil
+                         queue:NSOperationQueue.mainQueue
+                    usingBlock:^(__unused NSNotification *note) {
+            if (token) {
+                [[NSNotificationCenter defaultCenter] removeObserver:token];
+                token = nil;
+            }
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)),
+                           dispatch_get_main_queue(), ^{
+                CC27InstallHooks();
+            });
+        }];
+        NSLog(@"[CC27] 1.0.7 loaded — waiting for SpringBoard launch to finish before hooking");
     }
 }
