@@ -17,7 +17,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>0.2.8: Enable on → launch probe shows prefs.scanWindows. Turn Scan Windows on, force-quit Music, wait 12s, look for a NEWER dump with scan:true (not the old launch probe).</string>
+			<string>0.3.0 M2: Enable + Scan Windows. For field names turn Dump Fields on, force-quit Music, wait ~12s. Look for one coalesced dump with milestone:2, fields, and/or screen_strings. Leave Install Hooks off.</string>
 			<key>label</key>
 			<string>SwiftPeek</string>
 		</dict>
@@ -47,7 +47,21 @@
 			<key>key</key>
 			<string>scanWindows</string>
 			<key>label</key>
-			<string>Scan Windows (attach without hooks)</string>
+			<string>Scan Windows (attach)</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.kolby.swiftpeek/prefschanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.kolby.swiftpeek</string>
+			<key>key</key>
+			<string>dumpFields</string>
+			<key>label</key>
+			<string>Dump Fields (milestone 2)</string>
 		</dict>
 		<dict>
 			<key>PostNotification</key>
@@ -61,7 +75,7 @@
 			<key>key</key>
 			<string>installHooks</string>
 			<key>label</key>
-			<string>Install Hooks (unsafe)</string>
+			<string>Install Hooks (unsafe — leave off)</string>
 		</dict>
 		<dict>
 			<key>PostNotification</key>
@@ -76,20 +90,6 @@
 			<string>logAttach</string>
 			<key>label</key>
 			<string>Log Attach (os_log / NSLog)</string>
-		</dict>
-		<dict>
-			<key>PostNotification</key>
-			<string>com.kolby.swiftpeek/prefschanged</string>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.kolby.swiftpeek</string>
-			<key>key</key>
-			<string>dumpFields</string>
-			<key>label</key>
-			<string>Dump Fields (milestone 2 — off)</string>
 		</dict>
 		<dict>
 			<key>cell</key>

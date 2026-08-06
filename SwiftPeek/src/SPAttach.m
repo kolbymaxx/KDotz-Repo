@@ -309,10 +309,10 @@ static void SPLogAttachObject(id object, NSString *role) {
         } mutableCopy];
 
         NSInteger milestone = 1;
-        // dumpFields default OFF — Mirror/metadata walks can SIGSEGV (not catchable).
+        // dumpFields: field metadata + loaded-view screen strings only (no Mirror).
         if (SPPrefBool(@"dumpFields", NO)) {
             @try {
-                NSArray *fields = SPWalkFields(obj, 2, 64);
+                NSArray *fields = SPWalkFields(obj, 1, 32);
                 if (fields.count) {
                     node[@"fields"] = fields;
                     milestone = 2;
@@ -320,14 +320,18 @@ static void SPLogAttachObject(id object, NSString *role) {
             } @catch (__unused id e) {}
             @try {
                 UIView *view = nil;
-                if ([obj isKindOfClass:[UIView class]]) view = (UIView *)obj;
-                else if ([obj isKindOfClass:[UIViewController class]]) {
-                    view = [(UIViewController *)obj view];
+                if ([obj isKindOfClass:[UIView class]]) {
+                    view = (UIView *)obj;
+                } else if ([obj isKindOfClass:[UIViewController class]]) {
+                    UIViewController *vc = (UIViewController *)obj;
+                    if (vc.isViewLoaded) view = vc.view;
                 }
-                NSArray *screen = SPScreenStrings(view);
-                if (screen.count) {
-                    node[@"screen_strings"] = screen;
-                    milestone = 2;
+                if (view) {
+                    NSArray *screen = SPScreenStrings(view);
+                    if (screen.count) {
+                        node[@"screen_strings"] = screen;
+                        milestone = 2;
+                    }
                 }
             } @catch (__unused id e) {}
         }
@@ -561,10 +565,11 @@ static BOOL gSPDyldWatchInstalled = NO;
 /// Lightweight, hook-free attach: walk already-loaded VC tree only.
 /// Never force `vc.view` (that blanked Music Library content) and never
 /// call objc_copyClassList here (that froze the UI on main).
+/// Writes one coalesced dump; optional M2 field/screen enrichment off-main.
 static void SPScanWindowsForHosts(void) {
     if (!SPPrefBool(@"enabled", NO)) return;
     @try {
-        NSMutableArray *nodes = [NSMutableArray array];
+        NSMutableArray *captured = [NSMutableArray array]; // @{obj, role, ...}
         NSArray *windows = [UIApplication sharedApplication].windows;
         for (UIWindow *w in windows) {
             UIViewController *root = w.rootViewController;
@@ -577,19 +582,50 @@ static void SPScanWindowsForHosts(void) {
                 NSString *objcName = @(object_getClassName(vc) ?: "?");
                 NSString *typeName = SPSwiftTypeNameFromObject(vc) ?: objcName;
                 if (!SPIsBoringTypeName(typeName) || !SPIsBoringTypeName(objcName)) {
-                    [nodes addObject:@{
+                    NSMutableDictionary *entry = [@{
+                        @"object": vc,
+                        @"role": @"scan_controller",
+                        @"objc_class": objcName,
+                        @"type": typeName,
                         @"address": [NSString stringWithFormat:@"0x%lx",
                                      (unsigned long)(uintptr_t)(__bridge void *)vc],
-                        @"objc_class": objcName,
-                        @"role": @"scan_controller",
-                        @"type": typeName,
-                    }];
-                    SPLogAttachObject(vc, @"scan_controller");
+                        @"view_loaded": @(vc.isViewLoaded),
+                    } mutableCopy];
+                    // Screen strings only on main, only if view already loaded.
+                    if (SPPrefBool(@"dumpFields", NO) && vc.isViewLoaded) {
+                        @try {
+                            NSArray *screen = SPScreenStrings(vc.view);
+                            if (screen.count) entry[@"screen_strings"] = screen;
+                        } @catch (__unused id e) {}
+                    }
+                    [captured addObject:entry];
+                    if (SPPrefBool(@"logAttach", YES)) {
+                        NSLog(@"[SwiftPeek] scan type=%@ addr=%@", typeName,
+                              entry[@"address"]);
+                    }
                 }
-                // Only inspect views that are already loaded — do not load them.
                 if (vc.isViewLoaded) {
                     UIView *host = SPFindHostingViewBFS(vc.view, 24);
-                    if (host) SPLogAttachObject(host, @"scan_view");
+                    if (host) {
+                        NSString *hObjc = @(object_getClassName(host) ?: "?");
+                        NSString *hType = SPSwiftTypeNameFromObject(host) ?: hObjc;
+                        NSMutableDictionary *entry = [@{
+                            @"object": host,
+                            @"role": @"scan_view",
+                            @"objc_class": hObjc,
+                            @"type": hType,
+                            @"address": [NSString stringWithFormat:@"0x%lx",
+                                         (unsigned long)(uintptr_t)(__bridge void *)host],
+                            @"view_loaded": @YES,
+                        } mutableCopy];
+                        if (SPPrefBool(@"dumpFields", NO)) {
+                            @try {
+                                NSArray *screen = SPScreenStrings(host);
+                                if (screen.count) entry[@"screen_strings"] = screen;
+                            } @catch (__unused id e) {}
+                        }
+                        [captured addObject:entry];
+                    }
                 }
                 for (UIViewController *child in vc.childViewControllers) {
                     [stack addObject:child];
@@ -599,18 +635,56 @@ static void SPScanWindowsForHosts(void) {
                 }
             }
         }
-        if (nodes.count) {
-            SPWriteJSONDump(@{
-                @"milestone": @1,
+
+        if (captured.count == 0) {
+            SPWriteHeartbeat(@"window scan found no interesting controllers", NO, @[], @[]);
+            return;
+        }
+
+        BOOL enrich = SPPrefBool(@"dumpFields", NO);
+        NSArray *snapshot = [captured copy];
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+            NSMutableArray *nodes = [NSMutableArray array];
+            NSInteger milestone = 1;
+            NSInteger enrichBudget = 8; // cap expensive walks per scan
+            for (NSDictionary *item in snapshot) {
+                NSMutableDictionary *node = [@{
+                    @"address": item[@"address"] ?: @"",
+                    @"objc_class": item[@"objc_class"] ?: @"",
+                    @"role": item[@"role"] ?: @"",
+                    @"type": item[@"type"] ?: @"",
+                } mutableCopy];
+
+                if (enrich && enrichBudget > 0) {
+                    enrichBudget--;
+                    id obj = item[@"object"];
+                    @try {
+                        NSArray *fields = SPWalkFields(obj, 1, 24);
+                        if (fields.count) {
+                            node[@"fields"] = fields;
+                            milestone = 2;
+                        }
+                    } @catch (__unused id e) {}
+                }
+                if (item[@"screen_strings"]) {
+                    node[@"screen_strings"] = item[@"screen_strings"];
+                    milestone = 2;
+                }
+                [nodes addObject:node];
+            }
+
+            NSString *msg = [NSString stringWithFormat:
+                @"window scan nodes=%lu milestone=%ld fields=%d",
+                (unsigned long)nodes.count, (long)milestone, enrich ? 1 : 0];
+            NSString *path = SPWriteJSONDump(@{
+                @"milestone": @(milestone),
                 @"scan": @YES,
-                @"message": [NSString stringWithFormat:@"window scan nodes=%lu",
-                                                       (unsigned long)nodes.count],
+                @"message": msg,
                 @"nodes": nodes,
             });
-            SPWriteHeartbeat(@"window scan wrote attach nodes", NO, @[], @[]);
-        } else {
-            SPWriteHeartbeat(@"window scan found no interesting controllers", NO, @[], @[]);
-        }
+            SPWriteHeartbeat(path ? msg : @"window scan dump write failed", NO, @[], @[]);
+            if (path) NSLog(@"[SwiftPeek] %@", msg);
+        });
     } @catch (__unused id e) {
         SPWriteHeartbeat(@"window scan failed closed", NO, @[], @[]);
     }
@@ -637,7 +711,7 @@ static void SPStartIfEnabled(void) {
     dispatch_once(&launchOnce, ^{
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
             NSString *msg = [NSString stringWithFormat:
-                @"Music launch probe (0.2.8) scanWindows=%d installHooks=%d dumpFields=%d",
+                @"Music launch probe (0.3.0) scanWindows=%d installHooks=%d dumpFields=%d",
                 scanOn ? 1 : 0, hooksOn ? 1 : 0, fieldsOn ? 1 : 0];
             SPWriteHeartbeat(msg, NO, @[], @[]);
             SPWriteJSONDump(@{
