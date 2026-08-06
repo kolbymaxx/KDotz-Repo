@@ -4,8 +4,9 @@ Read-only SwiftUI / Music view inspector for jailbroken iOS. Recovers live
 type names (M1) and optional field layouts / on-screen strings (M2) without
 mutating the UI.
 
-**Status:** Phase 1 — M1 + safe M2 `screen_strings` proven on device (0.3.2);
-hardened hosting-view field meta opt-in (0.3.3). Not published to the APT repo.
+**Status:** Phase 1 — M1 + safe M2 `screen_strings` proven (0.3.2); hardened
+field meta stable with meta on (0.3.3, `tried=0`); broader hosting-view
+discovery (0.3.4). Not published to the APT repo.
 
 ## Targets
 
@@ -28,10 +29,9 @@ Domain: `com.kolby.swiftpeek`
 | `installHooks` | `false` | Swizzle hosting layout (unsafe — leave off) |
 | `logAttach` | `true` | NSLog attach lines when enabled |
 
-**Recommended device path:** Enable + Scan Windows + Dump Fields (proven).
-For hardened meta, also turn on Dump Field Meta — it only walks
-`_UIHostingView` / `UIHostingView` (depth 0: names/offsets/types). Leave
-Install Hooks off. Music VC metadata walks crashed on 0.3.0 and are refused.
+**Recommended device path:** Enable + Scan Windows + Dump Fields. For meta,
+also Dump Field Meta — walks `_UIHostingView` only (depth 0). Leave Install
+Hooks off.
 
 No respring needed for prefs — force-quit Music.
 
@@ -44,8 +44,9 @@ $jbroot/var/mobile/Library/SwiftPeek/status.json
 
 Darwin notification on write: `com.kolby.swiftpeek/dump`.
 
-Look for `tool_version: "0.3.3"`. With meta on, scan message includes
-`meta=1 tried=N hit=N` and hosting `scan_view` nodes may carry `fields`.
+Look for `tool_version: "0.3.4"`. Scan message includes
+`hosts=N tried=N hit=N`. If meta is on and `hosts=0`, dumps may include
+`view_class_sample` to show what was visible under the window.
 
 ## Build
 

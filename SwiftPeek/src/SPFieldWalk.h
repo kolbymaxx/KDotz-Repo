@@ -6,9 +6,9 @@ NS_ASSUME_NONNULL_BEGIN
 /// Field *names* from FieldDescriptor; *offsets* from the runtime field
 /// offset vector (fovo). Fail-closed: returns empty array on anything unexpected.
 ///
-/// Hardened (0.3.3): only `_UIHostingView` / `UIHostingView` UIViews;
-/// rejects UIViewControllers and MusicApplication types; depth forced to 0
-/// (names/offsets/types only — no value previews or nested walks).
+/// Hardened: only `_UIHostingView` / `UIHostingView` UIViews (isKindOfClass
+/// + name); rejects UIViewControllers and MusicApplication types; depth
+/// forced to 0 (names/offsets/types only — no value previews or nested walks).
 /// `maxDepth` / `maxNodes` are clamped; callers should pass 0 / 8.
 ///
 /// Each entry is a dictionary with stable keys: name, offset, type.

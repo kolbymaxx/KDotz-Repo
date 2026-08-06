@@ -48,10 +48,22 @@ static const char *SPReadCStringAt(uint64_t addr) {
 
 static BOOL SPClassNameLooksLikeHostingView(const char *name) {
     if (!name) return NO;
-    if (strcmp(name, "_UIHostingView") == 0) return YES;
     if (strstr(name, "_UIHostingView") != NULL) return YES;
     if (strstr(name, "UIHostingView") != NULL) return YES;
+    if (strstr(name, "HostingView") != NULL && strstr(name, "Controller") == NULL) {
+        return YES;
+    }
     return NO;
+}
+
+static BOOL SPObjectIsHostingView(id object) {
+    if (![object isKindOfClass:[UIView class]]) return NO;
+    if ([object isKindOfClass:[UIViewController class]]) return NO;
+    Class hv = NSClassFromString(@"_UIHostingView");
+    if (hv && [object isKindOfClass:hv]) return YES;
+    Class hv2 = NSClassFromString(@"UIHostingView");
+    if (hv2 && [object isKindOfClass:hv2]) return YES;
+    return SPClassNameLooksLikeHostingView(object_getClassName(object));
 }
 
 /// Reject types that previously SIGSEGV'd under FOVO walks on Music.
@@ -204,11 +216,8 @@ NSArray<NSDictionary *> *SPWalkFields(id object, NSInteger maxDepth, NSInteger m
 
     @try {
         // Hard gates: hosting UIView only. Never walk UIViewControllers / Music VCs.
-        if (![object isKindOfClass:[UIView class]]) return @[];
-        if ([object isKindOfClass:[UIViewController class]]) return @[];
-
+        if (!SPObjectIsHostingView(object)) return @[];
         const char *cn = object_getClassName(object);
-        if (!SPClassNameLooksLikeHostingView(cn)) return @[];
         if (SPClassNameIsMetaDenylisted(cn)) return @[];
 
         // Force the hardened envelope regardless of caller args.
