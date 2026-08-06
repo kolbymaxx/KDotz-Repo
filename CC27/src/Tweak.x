@@ -11,11 +11,19 @@ static void CC27ReloadPrefs(CFNotificationCenterRef center, void *observer, CFSt
 // CC module container views — the exact class we hook. CC27 must never style
 // or decorate those: mutating lock screen views can wedge the whole cover
 // sheet. Only views living inside actual Control Center chrome qualify.
+//
+// Whitelist first: real CC lives under "ControlCenter" chrome
+// (CCUIModularControlCenterView / SBControlCenterWindow), so any such ancestor
+// is a definitive yes. The lock screen blacklist stays as a safety net for the
+// quick-action containers, which never have a ControlCenter ancestor.
 static BOOL CC27ViewIsInControlCenter(UIView *view) {
     UIView *v = view;
     while (v) {
         const char *cls = class_getName(v.class);
         if (cls) {
+            if (strstr(cls, "ControlCenter")) {
+                return YES;
+            }
             if (strstr(cls, "QuickAction") || strstr(cls, "CoverSheet") ||
                 strstr(cls, "DashBoard") || strstr(cls, "Dashboard") ||
                 strstr(cls, "LockScreen")) {
@@ -85,10 +93,11 @@ static BOOL CC27ViewIsInControlCenter(UIView *view) {
 - (void)layoutSubviews {
     %orig;
     if (!CC27Prefs.shared.enabled) return;
-    // Fully inert while the device UI is locked.
-    if ([CC27EditSession deviceUILocked]) return;
     // Never touch module containers hosted outside Control Center (Lock
-    // Screen quick actions on iOS 16 use this same class).
+    // Screen quick actions on iOS 16 use this same class). Glass styling is
+    // allowed while locked — real CC opened from the lock screen has
+    // ControlCenter ancestors, quick actions never do. Edit chrome stays
+    // unlock-only (gated inside CC27EditSession).
     if (!CC27ViewIsInControlCenter(self)) return;
     @try {
         if (CC27Prefs.shared.glassChrome) {
@@ -133,7 +142,7 @@ static void CC27InstallHooks(void) {
             return;
         }
         %init(CC27);
-        NSLog(@"[CC27] 1.0.7 hooks installed (post-launch)");
+        NSLog(@"[CC27] 1.0.8 hooks installed (post-launch)");
     });
 }
 
@@ -172,6 +181,6 @@ static void CC27InstallHooks(void) {
                 CC27InstallHooks();
             });
         }];
-        NSLog(@"[CC27] 1.0.7 loaded — waiting for SpringBoard launch to finish before hooking");
+        NSLog(@"[CC27] 1.0.8 loaded — waiting for SpringBoard launch to finish before hooking");
     }
 }
