@@ -17,7 +17,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>0.2.7 ObjC-only. With Enable on and everything else off, Music should stay usable and only a launch probe is written. Turn on Scan Windows only after Music works.</string>
+			<string>0.2.8: Enable on → launch probe shows prefs.scanWindows. Turn Scan Windows on, force-quit Music, wait 12s, look for a NEWER dump with scan:true (not the old launch probe).</string>
 			<key>label</key>
 			<string>SwiftPeek</string>
 		</dict>

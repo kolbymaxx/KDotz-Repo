@@ -629,33 +629,50 @@ static void SPStartIfEnabled(void) {
           NSProcessInfo.processInfo.processName ?: @"?",
           SPJailbreakRootPrefix() ?: @"");
 
+    BOOL scanOn = SPPrefBool(@"scanWindows", NO);
+    BOOL hooksOn = SPPrefBool(@"installHooks", NO);
+    BOOL fieldsOn = SPPrefBool(@"dumpFields", NO);
+
     static dispatch_once_t launchOnce;
     dispatch_once(&launchOnce, ^{
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
-            SPWriteHeartbeat(@"enabled — inert probe only (scan/hooks opt-in)", NO, @[], @[]);
+            NSString *msg = [NSString stringWithFormat:
+                @"Music launch probe (0.2.8) scanWindows=%d installHooks=%d dumpFields=%d",
+                scanOn ? 1 : 0, hooksOn ? 1 : 0, fieldsOn ? 1 : 0];
+            SPWriteHeartbeat(msg, NO, @[], @[]);
             SPWriteJSONDump(@{
                 @"milestone": @0,
                 @"probe": @YES,
                 @"launch": @YES,
-                @"message": @"Music launch probe (0.2.7 ObjC-only; scanWindows/installHooks off)",
+                @"message": msg,
+                @"prefs": @{
+                    @"enabled": @YES,
+                    @"scanWindows": @(scanOn),
+                    @"installHooks": @(hooksOn),
+                    @"dumpFields": @(fieldsOn),
+                },
                 @"nodes": @[],
             });
         });
     });
 
-    // Window scan is opt-in — even "light" main-queue walks upset Music Library.
-    if (SPPrefBool(@"scanWindows", NO)) {
+    // Window scan is opt-in — schedule every Music launch when enabled.
+    if (scanOn) {
         static dispatch_once_t scanScheduleOnce;
         dispatch_once(&scanScheduleOnce, ^{
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(15.0 * NSEC_PER_SEC)),
-                           dispatch_get_main_queue(), ^{
-                if (!SPPrefBool(@"enabled", NO) || !SPPrefBool(@"scanWindows", NO)) return;
-                SPScanWindowsForHosts();
-            });
+            NSLog(@"[SwiftPeek] scanWindows on — scheduling scans");
+            for (NSNumber *sec in @[ @5.0, @12.0 ]) {
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
+                                             (int64_t)(sec.doubleValue * NSEC_PER_SEC)),
+                               dispatch_get_main_queue(), ^{
+                    if (!SPPrefBool(@"enabled", NO) || !SPPrefBool(@"scanWindows", NO)) return;
+                    SPScanWindowsForHosts();
+                });
+            }
         });
     }
 
-    if (SPPrefBool(@"installHooks", NO)) {
+    if (hooksOn) {
         static dispatch_once_t hooksOnce;
         dispatch_once(&hooksOnce, ^{
             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(20.0 * NSEC_PER_SEC)),

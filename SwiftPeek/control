@@ -1,9 +1,9 @@
 Package: com.kolby.swiftpeek
 Name: SwiftPeek
 Depends: mobilesubstrate, preferenceloader
-Version: 0.2.7
+Version: 0.2.8
 Architecture: iphoneos-arm64
-Description: Read-only SwiftUI view inspector — Music ObjC-only, inert unless scan/hooks opted in. Debug tooling; not published.
+Description: Read-only SwiftUI view inspector — Music ObjC-only; scan/hooks opt-in. Debug tooling; not published.
 Maintainer: Kolby
 Author: Kolby
 Section: Tweaks

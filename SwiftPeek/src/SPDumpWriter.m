@@ -26,7 +26,7 @@ NSDictionary *SPDumpHeader(void) {
         @"process": proc,
         @"timestamp": ts,
         @"tool": @"SwiftPeek",
-        @"tool_version": @"0.2.7",
+        @"tool_version": @"0.2.8",
     };
 }
 
@@ -60,7 +60,7 @@ static NSData *SPStableJSONData(NSDictionary *root, NSError **outError) {
         @"jbroot", @"prefs_paths", @"hosting_view", @"hosting_controller",
         @"hosting_view_names", @"hosting_controller_names",
         @"hooked_view_class", @"hooked_controller_class",
-        @"hooked", @"nodes", @"message", @"probe", @"launch", @"scan",
+        @"hooked", @"nodes", @"message", @"probe", @"launch", @"scan", @"prefs",
         @"fields", @"mirror_strings", @"screen_strings"
     ];
     NSMutableString *json = [NSMutableString stringWithString:@"{\n"];
