@@ -30,7 +30,7 @@ Domain: `com.kolby.swiftpeek`
 |-----|---------|---------|
 | `enabled` | `false` | Master kill switch |
 | `logAttach` | `true` | NSLog attach lines when enabled |
-| `dumpFields` | `true` | Walk fields + mirror/screen strings (milestone 2) |
+| `dumpFields` | `false` | Walk fields + mirror/screen strings (milestone 2; off — can crash) |
 
 PreferenceLoader entry ships with the package. Toggle on, **relaunch Music**
 (no respring needed for Music-only), watch `os_log` / Filza dumps for:
