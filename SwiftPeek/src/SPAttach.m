@@ -616,8 +616,10 @@ static void SPScanWindowsForHosts(void) {
                     // Safe M2: titles always; view walk only if already loaded.
                     if (SPPrefBool(@"dumpFields", NO)) {
                         @try {
-                            NSMutableArray *screen = [[SPControllerTitles(vc) mutableCopy]
-                                                      ?: [NSMutableArray array]];
+                            NSArray *titles = SPControllerTitles(vc);
+                            NSMutableArray *screen = titles.count
+                                ? [titles mutableCopy]
+                                : [NSMutableArray array];
                             if (vc.isViewLoaded) {
                                 NSArray *fromView = SPScreenStrings(vc.view);
                                 for (NSString *s in fromView) {
