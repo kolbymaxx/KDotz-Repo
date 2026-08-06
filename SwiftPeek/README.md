@@ -4,7 +4,7 @@ Read-only SwiftUI / Music view inspector for jailbroken iOS. Recovers live
 type names (M1) and optional field layouts / on-screen strings (M2) without
 mutating the UI.
 
-**Status:** Phase 1 — M1 proven on device (scan); M2 field walk opt-in (0.3.0).
+**Status:** Phase 1 — M1 proven on device (scan); M2 screen_strings opt-in (0.3.2).
 Not published to the APT repo.
 
 ## Targets
@@ -28,8 +28,9 @@ Domain: `com.kolby.swiftpeek`
 | `installHooks` | `false` | Swizzle hosting layout (unsafe — leave off) |
 | `logAttach` | `true` | NSLog attach lines when enabled |
 
-**Recommended device path:** Enable + Scan Windows. For M2 strings turn on
-Dump Fields only. Leave Dump Field Meta and Install Hooks off unless debugging.
+**Recommended device path:** Enable + Scan Windows for M1. For safe M2 turn on
+Dump Fields (titles / UILabel strings). Leave Dump Field Meta and Install Hooks
+off — metadata walks crashed Music on 0.3.0.
 
 No respring needed for prefs — force-quit Music.
 
