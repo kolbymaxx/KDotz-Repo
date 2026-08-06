@@ -668,19 +668,22 @@ static void SPScanWindowsForHosts(void) {
         NSMutableArray *viewClassSample = [NSMutableArray array];
         NSMutableSet *sampleSeen = [NSMutableSet set];
         __block NSInteger hostsFound = 0;
+        __block NSInteger musicViewsFound = 0;
+        BOOL wantMeta = SPPrefBool(@"dumpFieldMeta", NO);
 
-        void (^captureHost)(UIView *) = ^(UIView *host) {
-            if (!host || !SPViewIsHostingView(host)) return;
+        void (^captureViewNode)(UIView *, NSString *) = ^(UIView *view, NSString *role) {
+            if (!view) return;
             NSString *akey = [NSString stringWithFormat:@"0x%lx",
-                              (unsigned long)(uintptr_t)(__bridge void *)host];
+                              (unsigned long)(uintptr_t)(__bridge void *)view];
             if ([hostAddrs containsObject:akey]) return;
             [hostAddrs addObject:akey];
-            hostsFound++;
-            NSString *hObjc = @(object_getClassName(host) ?: "?");
-            NSString *hType = SPSwiftTypeNameFromObject(host) ?: hObjc;
+            if ([role isEqualToString:@"scan_view"]) hostsFound++;
+            if ([role isEqualToString:@"scan_music_view"]) musicViewsFound++;
+            NSString *hObjc = @(object_getClassName(view) ?: "?");
+            NSString *hType = SPSwiftTypeNameFromObject(view) ?: hObjc;
             NSMutableDictionary *entry = [@{
-                @"object": host,
-                @"role": @"scan_view",
+                @"object": view,
+                @"role": role,
                 @"objc_class": hObjc,
                 @"type": hType,
                 @"address": akey,
@@ -688,13 +691,41 @@ static void SPScanWindowsForHosts(void) {
             } mutableCopy];
             if (SPPrefBool(@"dumpFields", NO)) {
                 @try {
-                    NSArray *screen = SPScreenStrings(host);
+                    NSArray *screen = SPScreenStrings(view);
                     if (screen.count) entry[@"screen_strings"] = screen;
                 } @catch (__unused id e) {}
             }
             [captured addObject:entry];
             if (SPPrefBool(@"logAttach", YES)) {
-                NSLog(@"[SwiftPeek] scan_view type=%@ addr=%@", hType, akey);
+                NSLog(@"[SwiftPeek] %@ type=%@ addr=%@", role, hType, akey);
+            }
+        };
+
+        void (^captureHost)(UIView *) = ^(UIView *host) {
+            if (!host || !SPViewIsHostingView(host)) return;
+            captureViewNode(host, @"scan_view");
+        };
+
+        void (^collectMusicMetaViews)(UIView *, NSInteger, NSInteger) =
+            ^(UIView *root, NSInteger maxNodes, NSInteger maxResults) {
+            if (!root || !wantMeta || maxResults <= 0) return;
+            NSMutableArray *q = [NSMutableArray arrayWithObject:root];
+            NSMutableSet *seen = [NSMutableSet set];
+            NSInteger n = 0;
+            NSInteger got = 0;
+            while (q.count && n < maxNodes && got < maxResults) {
+                UIView *v = q.firstObject;
+                [q removeObjectAtIndex:0];
+                NSValue *key = [NSValue valueWithNonretainedObject:v];
+                if ([seen containsObject:key]) continue;
+                [seen addObject:key];
+                n++;
+                const char *cn = object_getClassName(v);
+                if (SPClassNameIsMusicMetaView(cn)) {
+                    captureViewNode(v, @"scan_music_view");
+                    got++;
+                }
+                for (UIView *sub in v.subviews) [q addObject:sub];
             }
         };
 
@@ -704,6 +735,8 @@ static void SPScanWindowsForHosts(void) {
             for (UIView *host in SPCollectHostingViews(w, 160, 6)) {
                 captureHost(host);
             }
+            // Music 16.7 has no hosting views — allowlisted UIViews for meta.
+            collectMusicMetaViews(w, 160, 4);
             for (NSString *cn in SPSampleViewClassNames(w, 80, 16)) {
                 if (![sampleSeen containsObject:cn]) {
                     [sampleSeen addObject:cn];
@@ -757,6 +790,7 @@ static void SPScanWindowsForHosts(void) {
                     for (UIView *host in SPCollectHostingViews(vc.view, 96, 4)) {
                         captureHost(host);
                     }
+                    collectMusicMetaViews(vc.view, 96, 2);
                 }
                 for (UIViewController *child in vc.childViewControllers) {
                     [stack addObject:child];
@@ -773,14 +807,15 @@ static void SPScanWindowsForHosts(void) {
         }
 
         BOOL enrichScreen = SPPrefBool(@"dumpFields", NO);
-        BOOL enrichMeta = SPPrefBool(@"dumpFieldMeta", NO);
+        BOOL enrichMeta = wantMeta;
         NSArray *snapshot = [captured copy];
         NSArray *sampleCopy = [viewClassSample copy];
         NSInteger hostsCopy = hostsFound;
+        NSInteger musicCopy = musicViewsFound;
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
             NSMutableArray *nodes = [NSMutableArray array];
             NSInteger milestone = 1;
-            NSInteger metaBudget = 4; // still small; discovery may yield more hosts
+            NSInteger metaBudget = 4; // hosting first, then allowlisted Music UIViews
             NSInteger metaTried = 0;
             NSInteger metaHit = 0;
             for (NSDictionary *item in snapshot) {
@@ -798,27 +833,40 @@ static void SPScanWindowsForHosts(void) {
 
                 if (enrichMeta && metaBudget > 0) {
                     NSString *role = item[@"role"] ?: @"";
-                    // Only metadata-walk hosting views — never scan_controller Music VCs.
-                    if ([role isEqualToString:@"scan_view"]) {
-                        id obj = item[@"object"];
-                        if ([obj isKindOfClass:[UIView class]] &&
-                            SPViewIsHostingView((UIView *)obj)) {
-                            metaBudget--;
-                            metaTried++;
-                            @try {
-                                NSArray *fields = SPWalkFields(obj, 0, 8);
-                                if (fields.count) {
-                                    node[@"fields"] = fields;
-                                    milestone = 2;
-                                    metaHit++;
-                                } else {
-                                    node[@"meta_empty"] = @YES;
-                                }
-                            } @catch (__unused id e) {
-                                node[@"meta_skipped"] = @"walk_exception";
+                    id obj = item[@"object"];
+                    // Never FOVO-walk scan_controller Music VCs (0.3.0 crash).
+                    if ([role isEqualToString:@"scan_view"] &&
+                        [obj isKindOfClass:[UIView class]] &&
+                        SPViewIsHostingView((UIView *)obj)) {
+                        metaBudget--;
+                        metaTried++;
+                        @try {
+                            NSArray *fields = SPWalkFields(obj, 0, 8);
+                            if (fields.count) {
+                                node[@"fields"] = fields;
+                                milestone = 2;
+                                metaHit++;
+                            } else {
+                                node[@"meta_empty"] = @YES;
                             }
-                        } else {
-                            node[@"meta_skipped"] = @"not_hosting_view";
+                        } @catch (__unused id e) {
+                            node[@"meta_skipped"] = @"walk_exception";
+                        }
+                    } else if ([role isEqualToString:@"scan_music_view"] &&
+                               [obj isKindOfClass:[UIView class]]) {
+                        metaBudget--;
+                        metaTried++;
+                        @try {
+                            NSArray *fields = SPWalkFieldsMusicView(obj, 0, 8);
+                            if (fields.count) {
+                                node[@"fields"] = fields;
+                                milestone = 2;
+                                metaHit++;
+                            } else {
+                                node[@"meta_empty"] = @YES;
+                            }
+                        } @catch (__unused id e) {
+                            node[@"meta_skipped"] = @"walk_exception";
                         }
                     }
                 }
@@ -826,18 +874,20 @@ static void SPScanWindowsForHosts(void) {
             }
 
             NSString *msg = [NSString stringWithFormat:
-                @"window scan nodes=%lu milestone=%ld screen=%d meta=%d hosts=%ld tried=%ld hit=%ld",
+                @"window scan nodes=%lu milestone=%ld screen=%d meta=%d hosts=%ld music_views=%ld tried=%ld hit=%ld",
                 (unsigned long)nodes.count, (long)milestone,
                 enrichScreen ? 1 : 0, enrichMeta ? 1 : 0,
-                (long)hostsCopy, (long)metaTried, (long)metaHit];
+                (long)hostsCopy, (long)musicCopy,
+                (long)metaTried, (long)metaHit];
             NSMutableDictionary *payload = [@{
                 @"milestone": @(milestone),
                 @"scan": @YES,
                 @"message": msg,
                 @"nodes": nodes,
                 @"hosts_found": @(hostsCopy),
+                @"music_views_found": @(musicCopy),
             } mutableCopy];
-            // When meta is on but nothing matched, sample helps next iteration.
+            // Sample helps when neither hosting nor allowlisted views hit.
             if (enrichMeta && hostsCopy == 0 && sampleCopy.count) {
                 payload[@"view_class_sample"] = sampleCopy;
             }
@@ -872,7 +922,7 @@ static void SPStartIfEnabled(void) {
     dispatch_once(&launchOnce, ^{
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
             NSString *msg = [NSString stringWithFormat:
-                @"Music launch probe (0.3.4) scanWindows=%d installHooks=%d dumpFields=%d dumpFieldMeta=%d",
+                @"Music launch probe (0.3.5) scanWindows=%d installHooks=%d dumpFields=%d dumpFieldMeta=%d",
                 scanOn ? 1 : 0, hooksOn ? 1 : 0, fieldsOn ? 1 : 0, metaOn ? 1 : 0];
             SPWriteHeartbeat(msg, NO, @[], @[]);
             SPWriteJSONDump(@{

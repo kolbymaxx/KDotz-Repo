@@ -1,9 +1,9 @@
 Package: com.kolby.swiftpeek
 Name: SwiftPeek
 Depends: mobilesubstrate, preferenceloader
-Version: 0.3.4
+Version: 0.3.5
 Architecture: iphoneos-arm64
-Description: Read-only SwiftUI inspector — M1/M2 screen_strings + broader hosting-view discovery for field meta. Debug tooling; not published.
+Description: Read-only SwiftUI inspector — M2 screen_strings + Music UIView allowlist field meta (no hosting on 16.7). Debug tooling; not published.
 Maintainer: Kolby
 Author: Kolby
 Section: Tweaks

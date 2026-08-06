@@ -69,11 +69,30 @@ static BOOL SPObjectIsHostingView(id object) {
 /// Reject types that previously SIGSEGV'd under FOVO walks on Music.
 static BOOL SPClassNameIsMetaDenylisted(const char *name) {
     if (!name) return YES;
-    if (strstr(name, "MusicApplication") != NULL) return YES;
-    if (strstr(name, "UIViewController") != NULL) return YES;
+    if (strstr(name, "ViewController") != NULL) return YES;
     if (strstr(name, "UIHostingController") != NULL) return YES;
     if (strstr(name, "ViewGraph") != NULL) return YES;
     if (strstr(name, "AttributeGraph") != NULL) return YES;
+    if (strstr(name, "ScrollView") != NULL) return YES;
+    return NO;
+}
+
+BOOL SPClassNameIsMusicMetaView(const char *name) {
+    if (!name) return NO;
+    if (SPClassNameIsMetaDenylisted(name)) return NO;
+    // From 0.3.4 view_class_sample on iPhone X / 16.7.14 — UIViews only.
+    static const char *const allow[] = {
+        "NowPlayingContentView",
+        "PaletteContainerView",
+        "UberNavigationTitleView",
+        "MusicArtworkComponentImageView",
+        "NowPlayingTransportControlStackView",
+        "NowPlayingVibrancyEffectView",
+        NULL,
+    };
+    for (const char *const *p = allow; *p; p++) {
+        if (strstr(name, *p) != NULL) return YES;
+    }
     return NO;
 }
 
@@ -211,27 +230,45 @@ static NSArray *SPWalkFieldsFromMetadata(const void *metadata, const void *value
     return out;
 }
 
+static NSArray<NSDictionary *> *SPWalkFieldsCommon(id object, NSInteger maxDepth,
+                                                   NSInteger maxNodes) {
+    (void)maxDepth;
+    maxDepth = kSPHardMaxDepth;
+    if (maxNodes <= 0 || maxNodes > kSPHardMaxNodes) maxNodes = kSPHardMaxNodes;
+
+    Class cls = object_getClass(object);
+    if (!cls) return @[];
+    const void *metadata = SPStripMeta((__bridge const void *)cls);
+    if (!metadata) return @[];
+    NSInteger budget = maxNodes;
+    return SPWalkFieldsFromMetadata(metadata, (__bridge const void *)object,
+                                    YES, 0, maxDepth, &budget) ?: @[];
+}
+
 NSArray<NSDictionary *> *SPWalkFields(id object, NSInteger maxDepth, NSInteger maxNodes) {
     if (!object) return @[];
 
     @try {
-        // Hard gates: hosting UIView only. Never walk UIViewControllers / Music VCs.
+        // Hard gates: hosting UIView only. Never walk UIViewControllers.
         if (!SPObjectIsHostingView(object)) return @[];
         const char *cn = object_getClassName(object);
         if (SPClassNameIsMetaDenylisted(cn)) return @[];
+        return SPWalkFieldsCommon(object, maxDepth, maxNodes);
+    } @catch (__unused id e) {
+        return @[];
+    }
+}
 
-        // Force the hardened envelope regardless of caller args.
-        (void)maxDepth;
-        maxDepth = kSPHardMaxDepth;
-        if (maxNodes <= 0 || maxNodes > kSPHardMaxNodes) maxNodes = kSPHardMaxNodes;
+NSArray<NSDictionary *> *SPWalkFieldsMusicView(id object, NSInteger maxDepth,
+                                               NSInteger maxNodes) {
+    if (!object) return @[];
 
-        Class cls = object_getClass(object);
-        if (!cls) return @[];
-        const void *metadata = SPStripMeta((__bridge const void *)cls);
-        if (!metadata) return @[];
-        NSInteger budget = maxNodes;
-        return SPWalkFieldsFromMetadata(metadata, (__bridge const void *)object,
-                                        YES, 0, maxDepth, &budget) ?: @[];
+    @try {
+        if (![object isKindOfClass:[UIView class]]) return @[];
+        if ([object isKindOfClass:[UIViewController class]]) return @[];
+        const char *cn = object_getClassName(object);
+        if (!SPClassNameIsMusicMetaView(cn)) return @[];
+        return SPWalkFieldsCommon(object, maxDepth, maxNodes);
     } @catch (__unused id e) {
         return @[];
     }
