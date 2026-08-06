@@ -48,7 +48,25 @@ static BOOL SPClassOwnsInstanceMethod(Class cls, SEL sel) {
     Class superCls = class_getSuperclass(cls);
     if (!superCls) return YES;
     Method sm = class_getInstanceMethod(superCls, sel);
-    return m != sm;
+    if (m != sm) return YES;
+    // Belt-and-suspenders: some runtimes alias Method pointers oddly.
+    unsigned int n = 0;
+    Method *list = class_copyMethodList(cls, &n);
+    if (!list) return NO;
+    BOOL owns = NO;
+    for (unsigned int i = 0; i < n; i++) {
+        if (method_getName(list[i]) == sel) { owns = YES; break; }
+    }
+    free(list);
+    return owns;
+}
+
+/// Walk to the class in `cls`'s hierarchy that actually implements `sel`.
+static Class SPClassProvidingInstanceMethod(Class cls, SEL sel) {
+    for (Class c = cls; c; c = class_getSuperclass(c)) {
+        if (SPClassOwnsInstanceMethod(c, sel)) return c;
+    }
+    return Nil;
 }
 
 static IMP SPLookupOrigIMP(NSDictionary<NSString *, NSValue *> *map, Class start) {
@@ -412,28 +430,27 @@ static void SPTryInstallHooks(void) {
 
     SPEnsureOrigMaps();
 
+    // Resolve each candidate to the class that *owns* the method, then swizzle
+    // that class once. Skipping inherited slots without walking up left 0.2.3
+    // with zero hooks on Music (no new dumps).
+    NSMutableSet *viewTargets = [NSMutableSet set];
     NSInteger viewHooks = 0;
-    NSInteger viewSkippedInherited = 0;
     for (NSValue *v in viewClasses) {
-        Class cls = (Class)v.pointerValue;
-        if (!SPClassOwnsInstanceMethod(cls, @selector(layoutSubviews))) {
-            viewSkippedInherited++;
-            continue;
-        }
-        if (SPSwizzleOwned(cls, @selector(layoutSubviews),
+        Class owner = SPClassProvidingInstanceMethod((Class)v.pointerValue,
+                                                    @selector(layoutSubviews));
+        if (!owner) continue;
+        NSString *name = @(class_getName(owner) ?: "");
+        if (name.length == 0 || [viewTargets containsObject:name]) continue;
+        [viewTargets addObject:name];
+        if (SPSwizzleOwned(owner, @selector(layoutSubviews),
                            (IMP)SPHookedLayoutSubviews,
                            gSPOrigLayoutByClass)) {
             viewHooks++;
-            if (!gSPHookedViewClassName) {
-                gSPHookedViewClassName = @(class_getName(cls));
-            }
+            if (!gSPHookedViewClassName) gSPHookedViewClassName = name;
         }
     }
     if (viewHooks > 0) gSPHookedHostingView = YES;
 
-    // Swizzle top few controller candidates (ranked), only if they own the method.
-    NSInteger vcHooks = 0;
-    NSInteger vcSkippedInherited = 0;
     NSArray *sorted = [vcClasses sortedArrayUsingComparator:^NSComparisonResult(NSValue *a, NSValue *b) {
         const char *an = class_getName((Class)a.pointerValue);
         const char *bn = class_getName((Class)b.pointerValue);
@@ -445,49 +462,53 @@ static void SPTryInstallHooks(void) {
         if (al == bl) return NSOrderedSame;
         return al < bl ? NSOrderedAscending : NSOrderedDescending;
     }];
+    NSMutableSet *vcTargets = [NSMutableSet set];
+    NSInteger vcHooks = 0;
     for (NSValue *v in sorted) {
-        if (vcHooks >= 6) break;
-        Class cls = (Class)v.pointerValue;
-        if (!SPClassOwnsInstanceMethod(cls, @selector(viewDidLayoutSubviews))) {
-            vcSkippedInherited++;
-            continue;
-        }
-        if (SPSwizzleOwned(cls, @selector(viewDidLayoutSubviews),
+        if (vcHooks >= 8) break;
+        Class owner = SPClassProvidingInstanceMethod((Class)v.pointerValue,
+                                                    @selector(viewDidLayoutSubviews));
+        if (!owner) continue;
+        NSString *name = @(class_getName(owner) ?: "");
+        if (name.length == 0 || [vcTargets containsObject:name]) continue;
+        [vcTargets addObject:name];
+        if (SPSwizzleOwned(owner, @selector(viewDidLayoutSubviews),
                            (IMP)SPHookedViewDidLayout,
                            gSPOrigDidLayoutByClass)) {
             vcHooks++;
-            if (!gSPHookedControllerClassName) {
-                gSPHookedControllerClassName = @(class_getName(cls));
-            }
+            if (!gSPHookedControllerClassName) gSPHookedControllerClassName = name;
         }
     }
     if (vcHooks > 0) gSPHookedHostingController = YES;
 
     BOOL hooked = gSPHookedHostingView || gSPHookedHostingController;
+    NSString *msg = nil;
     if (hooked) {
-        NSString *msg = [NSString stringWithFormat:
-            @"hooks installed (views=%ld controllers=%ld skipInherited v=%ld c=%ld)",
-            (long)viewHooks, (long)vcHooks,
-            (long)viewSkippedInherited, (long)vcSkippedInherited];
-        SPWriteHeartbeat(msg, YES, viewNames, vcNames);
-        NSLog(@"[SwiftPeek] %@", msg);
-        // Probe dump so Filza shows life even before a unique host attaches.
-        static dispatch_once_t probeOnce;
-        dispatch_once(&probeOnce, ^{
-            SPWriteJSONDump(@{
-                @"milestone": @1,
-                @"probe": @YES,
-                @"message": msg,
-                @"nodes": @[],
-            });
-        });
+        msg = [NSString stringWithFormat:
+               @"hooks installed (views=%ld controllers=%ld targets v=%lu c=%lu)",
+               (long)viewHooks, (long)vcHooks,
+               (unsigned long)viewTargets.count, (unsigned long)vcTargets.count];
     } else if (viewNames.count || vcNames.count) {
-        SPWriteHeartbeat(
-            [NSString stringWithFormat:@"candidates but no owned methods (skipInherited v=%ld c=%ld)",
-                                       (long)viewSkippedInherited, (long)vcSkippedInherited],
-            NO, viewNames, vcNames);
+        msg = [NSString stringWithFormat:
+               @"candidates but swizzle failed (views=%lu controllers=%lu)",
+               (unsigned long)viewNames.count, (unsigned long)vcNames.count];
     } else {
-        SPWriteHeartbeat(@"enabled but no hosting classes visible yet", NO, viewNames, vcNames);
+        msg = @"enabled but no hosting classes visible yet";
+    }
+    SPWriteHeartbeat(msg, hooked, viewNames, vcNames);
+    NSLog(@"[SwiftPeek] %@", msg);
+
+    // Always stamp a dump on hook attempts so Filza shows a fresh file + tool_version.
+    static NSInteger sSPHookProbeCount = 0;
+    if (sSPHookProbeCount < 3) {
+        sSPHookProbeCount++;
+        SPWriteJSONDump(@{
+            @"milestone": hooked ? @1 : @0,
+            @"probe": @YES,
+            @"message": msg ?: @"",
+            @"hooked": @(hooked),
+            @"nodes": @[],
+        });
     }
 }
 
@@ -530,6 +551,19 @@ static void SPStartIfEnabled(void) {
           NSProcessInfo.processInfo.processName ?: @"?",
           SPJailbreakRootPrefix() ?: @"");
 
+    // Immediate launch marker — proves 0.2.4+ is in Music even before SwiftUI hooks.
+    static dispatch_once_t launchOnce;
+    dispatch_once(&launchOnce, ^{
+        SPWriteHeartbeat(@"enabled — launching hooks", NO, @[], @[]);
+        SPWriteJSONDump(@{
+            @"milestone": @0,
+            @"probe": @YES,
+            @"launch": @YES,
+            @"message": @"Music launch probe (enable on)",
+            @"nodes": @[],
+        });
+    });
+
     SPTryInstallHooks();
 
     if (!gSPDyldWatchInstalled) {
@@ -545,7 +579,9 @@ static void SPStartIfEnabled(void) {
                                          (int64_t)(sec.doubleValue * NSEC_PER_SEC)),
                            dispatch_get_main_queue(), ^{
                 if (!SPPrefBool(@"enabled", NO)) return;
-                if (!gSPHookedHostingView) SPTryInstallHooks();
+                if (!gSPHookedHostingView && !gSPHookedHostingController) {
+                    SPTryInstallHooks();
+                }
             });
         }
     }
