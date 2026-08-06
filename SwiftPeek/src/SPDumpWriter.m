@@ -26,7 +26,7 @@ NSDictionary *SPDumpHeader(void) {
         @"process": proc,
         @"timestamp": ts,
         @"tool": @"SwiftPeek",
-        @"tool_version": @"0.3.2",
+        @"tool_version": @"0.3.3",
     };
 }
 

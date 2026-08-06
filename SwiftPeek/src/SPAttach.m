@@ -342,18 +342,21 @@ static void SPLogAttachObject(id object, NSString *role) {
         }
         if (SPPrefBool(@"dumpFieldMeta", NO)) {
             @try {
-                // Prefer hosting views; skip plain UIViewControllers (crashy on Music).
-                BOOL allow = [obj isKindOfClass:[UIView class]];
-                if (!allow && [obj isKindOfClass:[UIViewController class]]) {
-                    const char *cn = object_getClassName(obj);
-                    allow = SPClassNameLooksLikeHostingController(cn);
-                }
+                // 0.3.3: hosting UIViews only — never Music / hosting controllers.
+                const char *cn = object_getClassName(obj);
+                BOOL allow = [obj isKindOfClass:[UIView class]] &&
+                             ![obj isKindOfClass:[UIViewController class]] &&
+                             SPClassNameLooksLikeHostingView(cn);
                 if (allow) {
-                    NSArray *fields = SPWalkFields(obj, 1, 16);
+                    NSArray *fields = SPWalkFields(obj, 0, 8);
                     if (fields.count) {
                         node[@"fields"] = fields;
                         milestone = 2;
+                    } else {
+                        node[@"meta_empty"] = @YES;
                     }
+                } else {
+                    node[@"meta_skipped"] = @"not_hosting_view";
                 }
             } @catch (__unused id e) {}
         }
@@ -678,7 +681,9 @@ static void SPScanWindowsForHosts(void) {
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
             NSMutableArray *nodes = [NSMutableArray array];
             NSInteger milestone = 1;
-            NSInteger metaBudget = 4; // very small — Music VC meta walks crash
+            NSInteger metaBudget = 2; // hosting views only; tiny budget
+            NSInteger metaTried = 0;
+            NSInteger metaHit = 0;
             for (NSDictionary *item in snapshot) {
                 NSMutableDictionary *node = [@{
                     @"address": item[@"address"] ?: @"",
@@ -694,26 +699,40 @@ static void SPScanWindowsForHosts(void) {
 
                 if (enrichMeta && metaBudget > 0) {
                     NSString *role = item[@"role"] ?: @"";
-                    // Only metadata-walk hosting views for now — not Music VCs.
+                    // Only metadata-walk hosting views — never scan_controller Music VCs.
                     if ([role isEqualToString:@"scan_view"]) {
-                        metaBudget--;
                         id obj = item[@"object"];
-                        @try {
-                            NSArray *fields = SPWalkFields(obj, 1, 16);
-                            if (fields.count) {
-                                node[@"fields"] = fields;
-                                milestone = 2;
+                        const char *cn = object_getClassName(obj);
+                        if (SPClassNameLooksLikeHostingView(cn) &&
+                            [obj isKindOfClass:[UIView class]] &&
+                            ![obj isKindOfClass:[UIViewController class]]) {
+                            metaBudget--;
+                            metaTried++;
+                            @try {
+                                NSArray *fields = SPWalkFields(obj, 0, 8);
+                                if (fields.count) {
+                                    node[@"fields"] = fields;
+                                    milestone = 2;
+                                    metaHit++;
+                                } else {
+                                    node[@"meta_empty"] = @YES;
+                                }
+                            } @catch (__unused id e) {
+                                node[@"meta_skipped"] = @"walk_exception";
                             }
-                        } @catch (__unused id e) {}
+                        } else {
+                            node[@"meta_skipped"] = @"not_hosting_view";
+                        }
                     }
                 }
                 [nodes addObject:node];
             }
 
             NSString *msg = [NSString stringWithFormat:
-                @"window scan nodes=%lu milestone=%ld screen=%d meta=%d",
+                @"window scan nodes=%lu milestone=%ld screen=%d meta=%d tried=%ld hit=%ld",
                 (unsigned long)nodes.count, (long)milestone,
-                enrichScreen ? 1 : 0, enrichMeta ? 1 : 0];
+                enrichScreen ? 1 : 0, enrichMeta ? 1 : 0,
+                (long)metaTried, (long)metaHit];
             NSString *path = SPWriteJSONDump(@{
                 @"milestone": @(milestone),
                 @"scan": @YES,
@@ -750,7 +769,7 @@ static void SPStartIfEnabled(void) {
     dispatch_once(&launchOnce, ^{
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
             NSString *msg = [NSString stringWithFormat:
-                @"Music launch probe (0.3.2) scanWindows=%d installHooks=%d dumpFields=%d dumpFieldMeta=%d",
+                @"Music launch probe (0.3.3) scanWindows=%d installHooks=%d dumpFields=%d dumpFieldMeta=%d",
                 scanOn ? 1 : 0, hooksOn ? 1 : 0, fieldsOn ? 1 : 0, metaOn ? 1 : 0];
             SPWriteHeartbeat(msg, NO, @[], @[]);
             SPWriteJSONDump(@{
