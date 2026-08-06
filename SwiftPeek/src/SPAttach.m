@@ -6,7 +6,6 @@
 #import "SPSwiftMeta.h"
 #import "SPDumpWriter.h"
 #import "SPFieldWalk.h"
-#import "SwiftPeek-Swift.h"
 
 // -----------------------------------------------------------------------------
 // SwiftPeek — read-only SwiftUI inspector (Phase 1 / milestones 1–2)
@@ -106,14 +105,13 @@ static void SPPrefsChangedCallback(CFNotificationCenterRef center, void *observe
                                    CFDictionaryRef userInfo) {
     (void)center; (void)observer; (void)name; (void)object; (void)userInfo;
     SPPrefsInvalidate();
-    dispatch_async(dispatch_get_main_queue(), ^{
+    // Stay off the main queue — Music's UI thread is sacred.
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
         @try {
             if (SPPrefBool(@"enabled", NO)) {
-                SPStartIfEnabled();
+                dispatch_async(dispatch_get_main_queue(), ^{ SPStartIfEnabled(); });
             } else {
-                SPWriteHeartbeat(@"disabled via prefs (hooks stay until Music relaunch)",
-                                 gSPHookedHostingView || gSPHookedHostingController,
-                                 @[], @[]);
+                SPWriteHeartbeat(@"disabled via prefs", NO, @[], @[]);
             }
         } @catch (__unused id e) {}
     });
@@ -317,13 +315,6 @@ static void SPLogAttachObject(id object, NSString *role) {
                 NSArray *fields = SPWalkFields(obj, 2, 64);
                 if (fields.count) {
                     node[@"fields"] = fields;
-                    milestone = 2;
-                }
-            } @catch (__unused id e) {}
-            @try {
-                NSArray *mirrorTitles = [SPMirrorDump titleStringsInObject:obj maxNodes:80];
-                if (mirrorTitles.count) {
-                    node[@"mirror_strings"] = mirrorTitles;
                     milestone = 2;
                 }
             } @catch (__unused id e) {}
@@ -627,8 +618,10 @@ static void SPScanWindowsForHosts(void) {
 
 static void SPStartIfEnabled(void) {
     if (!SPPrefBool(@"enabled", NO)) {
-        SPWriteHeartbeat(@"ctor disabled (kill switch)", NO, @[], @[]);
-        NSLog(@"[SwiftPeek] disabled — idle (still watching prefs)");
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+            SPWriteHeartbeat(@"ctor disabled (kill switch)", NO, @[], @[]);
+        });
+        NSLog(@"[SwiftPeek] disabled — idle");
         return;
     }
 
@@ -638,57 +631,52 @@ static void SPStartIfEnabled(void) {
 
     static dispatch_once_t launchOnce;
     dispatch_once(&launchOnce, ^{
-        // File I/O off the main queue — do not stall Music's first frames.
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
-            SPWriteHeartbeat(@"enabled — scan-only mode (hooks off by default)", NO, @[], @[]);
+            SPWriteHeartbeat(@"enabled — inert probe only (scan/hooks opt-in)", NO, @[], @[]);
             SPWriteJSONDump(@{
                 @"milestone": @0,
                 @"probe": @YES,
                 @"launch": @YES,
-                @"message": @"Music launch probe (scan-only; installHooks default off)",
+                @"message": @"Music launch probe (0.2.7 ObjC-only; scanWindows/installHooks off)",
                 @"nodes": @[],
             });
         });
     });
 
-    // Default: NO swizzle, NO class-list. One delayed light scan after UI settles.
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(4.0 * NSEC_PER_SEC)),
-                   dispatch_get_main_queue(), ^{
-        if (!SPPrefBool(@"enabled", NO)) return;
-        SPScanWindowsForHosts();
-    });
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(10.0 * NSEC_PER_SEC)),
-                   dispatch_get_main_queue(), ^{
-        if (!SPPrefBool(@"enabled", NO)) return;
-        SPScanWindowsForHosts();
-    });
-
-    // Opt-in only — 0.2.4/0.2.5 hook attempts froze or crashed Music.
-    if (SPPrefBool(@"installHooks", NO)) {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(8.0 * NSEC_PER_SEC)),
-                       dispatch_get_main_queue(), ^{
-            if (!SPPrefBool(@"installHooks", NO)) return;
-            SPTryInstallHooks();
+    // Window scan is opt-in — even "light" main-queue walks upset Music Library.
+    if (SPPrefBool(@"scanWindows", NO)) {
+        static dispatch_once_t scanScheduleOnce;
+        dispatch_once(&scanScheduleOnce, ^{
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(15.0 * NSEC_PER_SEC)),
+                           dispatch_get_main_queue(), ^{
+                if (!SPPrefBool(@"enabled", NO) || !SPPrefBool(@"scanWindows", NO)) return;
+                SPScanWindowsForHosts();
+            });
         });
-        if (!gSPDyldWatchInstalled) {
-            gSPDyldWatchInstalled = YES;
-            _dyld_register_func_for_add_image(SPOnImageAdded);
-        }
-    } else {
-        NSLog(@"[SwiftPeek] installHooks off — not swizzling");
+    }
+
+    if (SPPrefBool(@"installHooks", NO)) {
+        static dispatch_once_t hooksOnce;
+        dispatch_once(&hooksOnce, ^{
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(20.0 * NSEC_PER_SEC)),
+                           dispatch_get_main_queue(), ^{
+                if (!SPPrefBool(@"installHooks", NO)) return;
+                SPTryInstallHooks();
+            });
+            if (!gSPDyldWatchInstalled) {
+                gSPDyldWatchInstalled = YES;
+                _dyld_register_func_for_add_image(SPOnImageAdded);
+            }
+        });
     }
 }
 
 __attribute__((constructor)) static void SPConstructor(void) {
     @autoreleasepool {
-        // Hard gate before prefs / SwiftUI / hooks — filter is Music-only, but
-        // refuse SpringBoard (and anything else) if the plist is wrong.
         if (!SPIsAllowedProcess()) {
             return;
         }
 
-        // Always watch prefs — if Music launched while disabled, enabling in
-        // Settings must still start hooks without requiring a relaunch.
         CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
                                         NULL,
                                         SPPrefsChangedCallback,
@@ -696,10 +684,17 @@ __attribute__((constructor)) static void SPConstructor(void) {
                                         NULL,
                                         CFNotificationSuspensionBehaviorDeliverImmediately);
 
-        // Defer heartbeat + hooks off the ctor path.
-        dispatch_async(dispatch_get_main_queue(), ^{
+        // Never touch main in the constructor. Schedule from a utility queue.
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
             @try {
-                SPStartIfEnabled();
+                if (!SPPrefBool(@"enabled", NO)) {
+                    SPWriteHeartbeat(@"ctor disabled (kill switch)", NO, @[], @[]);
+                    return;
+                }
+                // Bounce to main only to kick opt-in timers (UIApplication-safe).
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    @try { SPStartIfEnabled(); } @catch (__unused id e) {}
+                });
             } @catch (__unused id e) {
                 NSLog(@"[SwiftPeek] ctor failed closed");
             }

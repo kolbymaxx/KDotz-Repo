@@ -8,14 +8,13 @@ include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = SwiftPeek
 
+# ObjC only — a Swift-linked tweak dylib was enough to break Music UI on device.
 SwiftPeek_FILES = src/SPAttach.m \
 	src/SPPrefs.m \
 	src/SPSwiftMeta.m \
 	src/SPDumpWriter.m \
-	src/SPFieldWalk.m \
-	src/SPMirrorDump.swift
+	src/SPFieldWalk.m
 
-SwiftPeek_SWIFTFLAGS = -swift-version 5
 SwiftPeek_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-unused-variable -Wno-unused-function -DDISABLE_ROOTLESS_COMPAT_WARNING=1
 SwiftPeek_FRAMEWORKS = UIKit Foundation
 

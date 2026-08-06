@@ -28,10 +28,13 @@ Domain: `com.kolby.swiftpeek`
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `enabled` | `false` | Master kill switch |
-| `installHooks` | `false` | Swizzle hosting layout (unsafe; off — use window scan) |
+| `enabled` | `false` | Master kill switch (probe-only when on) |
+| `scanWindows` | `false` | Walk loaded VC tree for attach dumps |
+| `installHooks` | `false` | Swizzle hosting layout (unsafe) |
 | `logAttach` | `true` | NSLog attach lines when enabled |
-| `dumpFields` | `false` | Walk fields + mirror/screen strings (milestone 2; off — can crash) |
+| `dumpFields` | `false` | Field walk (milestone 2; off) |
+
+0.2.7 is **ObjC-only** (no Swift in the dylib). Leave Scan/Hooks off until Music is usable.
 
 PreferenceLoader entry ships with the package. Toggle on, **relaunch Music**
 (no respring needed for Music-only), watch `os_log` / Filza dumps for:
