@@ -23,13 +23,13 @@ Domain: `com.kolby.swiftpeek`
 |-----|---------|---------|
 | `enabled` | `false` | Master kill switch |
 | `scanWindows` | `false` | Walk loaded VC tree → coalesced attach dump |
-| `dumpFields` | `false` | M2: field names/offsets + screen_strings (no Mirror) |
+| `dumpFields` | `false` | M2: on-screen UILabel/accessibility strings (safe) |
+| `dumpFieldMeta` | `false` | M2: Swift field metadata walk (unsafe on Music VCs) |
 | `installHooks` | `false` | Swizzle hosting layout (unsafe — leave off) |
 | `logAttach` | `true` | NSLog attach lines when enabled |
 
-**Recommended device path:** Enable + Scan Windows. After M1 dumps look good,
-turn on Dump Fields, force-quit Music, wait ~12s. Expect `milestone: 2` and
-`fields` / `screen_strings` in the coalesced scan dump.
+**Recommended device path:** Enable + Scan Windows. For M2 strings turn on
+Dump Fields only. Leave Dump Field Meta and Install Hooks off unless debugging.
 
 No respring needed for prefs — force-quit Music.
 
