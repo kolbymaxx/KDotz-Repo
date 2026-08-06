@@ -147,3 +147,4 @@ NSString *SPWriteJSONDump(NSDictionary *payload) {
     NSString *path = [SPDumpDirectory() stringByAppendingPathComponent:name];
     return SPWriteJSONToPath(root, path, YES);
 }
+// ci-kick
