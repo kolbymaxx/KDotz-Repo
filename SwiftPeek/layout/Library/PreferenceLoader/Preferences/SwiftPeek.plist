@@ -17,7 +17,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>Read-only SwiftUI inspector. Default off. After enabling: force-quit Music and reopen (or wait a moment on 0.2.2+). Check /var/jb/var/mobile/Library/SwiftPeek/status.json first, then dumps/.</string>
+			<string>Music-only inspector (0.2.3+). Default off. Enable → force-quit Music → reopen. status.json then dumps/. If lock screen breaks after respring, delete any old SwiftPeek that still lists SpringBoard in its filter plist.</string>
 			<key>label</key>
 			<string>SwiftPeek</string>
 		</dict>

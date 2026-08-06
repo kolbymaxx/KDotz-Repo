@@ -21,12 +21,67 @@ static NSString *gSPHookedViewClassName;
 static NSString *gSPHookedControllerClassName;
 static NSMutableSet *gSPSwizzledKeys;
 
-static void (*gSPOrigLayoutSubviews)(UIView *, SEL) = NULL;
-static void (*gSPOrigViewDidLayout)(UIViewController *, SEL) = NULL;
+// Per-class originals — NEVER share one global IMP across classes (UI freezes / crashes).
+static NSMutableDictionary<NSString *, NSValue *> *gSPOrigLayoutByClass;    // class name -> IMP
+static NSMutableDictionary<NSString *, NSValue *> *gSPOrigDidLayoutByClass;
 
 static void SPStartIfEnabled(void);
 static void SPWriteHeartbeat(NSString *message, BOOL hooked,
                              NSArray *viewNames, NSArray *controllerNames);
+static void SPHookedLayoutSubviews(UIView *self, SEL _cmd);
+static void SPHookedViewDidLayout(UIViewController *self, SEL _cmd);
+
+static void SPEnsureOrigMaps(void) {
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        gSPOrigLayoutByClass = [NSMutableDictionary dictionary];
+        gSPOrigDidLayoutByClass = [NSMutableDictionary dictionary];
+        gSPSwizzledKeys = [NSMutableSet set];
+    });
+}
+
+/// True only when `sel` is implemented on `cls` itself (not inherited).
+static BOOL SPClassOwnsInstanceMethod(Class cls, SEL sel) {
+    if (!cls || !sel) return NO;
+    Method m = class_getInstanceMethod(cls, sel);
+    if (!m) return NO;
+    Class superCls = class_getSuperclass(cls);
+    if (!superCls) return YES;
+    Method sm = class_getInstanceMethod(superCls, sel);
+    return m != sm;
+}
+
+static IMP SPLookupOrigIMP(NSDictionary<NSString *, NSValue *> *map, Class start) {
+    if (!map || !start) return NULL;
+    for (Class cls = start; cls; cls = class_getSuperclass(cls)) {
+        const char *name = class_getName(cls);
+        if (!name) continue;
+        NSValue *boxed = map[@(name)];
+        if (boxed) return (IMP)boxed.pointerValue;
+    }
+    return NULL;
+}
+
+static void SPCallOrigLayoutSubviews(UIView *self, SEL _cmd) {
+    IMP imp = SPLookupOrigIMP(gSPOrigLayoutByClass, object_getClass(self));
+    if (!imp) {
+        // Fail-open without super (super can re-enter our hook on subclasses).
+        imp = class_getMethodImplementation([UIView class], _cmd);
+    }
+    if (imp && imp != (IMP)SPHookedLayoutSubviews) {
+        ((void (*)(id, SEL))imp)(self, _cmd);
+    }
+}
+
+static void SPCallOrigViewDidLayout(UIViewController *self, SEL _cmd) {
+    IMP imp = SPLookupOrigIMP(gSPOrigDidLayoutByClass, object_getClass(self));
+    if (!imp) {
+        imp = class_getMethodImplementation([UIViewController class], _cmd);
+    }
+    if (imp && imp != (IMP)SPHookedViewDidLayout) {
+        ((void (*)(id, SEL))imp)(self, _cmd);
+    }
+}
 
 static void SPPrefsChangedCallback(CFNotificationCenterRef center, void *observer,
                                    CFStringRef name, const void *object,
@@ -267,12 +322,12 @@ static void SPLogAttachObject(id object, NSString *role) {
 }
 
 static void SPHookedLayoutSubviews(UIView *self, SEL _cmd) {
-    if (gSPOrigLayoutSubviews) gSPOrigLayoutSubviews(self, _cmd);
+    SPCallOrigLayoutSubviews(self, _cmd);
     @try { SPLogAttachObject(self, @"hosting_view"); } @catch (__unused id e) {}
 }
 
 static void SPHookedViewDidLayout(UIViewController *self, SEL _cmd) {
-    if (gSPOrigViewDidLayout) gSPOrigViewDidLayout(self, _cmd);
+    SPCallOrigViewDidLayout(self, _cmd);
     @try {
         // Controller type is usually the useful Swift name (MusicRootHostingController, etc.).
         SPLogAttachObject(self, @"hosting_controller");
@@ -281,32 +336,33 @@ static void SPHookedViewDidLayout(UIViewController *self, SEL _cmd) {
     } @catch (__unused id e) {}
 }
 
-static BOOL SPSwizzle(Class cls, SEL sel, IMP replacement, IMP *origOut) {
-    if (!cls || !sel || !replacement || !origOut) return NO;
+/// Swizzle only methods owned by `cls`. Store original IMP in per-class map.
+static BOOL SPSwizzleOwned(Class cls, SEL sel, IMP replacement,
+                           NSMutableDictionary<NSString *, NSValue *> *origMap) {
+    if (!cls || !sel || !replacement || !origMap) return NO;
+    SPEnsureOrigMaps();
+
+    const char *cname = class_getName(cls);
+    if (!cname) return NO;
+    NSString *classKey = @(cname);
+    NSString *key = [NSString stringWithFormat:@"%@|%s", classKey, sel_getName(sel)];
+    if ([gSPSwizzledKeys containsObject:key]) return YES;
+
+    // Critical: do not touch inherited Method slots (would rewrite the superclass).
+    if (!SPClassOwnsInstanceMethod(cls, sel)) return NO;
+
     Method m = class_getInstanceMethod(cls, sel);
     if (!m) return NO;
-
-    static dispatch_once_t once;
-    dispatch_once(&once, ^{
-        gSPSwizzledKeys = [NSMutableSet set];
-    });
-    NSString *key = [NSString stringWithFormat:@"%s|%s", class_getName(cls), sel_getName(sel)];
-    if ([gSPSwizzledKeys containsObject:key]) return YES;
 
     IMP current = method_getImplementation(m);
     if (current == replacement) {
         [gSPSwizzledKeys addObject:key];
         return YES;
     }
-    if (*origOut != NULL && current == (IMP)(*origOut)) {
-        method_setImplementation(m, replacement);
-        [gSPSwizzledKeys addObject:key];
-        return YES;
-    }
 
     IMP prev = method_setImplementation(m, replacement);
     if (!prev) return NO;
-    if (*origOut == NULL) *origOut = prev;
+    origMap[classKey] = [NSValue valueWithPointer:(const void *)prev];
     [gSPSwizzledKeys addObject:key];
     return YES;
 }
@@ -354,12 +410,19 @@ static void SPTryInstallHooks(void) {
         free(list);
     }
 
+    SPEnsureOrigMaps();
+
     NSInteger viewHooks = 0;
+    NSInteger viewSkippedInherited = 0;
     for (NSValue *v in viewClasses) {
         Class cls = (Class)v.pointerValue;
-        if (SPSwizzle(cls, @selector(layoutSubviews),
-                      (IMP)SPHookedLayoutSubviews,
-                      (IMP *)&gSPOrigLayoutSubviews)) {
+        if (!SPClassOwnsInstanceMethod(cls, @selector(layoutSubviews))) {
+            viewSkippedInherited++;
+            continue;
+        }
+        if (SPSwizzleOwned(cls, @selector(layoutSubviews),
+                           (IMP)SPHookedLayoutSubviews,
+                           gSPOrigLayoutByClass)) {
             viewHooks++;
             if (!gSPHookedViewClassName) {
                 gSPHookedViewClassName = @(class_getName(cls));
@@ -368,23 +431,9 @@ static void SPTryInstallHooks(void) {
     }
     if (viewHooks > 0) gSPHookedHostingView = YES;
 
-    // Prefer real SwiftUI UIHostingController over incidental *HostingController names.
-    Class bestVC = Nil;
-    NSInteger bestRank = -1;
-    NSUInteger bestLen = NSUIntegerMax;
-    for (NSValue *v in vcClasses) {
-        Class cls = (Class)v.pointerValue;
-        const char *cn = class_getName(cls);
-        NSInteger rank = SPHostingControllerRank(cn);
-        NSUInteger len = cn ? strlen(cn) : NSUIntegerMax;
-        if (rank > bestRank || (rank == bestRank && len < bestLen)) {
-            bestVC = cls;
-            bestRank = rank;
-            bestLen = len;
-        }
-    }
-    // Swizzle top few controller candidates (ranked), not only one.
+    // Swizzle top few controller candidates (ranked), only if they own the method.
     NSInteger vcHooks = 0;
+    NSInteger vcSkippedInherited = 0;
     NSArray *sorted = [vcClasses sortedArrayUsingComparator:^NSComparisonResult(NSValue *a, NSValue *b) {
         const char *an = class_getName((Class)a.pointerValue);
         const char *bn = class_getName((Class)b.pointerValue);
@@ -399,9 +448,13 @@ static void SPTryInstallHooks(void) {
     for (NSValue *v in sorted) {
         if (vcHooks >= 6) break;
         Class cls = (Class)v.pointerValue;
-        if (SPSwizzle(cls, @selector(viewDidLayoutSubviews),
-                      (IMP)SPHookedViewDidLayout,
-                      (IMP *)&gSPOrigViewDidLayout)) {
+        if (!SPClassOwnsInstanceMethod(cls, @selector(viewDidLayoutSubviews))) {
+            vcSkippedInherited++;
+            continue;
+        }
+        if (SPSwizzleOwned(cls, @selector(viewDidLayoutSubviews),
+                           (IMP)SPHookedViewDidLayout,
+                           gSPOrigDidLayoutByClass)) {
             vcHooks++;
             if (!gSPHookedControllerClassName) {
                 gSPHookedControllerClassName = @(class_getName(cls));
@@ -409,16 +462,30 @@ static void SPTryInstallHooks(void) {
         }
     }
     if (vcHooks > 0) gSPHookedHostingController = YES;
-    (void)bestVC;
 
     BOOL hooked = gSPHookedHostingView || gSPHookedHostingController;
     if (hooked) {
-        NSString *msg = [NSString stringWithFormat:@"hooks installed (views=%ld controllers=%ld)",
-                                                   (long)viewHooks, (long)vcHooks];
+        NSString *msg = [NSString stringWithFormat:
+            @"hooks installed (views=%ld controllers=%ld skipInherited v=%ld c=%ld)",
+            (long)viewHooks, (long)vcHooks,
+            (long)viewSkippedInherited, (long)vcSkippedInherited];
         SPWriteHeartbeat(msg, YES, viewNames, vcNames);
         NSLog(@"[SwiftPeek] %@", msg);
+        // Probe dump so Filza shows life even before a unique host attaches.
+        static dispatch_once_t probeOnce;
+        dispatch_once(&probeOnce, ^{
+            SPWriteJSONDump(@{
+                @"milestone": @1,
+                @"probe": @YES,
+                @"message": msg,
+                @"nodes": @[],
+            });
+        });
     } else if (viewNames.count || vcNames.count) {
-        SPWriteHeartbeat(@"found candidate classes but swizzle failed", NO, viewNames, vcNames);
+        SPWriteHeartbeat(
+            [NSString stringWithFormat:@"candidates but no owned methods (skipInherited v=%ld c=%ld)",
+                                       (long)viewSkippedInherited, (long)vcSkippedInherited],
+            NO, viewNames, vcNames);
     } else {
         SPWriteHeartbeat(@"enabled but no hosting classes visible yet", NO, viewNames, vcNames);
     }

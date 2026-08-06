@@ -1,7 +1,7 @@
 Package: com.kolby.swiftpeek
 Name: SwiftPeek
 Depends: mobilesubstrate, preferenceloader
-Version: 0.2.2
+Version: 0.2.3
 Architecture: iphoneos-arm64
 Description: Read-only SwiftUI view inspector — Music-only attach + field walk (milestone 2). Debug tooling; not published.
 Maintainer: Kolby

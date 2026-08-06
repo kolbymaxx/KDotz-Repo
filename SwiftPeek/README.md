@@ -15,8 +15,12 @@ Read-only SwiftUI view inspector for jailbroken iOS. Recovers Swift type names
 **Music only.** SpringBoard was removed in 0.2.1 — a Swift-linked tweak in SB
 triggered Safe Mode on Dopamine/rootless. Prefs default **off**.
 
-First check `…/Library/SwiftPeek/status.json` (heartbeat). Attach dumps only
-appear after hooks fire in a running Music process with Enable on.
+0.2.3 fixes shared-original-IMP swizzling (per-class originals; skip inherited
+methods). If an older build still lists SpringBoard in its filter plist, delete
+it — Music-only packages cannot affect the lock screen.
+
+First check `…/Library/SwiftPeek/status.json` (heartbeat). A `probe: true` dump
+is written when hooks install; attach dumps follow as hosts layout.
 
 ## Prefs
 
