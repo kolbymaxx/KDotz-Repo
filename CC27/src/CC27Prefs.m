@@ -56,7 +56,15 @@ static NSDictionary *CC27ReadPrefsDictionary(void) {
 }
 
 @implementation CC27Prefs {
-    NSDictionary *_plist;
+    // Values are resolved once per reload and cached here. Pref getters are hit
+    // from hot paths (every module layoutSubviews); a cfprefsd XPC round-trip
+    // per read would pile up badly during SpringBoard boot.
+    BOOL _enabled;
+    BOOL _glassChrome;
+    BOOL _editModeEnabled;
+    BOOL _allowResize;
+    BOOL _showTopButtons;
+    BOOL _hapticFeedback;
 }
 
 + (instancetype)shared {
@@ -75,12 +83,8 @@ static NSDictionary *CC27ReadPrefsDictionary(void) {
     return self;
 }
 
-- (void)reload {
-    _plist = CC27ReadPrefsDictionary() ?: @{};
-}
-
-- (BOOL)_bool:(NSString *)key default:(BOOL)fallback {
-    id v = _plist[key];
+static BOOL CC27ResolveBool(NSDictionary *plist, NSString *key, BOOL fallback) {
+    id v = plist[key];
     if (!v) {
         CFPropertyListRef cf = CFPreferencesCopyAppValue((__bridge CFStringRef)key, (__bridge CFStringRef)CC27PrefDomain);
         if (cf) {
@@ -91,11 +95,21 @@ static NSDictionary *CC27ReadPrefsDictionary(void) {
     return fallback;
 }
 
-- (BOOL)enabled { return [self _bool:@"enabled" default:YES]; }
-- (BOOL)glassChrome { return [self _bool:@"glassChrome" default:YES]; }
-- (BOOL)editModeEnabled { return [self _bool:@"editModeEnabled" default:YES]; }
-- (BOOL)allowResize { return [self _bool:@"allowResize" default:NO]; }
-- (BOOL)showTopButtons { return [self _bool:@"showTopButtons" default:YES]; }
-- (BOOL)hapticFeedback { return [self _bool:@"hapticFeedback" default:YES]; }
+- (void)reload {
+    NSDictionary *plist = CC27ReadPrefsDictionary() ?: @{};
+    _enabled         = CC27ResolveBool(plist, @"enabled", YES);
+    _glassChrome     = CC27ResolveBool(plist, @"glassChrome", YES);
+    _editModeEnabled = CC27ResolveBool(plist, @"editModeEnabled", YES);
+    _allowResize     = CC27ResolveBool(plist, @"allowResize", NO);
+    _showTopButtons  = CC27ResolveBool(plist, @"showTopButtons", YES);
+    _hapticFeedback  = CC27ResolveBool(plist, @"hapticFeedback", YES);
+}
+
+- (BOOL)enabled { return _enabled; }
+- (BOOL)glassChrome { return _glassChrome; }
+- (BOOL)editModeEnabled { return _editModeEnabled; }
+- (BOOL)allowResize { return _allowResize; }
+- (BOOL)showTopButtons { return _showTopButtons; }
+- (BOOL)hapticFeedback { return _hapticFeedback; }
 
 @end

@@ -12,6 +12,17 @@ Unlike aesthetic-only tweaks (CC26 / CCXVIII), CC27 focuses on the **real custom
 - Liquid-glass module chrome (round 1×1 / pill modules; expanded menus stay unclipped)
 - Built-in CC27 modules: **Respring**, **Safe Mode**, **UICache**, **Userspace Reboot**
 
+## 1.0.7 fixes
+
+- **Boot hang / black reload screen fixed**: CC27 no longer runs any code during
+  SpringBoard's launch. Hooks are installed a couple of seconds *after* launch
+  completes, so the boot-critical path (and the first lock screen) is 100% stock.
+  This targets the ~1-minute hang followed by a black reload screen after
+  re-jailbreaking.
+- **No more per-read preference lookups**: preference values are cached once at
+  load and on change, removing synchronous cfprefsd round-trips from every
+  Control Center layout pass.
+
 ## 1.0.6 fixes
 
 - **Freeze when opening CC from the lock screen fixed**: CC27 is now fully inert while the
