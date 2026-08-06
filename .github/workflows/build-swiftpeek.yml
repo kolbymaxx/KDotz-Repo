@@ -80,7 +80,9 @@ jobs:
           plutil -p "$PREFS"
           grep -q 'dumpFieldMeta' <(plutil -p "$PREFS")
           dpkg-deb -I "$DEB"
-          dpkg-deb -I "$DEB" | grep -q 'Version: 0.3.2'
+          EXPECT_VER="$(sed -n 's/^Version: //p' control | head -1)"
+          test -n "$EXPECT_VER"
+          dpkg-deb -I "$DEB" | grep -q "Version: ${EXPECT_VER}"
 
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v4
