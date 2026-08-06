@@ -24,10 +24,24 @@ static NSMutableSet *gSPSwizzledKeys;
 static void (*gSPOrigLayoutSubviews)(UIView *, SEL) = NULL;
 static void (*gSPOrigViewDidLayout)(UIViewController *, SEL) = NULL;
 
+static void SPStartIfEnabled(void); // forward
+
 static void SPPrefsChangedCallback(CFNotificationCenterRef center, void *observer,
                                    CFStringRef name, const void *object,
                                    CFDictionaryRef userInfo) {
+    (void)center; (void)observer; (void)name; (void)object; (void)userInfo;
     SPPrefsInvalidate();
+    dispatch_async(dispatch_get_main_queue(), ^{
+        @try {
+            if (SPPrefBool(@"enabled", NO)) {
+                SPStartIfEnabled();
+            } else {
+                SPWriteHeartbeat(@"disabled via prefs (hooks stay until Music relaunch)",
+                                 gSPHookedHostingView || gSPHookedHostingController,
+                                 @[], @[]);
+            }
+        } @catch (__unused id e) {}
+    });
 }
 
 static void SPEnsureSwiftUILoaded(void) {
@@ -433,6 +447,41 @@ static BOOL SPIsAllowedProcess(void) {
     return NO;
 }
 
+static BOOL gSPDyldWatchInstalled = NO;
+static BOOL gSPRetryTimersInstalled = NO;
+
+static void SPStartIfEnabled(void) {
+    if (!SPPrefBool(@"enabled", NO)) {
+        SPWriteHeartbeat(@"ctor disabled (kill switch)", NO, @[], @[]);
+        NSLog(@"[SwiftPeek] disabled — idle (still watching prefs)");
+        return;
+    }
+
+    NSLog(@"[SwiftPeek] loaded in %@ jbroot='%@'",
+          NSProcessInfo.processInfo.processName ?: @"?",
+          SPJailbreakRootPrefix() ?: @"");
+
+    SPTryInstallHooks();
+
+    if (!gSPDyldWatchInstalled) {
+        gSPDyldWatchInstalled = YES;
+        _dyld_register_func_for_add_image(SPOnImageAdded);
+    }
+
+    if (!gSPRetryTimersInstalled) {
+        gSPRetryTimersInstalled = YES;
+        NSArray *delays = @[ @0.5, @1.5, @3.0, @6.0, @12.0 ];
+        for (NSNumber *sec in delays) {
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
+                                         (int64_t)(sec.doubleValue * NSEC_PER_SEC)),
+                           dispatch_get_main_queue(), ^{
+                if (!SPPrefBool(@"enabled", NO)) return;
+                if (!gSPHookedHostingView) SPTryInstallHooks();
+            });
+        }
+    }
+}
+
 __attribute__((constructor)) static void SPConstructor(void) {
     @autoreleasepool {
         // Hard gate before prefs / SwiftUI / hooks — filter is Music-only, but
@@ -441,41 +490,19 @@ __attribute__((constructor)) static void SPConstructor(void) {
             return;
         }
 
-        BOOL enabled = SPPrefBool(@"enabled", NO);
-        // Defer heartbeat + hooks off the ctor path; loading a Swift dylib into
-        // a process is already risky — keep constructor tiny.
+        // Always watch prefs — if Music launched while disabled, enabling in
+        // Settings must still start hooks without requiring a relaunch.
+        CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
+                                        NULL,
+                                        SPPrefsChangedCallback,
+                                        CFSTR("com.kolby.swiftpeek/prefschanged"),
+                                        NULL,
+                                        CFNotificationSuspensionBehaviorDeliverImmediately);
+
+        // Defer heartbeat + hooks off the ctor path.
         dispatch_async(dispatch_get_main_queue(), ^{
             @try {
-                SPWriteHeartbeat(enabled ? @"ctor enabled" : @"ctor disabled (kill switch)",
-                                 NO, @[], @[]);
-                if (!enabled) {
-                    NSLog(@"[SwiftPeek] disabled — idle");
-                    return;
-                }
-
-                NSLog(@"[SwiftPeek] loaded in %@ jbroot='%@'",
-                      NSProcessInfo.processInfo.processName ?: @"?",
-                      SPJailbreakRootPrefix() ?: @"");
-
-                SPTryInstallHooks();
-                _dyld_register_func_for_add_image(SPOnImageAdded);
-
-                NSArray *delays = @[ @0.5, @1.5, @3.0, @6.0, @12.0 ];
-                for (NSNumber *sec in delays) {
-                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
-                                                 (int64_t)(sec.doubleValue * NSEC_PER_SEC)),
-                                   dispatch_get_main_queue(), ^{
-                        if (!SPPrefBool(@"enabled", NO)) return;
-                        if (!gSPHookedHostingView) SPTryInstallHooks();
-                    });
-                }
-
-                CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
-                                                NULL,
-                                                SPPrefsChangedCallback,
-                                                CFSTR("com.kolby.swiftpeek/prefschanged"),
-                                                NULL,
-                                                CFNotificationSuspensionBehaviorDeliverImmediately);
+                SPStartIfEnabled();
             } @catch (__unused id e) {
                 NSLog(@"[SwiftPeek] ctor failed closed");
             }
