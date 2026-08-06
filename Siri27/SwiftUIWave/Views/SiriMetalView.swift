@@ -106,14 +106,14 @@ public struct SiriMetalView: UIViewRepresentable {
             constant float SPEED       = 2.4f;
             constant float WAVE_SCALE  = 0.6f;
             constant float ABERRATION  = 3.1f;
-            constant float THICKNESS   = 0.55f;
-            constant float INTENSITY   = 2.0f;
+            constant float THICKNESS   = 0.80f;
+            constant float INTENSITY   = 2.6f;
             constant float FALLOFF     = 0.85f;
             constant float EDGE_MASK   = 0.4f;
             constant float EDGE_INSET  = 0.0f;
-            constant float BAND_FILL   = 18000.0f;
+            constant float BAND_FILL   = 24000.0f;
             constant float BAND_THICK  = 0.07f;
-            constant float SOFTNESS    = 0.18f;
+            constant float SOFTNESS    = 0.50f;
             constant float LOW_AMP     = 18.0f;
             constant float LOW_INT     = 1.3f;
             constant float MID_ABER    = 0.95f;
@@ -211,18 +211,18 @@ public struct SiriMetalView: UIViewRepresentable {
                 col *= res;
                 // Idle stays colorful; talking adds punch without bleaching.
                 col *= 1.10f + (activeFactor * 0.90f);
-                // De-white pass: strip the shared gray component that clips to
-                // white in the hot center, then re-saturate. Geometry untouched.
+                // Partial de-white: keep a bright core like real Siri, but
+                // strip enough shared gray that the colored halo shows through.
                 float gray = min(col.r, min(col.g, col.b));
-                col -= gray * 0.60f;
+                col -= gray * 0.30f;
                 float luma = dot(col, float3(0.299f, 0.587f, 0.114f));
-                col = mix(float3(luma), col, 1.45f);
-                col = clamp(col, 0.0f, 1.25f);
+                col = mix(float3(luma), col, 1.50f);
+                col = clamp(col, 0.0f, 1.5f);
                 
                 // Per-pixel alpha so the MTKView isn't an opaque white/washed box.
                 // Premultiply RGB for the .one / .oneMinusSourceAlpha blend.
                 float alpha = clamp(max(max(col.r, col.g), col.b), 0.0f, 1.0f);
-                alpha = pow(alpha, 0.85f);
+                alpha = pow(alpha, 0.80f);
                 float3 outRGB = min(col, float3(1.0f)) * alpha;
                 return half4(half3(outRGB), half(alpha));
             }
