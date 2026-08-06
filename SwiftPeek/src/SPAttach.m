@@ -667,7 +667,7 @@ static void SPScanWindowsForHosts(void) {
         NSMutableSet *hostAddrs = [NSMutableSet set];
         NSMutableArray *viewClassSample = [NSMutableArray array];
         NSMutableSet *sampleSeen = [NSMutableSet set];
-        NSInteger hostsFound = 0;
+        __block NSInteger hostsFound = 0;
 
         void (^captureHost)(UIView *) = ^(UIView *host) {
             if (!host || !SPViewIsHostingView(host)) return;
