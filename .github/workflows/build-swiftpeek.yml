@@ -139,7 +139,9 @@ jobs:
           ls -lah "$GITHUB_WORKSPACE/out"
           DEB="$(ls "$GITHUB_WORKSPACE/out"/*.deb | head -1)"
           dpkg-deb -I "$DEB"
-          dpkg-deb -I "$DEB" | grep -q 'Version: 0.3.2'
+          EXPECT_VER="$(sed -n 's/^Version: //p' control | head -1)"
+          test -n "$EXPECT_VER"
+          dpkg-deb -I "$DEB" | grep -q "Version: ${EXPECT_VER}"
           if dpkg-deb -c "$DEB" | grep -q ' var/jb/'; then
             echo "ERROR: roothide deb still contains /var/jb paths" >&2
             exit 1
