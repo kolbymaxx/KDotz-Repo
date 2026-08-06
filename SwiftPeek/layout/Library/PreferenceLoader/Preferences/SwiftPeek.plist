@@ -17,7 +17,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>0.3.5: Enable + Scan Windows + Dump Fields. Dump Field Meta walks hosting views or allowlisted Music UIViews (depth 0). Leave Install Hooks OFF. Force-quit Music after changes.</string>
+			<string>0.3.6: Enable + Scan Windows + Dump Fields (proven). Leave Dump Field Meta and Install Hooks OFF — Music FOVO walks crash. Force-quit Music after changes.</string>
 			<key>label</key>
 			<string>SwiftPeek</string>
 		</dict>
@@ -75,7 +75,7 @@
 			<key>key</key>
 			<string>dumpFieldMeta</string>
 			<key>label</key>
-			<string>Dump Field Meta (hosting views)</string>
+			<string>Dump Field Meta (leave off)</string>
 		</dict>
 		<dict>
 			<key>PostNotification</key>
