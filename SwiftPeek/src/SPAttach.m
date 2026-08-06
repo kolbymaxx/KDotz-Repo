@@ -6,7 +6,6 @@
 #import "SPSwiftMeta.h"
 #import "SPDumpWriter.h"
 #import "SPFieldWalk.h"
-#import "SwiftPeek-Swift.h"
 
 // -----------------------------------------------------------------------------
 // SwiftPeek — read-only SwiftUI inspector (Phase 1 / milestones 1–2)
@@ -21,13 +20,101 @@ static NSString *gSPHookedViewClassName;
 static NSString *gSPHookedControllerClassName;
 static NSMutableSet *gSPSwizzledKeys;
 
-static void (*gSPOrigLayoutSubviews)(UIView *, SEL) = NULL;
-static void (*gSPOrigViewDidLayout)(UIViewController *, SEL) = NULL;
+// Per-class originals — NEVER share one global IMP across classes (UI freezes / crashes).
+static NSMutableDictionary<NSString *, NSValue *> *gSPOrigLayoutByClass;    // class name -> IMP
+static NSMutableDictionary<NSString *, NSValue *> *gSPOrigDidLayoutByClass;
+
+static void SPStartIfEnabled(void);
+static void SPWriteHeartbeat(NSString *message, BOOL hooked,
+                             NSArray *viewNames, NSArray *controllerNames);
+static void SPHookedLayoutSubviews(UIView *self, SEL _cmd);
+static void SPHookedViewDidLayout(UIViewController *self, SEL _cmd);
+
+static void SPEnsureOrigMaps(void) {
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        gSPOrigLayoutByClass = [NSMutableDictionary dictionary];
+        gSPOrigDidLayoutByClass = [NSMutableDictionary dictionary];
+        gSPSwizzledKeys = [NSMutableSet set];
+    });
+}
+
+/// True only when `sel` is implemented on `cls` itself (not inherited).
+static BOOL SPClassOwnsInstanceMethod(Class cls, SEL sel) {
+    if (!cls || !sel) return NO;
+    Method m = class_getInstanceMethod(cls, sel);
+    if (!m) return NO;
+    Class superCls = class_getSuperclass(cls);
+    if (!superCls) return YES;
+    Method sm = class_getInstanceMethod(superCls, sel);
+    if (m != sm) return YES;
+    // Belt-and-suspenders: some runtimes alias Method pointers oddly.
+    unsigned int n = 0;
+    Method *list = class_copyMethodList(cls, &n);
+    if (!list) return NO;
+    BOOL owns = NO;
+    for (unsigned int i = 0; i < n; i++) {
+        if (method_getName(list[i]) == sel) { owns = YES; break; }
+    }
+    free(list);
+    return owns;
+}
+
+/// Walk to the class in `cls`'s hierarchy that actually implements `sel`.
+static Class SPClassProvidingInstanceMethod(Class cls, SEL sel) {
+    for (Class c = cls; c; c = class_getSuperclass(c)) {
+        if (SPClassOwnsInstanceMethod(c, sel)) return c;
+    }
+    return Nil;
+}
+
+static IMP SPLookupOrigIMP(NSDictionary<NSString *, NSValue *> *map, Class start) {
+    if (!map || !start) return NULL;
+    for (Class cls = start; cls; cls = class_getSuperclass(cls)) {
+        const char *name = class_getName(cls);
+        if (!name) continue;
+        NSValue *boxed = map[@(name)];
+        if (boxed) return (IMP)boxed.pointerValue;
+    }
+    return NULL;
+}
+
+static void SPCallOrigLayoutSubviews(UIView *self, SEL _cmd) {
+    IMP imp = SPLookupOrigIMP(gSPOrigLayoutByClass, object_getClass(self));
+    if (!imp) {
+        // Fail-open without super (super can re-enter our hook on subclasses).
+        imp = class_getMethodImplementation([UIView class], _cmd);
+    }
+    if (imp && imp != (IMP)SPHookedLayoutSubviews) {
+        ((void (*)(id, SEL))imp)(self, _cmd);
+    }
+}
+
+static void SPCallOrigViewDidLayout(UIViewController *self, SEL _cmd) {
+    IMP imp = SPLookupOrigIMP(gSPOrigDidLayoutByClass, object_getClass(self));
+    if (!imp) {
+        imp = class_getMethodImplementation([UIViewController class], _cmd);
+    }
+    if (imp && imp != (IMP)SPHookedViewDidLayout) {
+        ((void (*)(id, SEL))imp)(self, _cmd);
+    }
+}
 
 static void SPPrefsChangedCallback(CFNotificationCenterRef center, void *observer,
                                    CFStringRef name, const void *object,
                                    CFDictionaryRef userInfo) {
+    (void)center; (void)observer; (void)name; (void)object; (void)userInfo;
     SPPrefsInvalidate();
+    // Stay off the main queue — Music's UI thread is sacred.
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+        @try {
+            if (SPPrefBool(@"enabled", NO)) {
+                dispatch_async(dispatch_get_main_queue(), ^{ SPStartIfEnabled(); });
+            } else {
+                SPWriteHeartbeat(@"disabled via prefs", NO, @[], @[]);
+            }
+        } @catch (__unused id e) {}
+    });
 }
 
 static void SPEnsureSwiftUILoaded(void) {
@@ -72,14 +159,22 @@ static BOOL SPClassNameLooksLikeHostingView(const char *name) {
 
 static BOOL SPClassNameLooksLikeHostingController(const char *name) {
     if (!name) return NO;
+    // Narrow: real SwiftUI hosting only. Bare "*HostingController*" matched Music
+    // helpers that inherit viewDidLayoutSubviews from UIViewController — 0.2.4
+    // then walked up and swizzled UIViewController itself (Music crash).
     if (strcmp(name, "UIHostingController") == 0) return YES;
     if (strstr(name, "UIHostingController") != NULL) return YES;
-    // Music / app wrappers: …HostingController (but not every *Controller).
-    if (strstr(name, "HostingController") != NULL &&
-        strstr(name, "SecureHosting") == NULL &&
-        strstr(name, "DocumentHosting") == NULL) {
-        return YES;
-    }
+    return NO;
+}
+
+static BOOL SPIsForbiddenHookTarget(Class cls) {
+    if (!cls) return YES;
+    if (cls == [UIView class] || cls == [UIViewController class]) return YES;
+    if (cls == [UIResponder class] || cls == [NSObject class]) return YES;
+    const char *name = class_getName(cls);
+    if (!name) return YES;
+    if (strcmp(name, "UIView") == 0 || strcmp(name, "UIViewController") == 0) return YES;
+    if (strcmp(name, "UIResponder") == 0 || strcmp(name, "NSObject") == 0) return YES;
     return NO;
 }
 
@@ -214,29 +309,42 @@ static void SPLogAttachObject(id object, NSString *role) {
         } mutableCopy];
 
         NSInteger milestone = 1;
-        if (SPPrefBool(@"dumpFields", YES)) {
+        // Screen strings are relatively safe. Metadata field walks are opt-in
+        // via dumpFieldMeta — walking Music UIViewControllers SIGSEGV'd on 0.3.0.
+        if (SPPrefBool(@"dumpFields", NO)) {
             @try {
-                NSArray *fields = SPWalkFields(obj, 2, 64);
-                if (fields.count) {
-                    node[@"fields"] = fields;
-                    milestone = 2;
-                }
-                NSArray *mirrorTitles = [SPMirrorDump titleStringsInObject:obj maxNodes:80];
-                if (mirrorTitles.count) {
-                    node[@"mirror_strings"] = mirrorTitles;
-                    milestone = 2;
-                }
                 UIView *view = nil;
-                if ([obj isKindOfClass:[UIView class]]) view = (UIView *)obj;
-                else if ([obj isKindOfClass:[UIViewController class]]) view = [(UIViewController *)obj view];
-                NSArray *screen = SPScreenStrings(view);
-                if (screen.count) {
-                    node[@"screen_strings"] = screen;
-                    milestone = 2;
+                if ([obj isKindOfClass:[UIView class]]) {
+                    view = (UIView *)obj;
+                } else if ([obj isKindOfClass:[UIViewController class]]) {
+                    UIViewController *vc = (UIViewController *)obj;
+                    if (vc.isViewLoaded) view = vc.view;
                 }
-            } @catch (__unused id e) {
-                // fail closed — still write the attach node
-            }
+                if (view) {
+                    NSArray *screen = SPScreenStrings(view);
+                    if (screen.count) {
+                        node[@"screen_strings"] = screen;
+                        milestone = 2;
+                    }
+                }
+            } @catch (__unused id e) {}
+        }
+        if (SPPrefBool(@"dumpFieldMeta", NO)) {
+            @try {
+                // Prefer hosting views; skip plain UIViewControllers (crashy on Music).
+                BOOL allow = [obj isKindOfClass:[UIView class]];
+                if (!allow && [obj isKindOfClass:[UIViewController class]]) {
+                    const char *cn = object_getClassName(obj);
+                    allow = SPClassNameLooksLikeHostingController(cn);
+                }
+                if (allow) {
+                    NSArray *fields = SPWalkFields(obj, 1, 16);
+                    if (fields.count) {
+                        node[@"fields"] = fields;
+                        milestone = 2;
+                    }
+                }
+            } @catch (__unused id e) {}
         }
 
         NSDictionary *payload = @{
@@ -251,46 +359,53 @@ static void SPLogAttachObject(id object, NSString *role) {
 }
 
 static void SPHookedLayoutSubviews(UIView *self, SEL _cmd) {
-    if (gSPOrigLayoutSubviews) gSPOrigLayoutSubviews(self, _cmd);
-    @try { SPLogAttachObject(self, @"hosting_view"); } @catch (__unused id e) {}
+    SPCallOrigLayoutSubviews(self, _cmd);
+    // Never do attach work synchronously on the layout path.
+    UIView *view = self;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        @try { SPLogAttachObject(view, @"hosting_view"); } @catch (__unused id e) {}
+    });
 }
 
 static void SPHookedViewDidLayout(UIViewController *self, SEL _cmd) {
-    if (gSPOrigViewDidLayout) gSPOrigViewDidLayout(self, _cmd);
-    @try {
-        // Controller type is usually the useful Swift name (MusicRootHostingController, etc.).
-        SPLogAttachObject(self, @"hosting_controller");
-        UIView *hosting = SPFindHostingViewBFS(self.view, 64);
-        if (hosting) SPLogAttachObject(hosting, @"hosting_view");
-    } @catch (__unused id e) {}
+    SPCallOrigViewDidLayout(self, _cmd);
+    UIViewController *vc = self;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        @try {
+            SPLogAttachObject(vc, @"hosting_controller");
+            UIView *hosting = SPFindHostingViewBFS(vc.view, 64);
+            if (hosting) SPLogAttachObject(hosting, @"hosting_view");
+        } @catch (__unused id e) {}
+    });
 }
 
-static BOOL SPSwizzle(Class cls, SEL sel, IMP replacement, IMP *origOut) {
-    if (!cls || !sel || !replacement || !origOut) return NO;
+/// Swizzle only methods owned by `cls`. Store original IMP in per-class map.
+static BOOL SPSwizzleOwned(Class cls, SEL sel, IMP replacement,
+                           NSMutableDictionary<NSString *, NSValue *> *origMap) {
+    if (!cls || !sel || !replacement || !origMap) return NO;
+    SPEnsureOrigMaps();
+
+    const char *cname = class_getName(cls);
+    if (!cname) return NO;
+    NSString *classKey = @(cname);
+    NSString *key = [NSString stringWithFormat:@"%@|%s", classKey, sel_getName(sel)];
+    if ([gSPSwizzledKeys containsObject:key]) return YES;
+
+    // Critical: do not touch inherited Method slots (would rewrite the superclass).
+    if (!SPClassOwnsInstanceMethod(cls, sel)) return NO;
+
     Method m = class_getInstanceMethod(cls, sel);
     if (!m) return NO;
-
-    static dispatch_once_t once;
-    dispatch_once(&once, ^{
-        gSPSwizzledKeys = [NSMutableSet set];
-    });
-    NSString *key = [NSString stringWithFormat:@"%s|%s", class_getName(cls), sel_getName(sel)];
-    if ([gSPSwizzledKeys containsObject:key]) return YES;
 
     IMP current = method_getImplementation(m);
     if (current == replacement) {
         [gSPSwizzledKeys addObject:key];
         return YES;
     }
-    if (*origOut != NULL && current == (IMP)(*origOut)) {
-        method_setImplementation(m, replacement);
-        [gSPSwizzledKeys addObject:key];
-        return YES;
-    }
 
     IMP prev = method_setImplementation(m, replacement);
     if (!prev) return NO;
-    if (*origOut == NULL) *origOut = prev;
+    origMap[classKey] = [NSValue valueWithPointer:(const void *)prev];
     [gSPSwizzledKeys addObject:key];
     return YES;
 }
@@ -338,37 +453,33 @@ static void SPTryInstallHooks(void) {
         free(list);
     }
 
+    SPEnsureOrigMaps();
+
+    // Only swizzle an owner that (1) owns the method, (2) still looks like a
+    // hosting type, (3) is never a UIKit base class. Walking to UIViewController
+    // in 0.2.4 crashed Music on first layout.
+    NSMutableArray *hookedViewOwners = [NSMutableArray array];
+    NSMutableSet *viewTargets = [NSMutableSet set];
     NSInteger viewHooks = 0;
     for (NSValue *v in viewClasses) {
-        Class cls = (Class)v.pointerValue;
-        if (SPSwizzle(cls, @selector(layoutSubviews),
-                      (IMP)SPHookedLayoutSubviews,
-                      (IMP *)&gSPOrigLayoutSubviews)) {
+        Class cand = (Class)v.pointerValue;
+        Class owner = SPClassProvidingInstanceMethod(cand, @selector(layoutSubviews));
+        if (!owner || SPIsForbiddenHookTarget(owner)) continue;
+        const char *oname = class_getName(owner);
+        if (!SPClassNameLooksLikeHostingView(oname)) continue;
+        NSString *name = @(oname);
+        if ([viewTargets containsObject:name]) continue;
+        [viewTargets addObject:name];
+        if (SPSwizzleOwned(owner, @selector(layoutSubviews),
+                           (IMP)SPHookedLayoutSubviews,
+                           gSPOrigLayoutByClass)) {
             viewHooks++;
-            if (!gSPHookedViewClassName) {
-                gSPHookedViewClassName = @(class_getName(cls));
-            }
+            [hookedViewOwners addObject:name];
+            if (!gSPHookedViewClassName) gSPHookedViewClassName = name;
         }
     }
     if (viewHooks > 0) gSPHookedHostingView = YES;
 
-    // Prefer real SwiftUI UIHostingController over incidental *HostingController names.
-    Class bestVC = Nil;
-    NSInteger bestRank = -1;
-    NSUInteger bestLen = NSUIntegerMax;
-    for (NSValue *v in vcClasses) {
-        Class cls = (Class)v.pointerValue;
-        const char *cn = class_getName(cls);
-        NSInteger rank = SPHostingControllerRank(cn);
-        NSUInteger len = cn ? strlen(cn) : NSUIntegerMax;
-        if (rank > bestRank || (rank == bestRank && len < bestLen)) {
-            bestVC = cls;
-            bestRank = rank;
-            bestLen = len;
-        }
-    }
-    // Swizzle top few controller candidates (ranked), not only one.
-    NSInteger vcHooks = 0;
     NSArray *sorted = [vcClasses sortedArrayUsingComparator:^NSComparisonResult(NSValue *a, NSValue *b) {
         const char *an = class_getName((Class)a.pointerValue);
         const char *bn = class_getName((Class)b.pointerValue);
@@ -380,36 +491,63 @@ static void SPTryInstallHooks(void) {
         if (al == bl) return NSOrderedSame;
         return al < bl ? NSOrderedAscending : NSOrderedDescending;
     }];
+    NSMutableArray *hookedVCOwners = [NSMutableArray array];
+    NSMutableSet *vcTargets = [NSMutableSet set];
+    NSInteger vcHooks = 0;
     for (NSValue *v in sorted) {
-        if (vcHooks >= 6) break;
-        Class cls = (Class)v.pointerValue;
-        if (SPSwizzle(cls, @selector(viewDidLayoutSubviews),
-                      (IMP)SPHookedViewDidLayout,
-                      (IMP *)&gSPOrigViewDidLayout)) {
+        if (vcHooks >= 4) break;
+        Class cand = (Class)v.pointerValue;
+        Class owner = SPClassProvidingInstanceMethod(cand, @selector(viewDidLayoutSubviews));
+        if (!owner || SPIsForbiddenHookTarget(owner)) continue;
+        const char *oname = class_getName(owner);
+        if (!SPClassNameLooksLikeHostingController(oname)) continue;
+        NSString *name = @(oname);
+        if ([vcTargets containsObject:name]) continue;
+        [vcTargets addObject:name];
+        if (SPSwizzleOwned(owner, @selector(viewDidLayoutSubviews),
+                           (IMP)SPHookedViewDidLayout,
+                           gSPOrigDidLayoutByClass)) {
             vcHooks++;
-            if (!gSPHookedControllerClassName) {
-                gSPHookedControllerClassName = @(class_getName(cls));
-            }
+            [hookedVCOwners addObject:name];
+            if (!gSPHookedControllerClassName) gSPHookedControllerClassName = name;
         }
     }
     if (vcHooks > 0) gSPHookedHostingController = YES;
-    (void)bestVC;
 
     BOOL hooked = gSPHookedHostingView || gSPHookedHostingController;
+    NSString *msg = nil;
     if (hooked) {
-        NSString *msg = [NSString stringWithFormat:@"hooks installed (views=%ld controllers=%ld)",
-                                                   (long)viewHooks, (long)vcHooks];
-        SPWriteHeartbeat(msg, YES, viewNames, vcNames);
-        NSLog(@"[SwiftPeek] %@", msg);
+        msg = [NSString stringWithFormat:
+               @"hooks installed (views=%ld controllers=%ld) viewOwners=%@ vcOwners=%@",
+               (long)viewHooks, (long)vcHooks, hookedViewOwners, hookedVCOwners];
     } else if (viewNames.count || vcNames.count) {
-        SPWriteHeartbeat(@"found candidate classes but swizzle failed", NO, viewNames, vcNames);
+        msg = [NSString stringWithFormat:
+               @"candidates but no safe owners (views=%lu controllers=%lu)",
+               (unsigned long)viewNames.count, (unsigned long)vcNames.count];
     } else {
-        SPWriteHeartbeat(@"enabled but no hosting classes visible yet", NO, viewNames, vcNames);
+        msg = @"enabled but no hosting classes visible yet";
+    }
+    SPWriteHeartbeat(msg, hooked, viewNames, vcNames);
+    NSLog(@"[SwiftPeek] %@", msg);
+
+    static NSInteger sSPHookProbeCount = 0;
+    if (sSPHookProbeCount < 3) {
+        sSPHookProbeCount++;
+        SPWriteJSONDump(@{
+            @"milestone": hooked ? @1 : @0,
+            @"probe": @YES,
+            @"message": msg ?: @"",
+            @"hooked": @(hooked),
+            @"hooked_view_owners": hookedViewOwners,
+            @"hooked_controller_owners": hookedVCOwners,
+            @"nodes": @[],
+        });
     }
 }
 
 static void SPOnImageAdded(const struct mach_header *mh, intptr_t slide) {
     (void)slide;
+    if (!SPPrefBool(@"installHooks", NO)) return;
     const char *imageName = NULL;
     uint32_t count = _dyld_image_count();
     for (uint32_t i = 0; i < count; i++) {
@@ -420,34 +558,234 @@ static void SPOnImageAdded(const struct mach_header *mh, intptr_t slide) {
     }
     if (!imageName || !strstr(imageName, "SwiftUI")) return;
     dispatch_async(dispatch_get_main_queue(), ^{
-        SPTryInstallHooks();
+        if (SPPrefBool(@"installHooks", NO)) SPTryInstallHooks();
     });
+}
+
+static BOOL SPIsAllowedProcess(void) {
+    NSString *name = NSProcessInfo.processInfo.processName ?: @"";
+    NSString *bundle = NSBundle.mainBundle.bundleIdentifier ?: @"";
+    // Music only — never touch SpringBoard (Swift-linked dylib + SB = Safe Mode).
+    if ([name isEqualToString:@"Music"]) return YES;
+    if ([bundle isEqualToString:@"com.apple.Music"]) return YES;
+    return NO;
+}
+
+static BOOL gSPDyldWatchInstalled = NO;
+
+/// Lightweight, hook-free attach: walk already-loaded VC tree only.
+/// Never force `vc.view` (that blanked Music Library content) and never
+/// call objc_copyClassList here (that froze the UI on main).
+/// Writes one coalesced dump; optional M2 field/screen enrichment off-main.
+static void SPScanWindowsForHosts(void) {
+    if (!SPPrefBool(@"enabled", NO)) return;
+    @try {
+        NSMutableArray *captured = [NSMutableArray array]; // @{obj, role, ...}
+        NSArray *windows = [UIApplication sharedApplication].windows;
+        for (UIWindow *w in windows) {
+            UIViewController *root = w.rootViewController;
+            NSMutableArray *stack = [NSMutableArray array];
+            if (root) [stack addObject:root];
+            NSInteger budget = 24;
+            while (stack.count && budget-- > 0) {
+                UIViewController *vc = stack.lastObject;
+                [stack removeLastObject];
+                NSString *objcName = @(object_getClassName(vc) ?: "?");
+                NSString *typeName = SPSwiftTypeNameFromObject(vc) ?: objcName;
+                if (!SPIsBoringTypeName(typeName) || !SPIsBoringTypeName(objcName)) {
+                    NSMutableDictionary *entry = [@{
+                        @"object": vc,
+                        @"role": @"scan_controller",
+                        @"objc_class": objcName,
+                        @"type": typeName,
+                        @"address": [NSString stringWithFormat:@"0x%lx",
+                                     (unsigned long)(uintptr_t)(__bridge void *)vc],
+                        @"view_loaded": @(vc.isViewLoaded),
+                    } mutableCopy];
+                    // Screen strings only on main, only if view already loaded.
+                    if (SPPrefBool(@"dumpFields", NO) && vc.isViewLoaded) {
+                        @try {
+                            NSArray *screen = SPScreenStrings(vc.view);
+                            if (screen.count) entry[@"screen_strings"] = screen;
+                        } @catch (__unused id e) {}
+                    }
+                    [captured addObject:entry];
+                    if (SPPrefBool(@"logAttach", YES)) {
+                        NSLog(@"[SwiftPeek] scan type=%@ addr=%@", typeName,
+                              entry[@"address"]);
+                    }
+                }
+                if (vc.isViewLoaded) {
+                    UIView *host = SPFindHostingViewBFS(vc.view, 24);
+                    if (host) {
+                        NSString *hObjc = @(object_getClassName(host) ?: "?");
+                        NSString *hType = SPSwiftTypeNameFromObject(host) ?: hObjc;
+                        NSMutableDictionary *entry = [@{
+                            @"object": host,
+                            @"role": @"scan_view",
+                            @"objc_class": hObjc,
+                            @"type": hType,
+                            @"address": [NSString stringWithFormat:@"0x%lx",
+                                         (unsigned long)(uintptr_t)(__bridge void *)host],
+                            @"view_loaded": @YES,
+                        } mutableCopy];
+                        if (SPPrefBool(@"dumpFields", NO)) {
+                            @try {
+                                NSArray *screen = SPScreenStrings(host);
+                                if (screen.count) entry[@"screen_strings"] = screen;
+                            } @catch (__unused id e) {}
+                        }
+                        [captured addObject:entry];
+                    }
+                }
+                for (UIViewController *child in vc.childViewControllers) {
+                    [stack addObject:child];
+                }
+                if (vc.presentedViewController) {
+                    [stack addObject:vc.presentedViewController];
+                }
+            }
+        }
+
+        if (captured.count == 0) {
+            SPWriteHeartbeat(@"window scan found no interesting controllers", NO, @[], @[]);
+            return;
+        }
+
+        BOOL enrichScreen = SPPrefBool(@"dumpFields", NO);
+        BOOL enrichMeta = SPPrefBool(@"dumpFieldMeta", NO);
+        NSArray *snapshot = [captured copy];
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+            NSMutableArray *nodes = [NSMutableArray array];
+            NSInteger milestone = 1;
+            NSInteger metaBudget = 4; // very small — Music VC meta walks crash
+            for (NSDictionary *item in snapshot) {
+                NSMutableDictionary *node = [@{
+                    @"address": item[@"address"] ?: @"",
+                    @"objc_class": item[@"objc_class"] ?: @"",
+                    @"role": item[@"role"] ?: @"",
+                    @"type": item[@"type"] ?: @"",
+                } mutableCopy];
+
+                if (item[@"screen_strings"]) {
+                    node[@"screen_strings"] = item[@"screen_strings"];
+                    milestone = 2;
+                }
+
+                if (enrichMeta && metaBudget > 0) {
+                    NSString *role = item[@"role"] ?: @"";
+                    // Only metadata-walk hosting views for now — not Music VCs.
+                    if ([role isEqualToString:@"scan_view"]) {
+                        metaBudget--;
+                        id obj = item[@"object"];
+                        @try {
+                            NSArray *fields = SPWalkFields(obj, 1, 16);
+                            if (fields.count) {
+                                node[@"fields"] = fields;
+                                milestone = 2;
+                            }
+                        } @catch (__unused id e) {}
+                    }
+                }
+                [nodes addObject:node];
+            }
+
+            NSString *msg = [NSString stringWithFormat:
+                @"window scan nodes=%lu milestone=%ld screen=%d meta=%d",
+                (unsigned long)nodes.count, (long)milestone,
+                enrichScreen ? 1 : 0, enrichMeta ? 1 : 0];
+            NSString *path = SPWriteJSONDump(@{
+                @"milestone": @(milestone),
+                @"scan": @YES,
+                @"message": msg,
+                @"nodes": nodes,
+            });
+            SPWriteHeartbeat(path ? msg : @"window scan dump write failed", NO, @[], @[]);
+            if (path) NSLog(@"[SwiftPeek] %@", msg);
+        });
+    } @catch (__unused id e) {
+        SPWriteHeartbeat(@"window scan failed closed", NO, @[], @[]);
+    }
+}
+
+static void SPStartIfEnabled(void) {
+    if (!SPPrefBool(@"enabled", NO)) {
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+            SPWriteHeartbeat(@"ctor disabled (kill switch)", NO, @[], @[]);
+        });
+        NSLog(@"[SwiftPeek] disabled — idle");
+        return;
+    }
+
+    NSLog(@"[SwiftPeek] loaded in %@ jbroot='%@'",
+          NSProcessInfo.processInfo.processName ?: @"?",
+          SPJailbreakRootPrefix() ?: @"");
+
+    BOOL scanOn = SPPrefBool(@"scanWindows", NO);
+    BOOL hooksOn = SPPrefBool(@"installHooks", NO);
+    BOOL fieldsOn = SPPrefBool(@"dumpFields", NO);
+    BOOL metaOn = SPPrefBool(@"dumpFieldMeta", NO);
+
+    static dispatch_once_t launchOnce;
+    dispatch_once(&launchOnce, ^{
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+            NSString *msg = [NSString stringWithFormat:
+                @"Music launch probe (0.3.1) scanWindows=%d installHooks=%d dumpFields=%d dumpFieldMeta=%d",
+                scanOn ? 1 : 0, hooksOn ? 1 : 0, fieldsOn ? 1 : 0, metaOn ? 1 : 0];
+            SPWriteHeartbeat(msg, NO, @[], @[]);
+            SPWriteJSONDump(@{
+                @"milestone": @0,
+                @"probe": @YES,
+                @"launch": @YES,
+                @"message": msg,
+                @"prefs": @{
+                    @"enabled": @YES,
+                    @"scanWindows": @(scanOn),
+                    @"installHooks": @(hooksOn),
+                    @"dumpFields": @(fieldsOn),
+                    @"dumpFieldMeta": @(metaOn),
+                },
+                @"nodes": @[],
+            });
+        });
+    });
+
+    // Window scan is opt-in — schedule every Music launch when enabled.
+    if (scanOn) {
+        static dispatch_once_t scanScheduleOnce;
+        dispatch_once(&scanScheduleOnce, ^{
+            NSLog(@"[SwiftPeek] scanWindows on — scheduling scans");
+            for (NSNumber *sec in @[ @5.0, @12.0 ]) {
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
+                                             (int64_t)(sec.doubleValue * NSEC_PER_SEC)),
+                               dispatch_get_main_queue(), ^{
+                    if (!SPPrefBool(@"enabled", NO) || !SPPrefBool(@"scanWindows", NO)) return;
+                    SPScanWindowsForHosts();
+                });
+            }
+        });
+    }
+
+    if (hooksOn) {
+        static dispatch_once_t hooksOnce;
+        dispatch_once(&hooksOnce, ^{
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(20.0 * NSEC_PER_SEC)),
+                           dispatch_get_main_queue(), ^{
+                if (!SPPrefBool(@"installHooks", NO)) return;
+                SPTryInstallHooks();
+            });
+            if (!gSPDyldWatchInstalled) {
+                gSPDyldWatchInstalled = YES;
+                _dyld_register_func_for_add_image(SPOnImageAdded);
+            }
+        });
+    }
 }
 
 __attribute__((constructor)) static void SPConstructor(void) {
     @autoreleasepool {
-        BOOL enabled = SPPrefBool(@"enabled", NO);
-        SPWriteHeartbeat(enabled ? @"ctor enabled" : @"ctor disabled (kill switch)",
-                         NO, @[], @[]);
-        if (!enabled) {
-            NSLog(@"[SwiftPeek] disabled — idle");
+        if (!SPIsAllowedProcess()) {
             return;
-        }
-
-        NSLog(@"[SwiftPeek] loaded in %@ jbroot='%@'",
-              NSProcessInfo.processInfo.processName ?: @"?",
-              SPJailbreakRootPrefix() ?: @"");
-
-        SPTryInstallHooks();
-        _dyld_register_func_for_add_image(SPOnImageAdded);
-
-        NSArray *delays = @[ @0.5, @1.5, @3.0, @6.0, @12.0 ];
-        for (NSNumber *sec in delays) {
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
-                                         (int64_t)(sec.doubleValue * NSEC_PER_SEC)),
-                           dispatch_get_main_queue(), ^{
-                if (!gSPHookedHostingView) SPTryInstallHooks();
-            });
         }
 
         CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
@@ -456,5 +794,21 @@ __attribute__((constructor)) static void SPConstructor(void) {
                                         CFSTR("com.kolby.swiftpeek/prefschanged"),
                                         NULL,
                                         CFNotificationSuspensionBehaviorDeliverImmediately);
+
+        // Never touch main in the constructor. Schedule from a utility queue.
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+            @try {
+                if (!SPPrefBool(@"enabled", NO)) {
+                    SPWriteHeartbeat(@"ctor disabled (kill switch)", NO, @[], @[]);
+                    return;
+                }
+                // Bounce to main only to kick opt-in timers (UIApplication-safe).
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    @try { SPStartIfEnabled(); } @catch (__unused id e) {}
+                });
+            } @catch (__unused id e) {
+                NSLog(@"[SwiftPeek] ctor failed closed");
+            }
+        });
     }
 }

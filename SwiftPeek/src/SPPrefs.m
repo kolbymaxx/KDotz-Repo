@@ -65,24 +65,26 @@ NSDictionary *SPPrefs(void) {
 }
 
 BOOL SPPrefBool(NSString *key, BOOL fallback) {
-    id v = SPPrefs()[key];
-    if (v != nil) return [v boolValue];
-
-    // CFPreferences fallback (same lesson as Music27 on rootless/roothide).
+    // Prefer live CFPreferences (PreferenceLoader writes here); file can lag.
+    CFPreferencesAppSynchronize((__bridge CFStringRef)kSPPrefsDomain);
     CFPropertyListRef cfVal = CFPreferencesCopyAppValue(
         (__bridge CFStringRef)key, (__bridge CFStringRef)kSPPrefsDomain);
-    if (cfVal == NULL) return fallback;
-
-    BOOL result = fallback;
-    if (CFGetTypeID(cfVal) == CFBooleanGetTypeID()) {
-        result = CFBooleanGetValue((CFBooleanRef)cfVal);
-    } else if (CFGetTypeID(cfVal) == CFNumberGetTypeID()) {
-        int n = 0;
-        CFNumberGetValue((CFNumberRef)cfVal, kCFNumberIntType, &n);
-        result = n != 0;
+    if (cfVal != NULL) {
+        BOOL result = fallback;
+        if (CFGetTypeID(cfVal) == CFBooleanGetTypeID()) {
+            result = CFBooleanGetValue((CFBooleanRef)cfVal);
+        } else if (CFGetTypeID(cfVal) == CFNumberGetTypeID()) {
+            int n = 0;
+            CFNumberGetValue((CFNumberRef)cfVal, kCFNumberIntType, &n);
+            result = n != 0;
+        }
+        CFRelease(cfVal);
+        return result;
     }
-    CFRelease(cfVal);
-    return result;
+
+    id v = SPPrefs()[key];
+    if (v != nil) return [v boolValue];
+    return fallback;
 }
 
 void SPPrefsInvalidate(void) {

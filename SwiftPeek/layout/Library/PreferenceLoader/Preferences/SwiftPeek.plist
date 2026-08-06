@@ -17,7 +17,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>Read-only SwiftUI inspector. Default off. When enabled, dumps land under Library/SwiftPeek/dumps/ (JSON) and post com.kolby.swiftpeek/dump. Relaunch Music (or respring for Control Center) after changing.</string>
+			<string>0.3.1: Enable + Scan Windows. Dump Fields = on-screen strings only (safe M2). Dump Field Meta walks Swift metadata (can crash Music — leave off). Hooks off.</string>
 			<key>label</key>
 			<string>SwiftPeek</string>
 		</dict>
@@ -35,34 +35,76 @@
 			<key>label</key>
 			<string>Enable SwiftPeek</string>
 		</dict>
-			<dict>
-				<key>PostNotification</key>
-				<string>com.kolby.swiftpeek/prefschanged</string>
-				<key>cell</key>
-				<string>PSSwitchCell</string>
-				<key>default</key>
-				<true/>
-				<key>defaults</key>
-				<string>com.kolby.swiftpeek</string>
-				<key>key</key>
-				<string>logAttach</string>
-				<key>label</key>
-				<string>Log Attach (os_log / NSLog)</string>
-			</dict>
-			<dict>
-				<key>PostNotification</key>
-				<string>com.kolby.swiftpeek/prefschanged</string>
-				<key>cell</key>
-				<string>PSSwitchCell</string>
-				<key>default</key>
-				<true/>
-				<key>defaults</key>
-				<string>com.kolby.swiftpeek</string>
-				<key>key</key>
-				<string>dumpFields</string>
-				<key>label</key>
-				<string>Dump Fields (milestone 2)</string>
-			</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.kolby.swiftpeek/prefschanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.kolby.swiftpeek</string>
+			<key>key</key>
+			<string>scanWindows</string>
+			<key>label</key>
+			<string>Scan Windows (attach)</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.kolby.swiftpeek/prefschanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.kolby.swiftpeek</string>
+			<key>key</key>
+			<string>dumpFields</string>
+			<key>label</key>
+			<string>Dump Fields (screen strings)</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.kolby.swiftpeek/prefschanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.kolby.swiftpeek</string>
+			<key>key</key>
+			<string>dumpFieldMeta</string>
+			<key>label</key>
+			<string>Dump Field Meta (unsafe)</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.kolby.swiftpeek/prefschanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.kolby.swiftpeek</string>
+			<key>key</key>
+			<string>installHooks</string>
+			<key>label</key>
+			<string>Install Hooks (unsafe — leave off)</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.kolby.swiftpeek/prefschanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.kolby.swiftpeek</string>
+			<key>key</key>
+			<string>logAttach</string>
+			<key>label</key>
+			<string>Log Attach (os_log / NSLog)</string>
+		</dict>
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>

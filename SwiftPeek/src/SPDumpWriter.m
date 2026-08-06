@@ -26,7 +26,7 @@ NSDictionary *SPDumpHeader(void) {
         @"process": proc,
         @"timestamp": ts,
         @"tool": @"SwiftPeek",
-        @"tool_version": @"0.2.0",
+        @"tool_version": @"0.3.1",
     };
 }
 
@@ -60,8 +60,8 @@ static NSData *SPStableJSONData(NSDictionary *root, NSError **outError) {
         @"jbroot", @"prefs_paths", @"hosting_view", @"hosting_controller",
         @"hosting_view_names", @"hosting_controller_names",
         @"hooked_view_class", @"hooked_controller_class",
-        @"hooked", @"nodes", @"message", @"fields", @"mirror_strings",
-        @"screen_strings"
+        @"hooked", @"nodes", @"message", @"probe", @"launch", @"scan", @"prefs",
+        @"fields", @"mirror_strings", @"screen_strings"
     ];
     NSMutableString *json = [NSMutableString stringWithString:@"{\n"];
     BOOL first = YES;
@@ -147,3 +147,4 @@ NSString *SPWriteJSONDump(NSDictionary *payload) {
     NSString *path = [SPDumpDirectory() stringByAppendingPathComponent:name];
     return SPWriteJSONToPath(root, path, YES);
 }
+// ci-kick

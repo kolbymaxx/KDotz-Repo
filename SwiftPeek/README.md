@@ -1,19 +1,19 @@
 # SwiftPeek
 
-Read-only SwiftUI view inspector for jailbroken iOS. Recovers Swift type names
-(and later field names / layouts) from live `_UIHostingView` hierarchies using
-`__swift5_*` reflection metadata.
+Read-only SwiftUI / Music view inspector for jailbroken iOS. Recovers live
+type names (M1) and optional field layouts / on-screen strings (M2) without
+mutating the UI.
 
-**Status:** Phase 1 / milestone 2 (Attach + field walk). Not published to the APT repo.
+**Status:** Phase 1 — M1 proven on device (scan); M2 field walk opt-in (0.3.0).
+Not published to the APT repo.
 
 ## Targets
 
 | Process | Why |
 |---------|-----|
 | Music | Primary — SwiftUI-heavy, present on 16.7 and 17.3 |
-| SpringBoard | Control Center / system SwiftUI surfaces |
 
-Injects only into those two. Prefs default **off**.
+Music only. Prefs default **off**.
 
 ## Prefs
 
@@ -22,20 +22,22 @@ Domain: `com.kolby.swiftpeek`
 | Key | Default | Meaning |
 |-----|---------|---------|
 | `enabled` | `false` | Master kill switch |
+| `scanWindows` | `false` | Walk loaded VC tree → coalesced attach dump |
+| `dumpFields` | `false` | M2: on-screen UILabel/accessibility strings (safe) |
+| `dumpFieldMeta` | `false` | M2: Swift field metadata walk (unsafe on Music VCs) |
+| `installHooks` | `false` | Swizzle hosting layout (unsafe — leave off) |
 | `logAttach` | `true` | NSLog attach lines when enabled |
-| `dumpFields` | `true` | Walk fields + mirror/screen strings (milestone 2) |
 
-PreferenceLoader entry ships with the package. Toggle on, relaunch Music
-(or respring for Control Center), watch `os_log` / SSH for:
+**Recommended device path:** Enable + Scan Windows. For M2 strings turn on
+Dump Fields only. Leave Dump Field Meta and Install Hooks off unless debugging.
 
-```
-[SwiftPeek] attach process=Music type=… addr=0x…
-```
+No respring needed for prefs — force-quit Music.
 
-JSON dumps (milestone 1 writes a minimal one per unique host, capped):
+## Dumps
 
 ```
 $jbroot/var/mobile/Library/SwiftPeek/dumps/<process>_<timestamp>.json
+$jbroot/var/mobile/Library/SwiftPeek/status.json
 ```
 
 Darwin notification on write: `com.kolby.swiftpeek/dump`.
@@ -48,16 +50,17 @@ make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless   # iPhone X / Dopamin
 make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=roothide   # 12 mini / Relaxin
 ```
 
-Depends on `mobilesubstrate` (ElleKit provides it on device). No hard ElleKit
-build dependency.
+ObjC-only dylib (no Swift). Depends on `mobilesubstrate` at runtime.
 
 ## Phase 0 host tool
 
 See [`../tools/`](../tools/) — `swiftmd` parses Mach-O `__swift5_types` /
-`__swift5_fieldmd`. Validated against a synthetic fixture and iOS 17.3 SwiftUI.
+`__swift5_fieldmd`.
 
 ## Safety
 
-- Read-only. No view mutation, no AttributeGraph hooks, no POSIX file hooks.
+- Read-only. No view mutation.
 - Fail closed on unexpected metadata.
-- Default off. Narrow filter (Music + SpringBoard only).
+- Never force-load `vc.view`; never swizzle UIKit bases.
+- Install Hooks remains opt-in and off by default.
+
