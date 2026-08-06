@@ -72,3 +72,4 @@ See [`../tools/`](../tools/) — `swiftmd` parses Mach-O `__swift5_types` /
 - Read-only. No view mutation, no AttributeGraph hooks, no POSIX file hooks.
 - Fail closed on unexpected metadata.
 - Default off. Narrow filter (Music only). Hard process-name gate refuses SpringBoard.
+
