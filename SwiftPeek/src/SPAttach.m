@@ -309,15 +309,9 @@ static void SPLogAttachObject(id object, NSString *role) {
         } mutableCopy];
 
         NSInteger milestone = 1;
-        // dumpFields: field metadata + loaded-view screen strings only (no Mirror).
+        // Screen strings are relatively safe. Metadata field walks are opt-in
+        // via dumpFieldMeta — walking Music UIViewControllers SIGSEGV'd on 0.3.0.
         if (SPPrefBool(@"dumpFields", NO)) {
-            @try {
-                NSArray *fields = SPWalkFields(obj, 1, 32);
-                if (fields.count) {
-                    node[@"fields"] = fields;
-                    milestone = 2;
-                }
-            } @catch (__unused id e) {}
             @try {
                 UIView *view = nil;
                 if ([obj isKindOfClass:[UIView class]]) {
@@ -330,6 +324,23 @@ static void SPLogAttachObject(id object, NSString *role) {
                     NSArray *screen = SPScreenStrings(view);
                     if (screen.count) {
                         node[@"screen_strings"] = screen;
+                        milestone = 2;
+                    }
+                }
+            } @catch (__unused id e) {}
+        }
+        if (SPPrefBool(@"dumpFieldMeta", NO)) {
+            @try {
+                // Prefer hosting views; skip plain UIViewControllers (crashy on Music).
+                BOOL allow = [obj isKindOfClass:[UIView class]];
+                if (!allow && [obj isKindOfClass:[UIViewController class]]) {
+                    const char *cn = object_getClassName(obj);
+                    allow = SPClassNameLooksLikeHostingController(cn);
+                }
+                if (allow) {
+                    NSArray *fields = SPWalkFields(obj, 1, 16);
+                    if (fields.count) {
+                        node[@"fields"] = fields;
                         milestone = 2;
                     }
                 }
@@ -641,12 +652,13 @@ static void SPScanWindowsForHosts(void) {
             return;
         }
 
-        BOOL enrich = SPPrefBool(@"dumpFields", NO);
+        BOOL enrichScreen = SPPrefBool(@"dumpFields", NO);
+        BOOL enrichMeta = SPPrefBool(@"dumpFieldMeta", NO);
         NSArray *snapshot = [captured copy];
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
             NSMutableArray *nodes = [NSMutableArray array];
             NSInteger milestone = 1;
-            NSInteger enrichBudget = 8; // cap expensive walks per scan
+            NSInteger metaBudget = 4; // very small — Music VC meta walks crash
             for (NSDictionary *item in snapshot) {
                 NSMutableDictionary *node = [@{
                     @"address": item[@"address"] ?: @"",
@@ -655,27 +667,33 @@ static void SPScanWindowsForHosts(void) {
                     @"type": item[@"type"] ?: @"",
                 } mutableCopy];
 
-                if (enrich && enrichBudget > 0) {
-                    enrichBudget--;
-                    id obj = item[@"object"];
-                    @try {
-                        NSArray *fields = SPWalkFields(obj, 1, 24);
-                        if (fields.count) {
-                            node[@"fields"] = fields;
-                            milestone = 2;
-                        }
-                    } @catch (__unused id e) {}
-                }
                 if (item[@"screen_strings"]) {
                     node[@"screen_strings"] = item[@"screen_strings"];
                     milestone = 2;
+                }
+
+                if (enrichMeta && metaBudget > 0) {
+                    NSString *role = item[@"role"] ?: @"";
+                    // Only metadata-walk hosting views for now — not Music VCs.
+                    if ([role isEqualToString:@"scan_view"]) {
+                        metaBudget--;
+                        id obj = item[@"object"];
+                        @try {
+                            NSArray *fields = SPWalkFields(obj, 1, 16);
+                            if (fields.count) {
+                                node[@"fields"] = fields;
+                                milestone = 2;
+                            }
+                        } @catch (__unused id e) {}
+                    }
                 }
                 [nodes addObject:node];
             }
 
             NSString *msg = [NSString stringWithFormat:
-                @"window scan nodes=%lu milestone=%ld fields=%d",
-                (unsigned long)nodes.count, (long)milestone, enrich ? 1 : 0];
+                @"window scan nodes=%lu milestone=%ld screen=%d meta=%d",
+                (unsigned long)nodes.count, (long)milestone,
+                enrichScreen ? 1 : 0, enrichMeta ? 1 : 0];
             NSString *path = SPWriteJSONDump(@{
                 @"milestone": @(milestone),
                 @"scan": @YES,
@@ -706,13 +724,14 @@ static void SPStartIfEnabled(void) {
     BOOL scanOn = SPPrefBool(@"scanWindows", NO);
     BOOL hooksOn = SPPrefBool(@"installHooks", NO);
     BOOL fieldsOn = SPPrefBool(@"dumpFields", NO);
+    BOOL metaOn = SPPrefBool(@"dumpFieldMeta", NO);
 
     static dispatch_once_t launchOnce;
     dispatch_once(&launchOnce, ^{
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
             NSString *msg = [NSString stringWithFormat:
-                @"Music launch probe (0.3.0) scanWindows=%d installHooks=%d dumpFields=%d",
-                scanOn ? 1 : 0, hooksOn ? 1 : 0, fieldsOn ? 1 : 0];
+                @"Music launch probe (0.3.1) scanWindows=%d installHooks=%d dumpFields=%d dumpFieldMeta=%d",
+                scanOn ? 1 : 0, hooksOn ? 1 : 0, fieldsOn ? 1 : 0, metaOn ? 1 : 0];
             SPWriteHeartbeat(msg, NO, @[], @[]);
             SPWriteJSONDump(@{
                 @"milestone": @0,
@@ -724,6 +743,7 @@ static void SPStartIfEnabled(void) {
                     @"scanWindows": @(scanOn),
                     @"installHooks": @(hooksOn),
                     @"dumpFields": @(fieldsOn),
+                    @"dumpFieldMeta": @(metaOn),
                 },
                 @"nodes": @[],
             });

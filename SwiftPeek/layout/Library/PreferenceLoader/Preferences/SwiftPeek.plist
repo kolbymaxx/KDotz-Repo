@@ -17,7 +17,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>0.3.0 M2: Enable + Scan Windows. For field names turn Dump Fields on, force-quit Music, wait ~12s. Look for one coalesced dump with milestone:2, fields, and/or screen_strings. Leave Install Hooks off.</string>
+			<string>0.3.1: Enable + Scan Windows. Dump Fields = on-screen strings only (safe M2). Dump Field Meta walks Swift metadata (can crash Music — leave off). Hooks off.</string>
 			<key>label</key>
 			<string>SwiftPeek</string>
 		</dict>
@@ -61,7 +61,21 @@
 			<key>key</key>
 			<string>dumpFields</string>
 			<key>label</key>
-			<string>Dump Fields (milestone 2)</string>
+			<string>Dump Fields (screen strings)</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.kolby.swiftpeek/prefschanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.kolby.swiftpeek</string>
+			<key>key</key>
+			<string>dumpFieldMeta</string>
+			<key>label</key>
+			<string>Dump Field Meta (unsafe)</string>
 		</dict>
 		<dict>
 			<key>PostNotification</key>
