@@ -15,6 +15,9 @@ Read-only SwiftUI view inspector for jailbroken iOS. Recovers Swift type names
 **Music only.** SpringBoard was removed in 0.2.1 — a Swift-linked tweak in SB
 triggered Safe Mode on Dopamine/rootless. Prefs default **off**.
 
+First check `…/Library/SwiftPeek/status.json` (heartbeat). Attach dumps only
+appear after hooks fire in a running Music process with Enable on.
+
 ## Prefs
 
 Domain: `com.kolby.swiftpeek`
