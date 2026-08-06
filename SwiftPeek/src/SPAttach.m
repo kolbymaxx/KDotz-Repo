@@ -541,6 +541,7 @@ static void SPTryInstallHooks(void) {
 
 static void SPOnImageAdded(const struct mach_header *mh, intptr_t slide) {
     (void)slide;
+    if (!SPPrefBool(@"installHooks", NO)) return;
     const char *imageName = NULL;
     uint32_t count = _dyld_image_count();
     for (uint32_t i = 0; i < count; i++) {
@@ -551,7 +552,7 @@ static void SPOnImageAdded(const struct mach_header *mh, intptr_t slide) {
     }
     if (!imageName || !strstr(imageName, "SwiftUI")) return;
     dispatch_async(dispatch_get_main_queue(), ^{
-        SPTryInstallHooks();
+        if (SPPrefBool(@"installHooks", NO)) SPTryInstallHooks();
     });
 }
 
@@ -565,29 +566,40 @@ static BOOL SPIsAllowedProcess(void) {
 }
 
 static BOOL gSPDyldWatchInstalled = NO;
-static BOOL gSPRetryTimersInstalled = NO;
-static BOOL gSPScanTimerInstalled = NO;
 
-/// Hook-free fallback: scan key windows for hosting views/controllers.
+/// Lightweight, hook-free attach: walk already-loaded VC tree only.
+/// Never force `vc.view` (that blanked Music Library content) and never
+/// call objc_copyClassList here (that froze the UI on main).
 static void SPScanWindowsForHosts(void) {
     if (!SPPrefBool(@"enabled", NO)) return;
     @try {
+        NSMutableArray *nodes = [NSMutableArray array];
         NSArray *windows = [UIApplication sharedApplication].windows;
         for (UIWindow *w in windows) {
             UIViewController *root = w.rootViewController;
             NSMutableArray *stack = [NSMutableArray array];
             if (root) [stack addObject:root];
-            NSInteger budget = 40;
+            NSInteger budget = 24;
             while (stack.count && budget-- > 0) {
                 UIViewController *vc = stack.lastObject;
                 [stack removeLastObject];
-                const char *cn = class_getName(object_getClass(vc));
-                if (SPClassNameLooksLikeHostingController(cn) ||
-                    (cn && strstr(cn, "HostingController"))) {
+                NSString *objcName = @(object_getClassName(vc) ?: "?");
+                NSString *typeName = SPSwiftTypeNameFromObject(vc) ?: objcName;
+                if (!SPIsBoringTypeName(typeName) || !SPIsBoringTypeName(objcName)) {
+                    [nodes addObject:@{
+                        @"address": [NSString stringWithFormat:@"0x%lx",
+                                     (unsigned long)(uintptr_t)(__bridge void *)vc],
+                        @"objc_class": objcName,
+                        @"role": @"scan_controller",
+                        @"type": typeName,
+                    }];
                     SPLogAttachObject(vc, @"scan_controller");
                 }
-                UIView *host = SPFindHostingViewBFS(vc.view, 48);
-                if (host) SPLogAttachObject(host, @"scan_view");
+                // Only inspect views that are already loaded — do not load them.
+                if (vc.isViewLoaded) {
+                    UIView *host = SPFindHostingViewBFS(vc.view, 24);
+                    if (host) SPLogAttachObject(host, @"scan_view");
+                }
                 for (UIViewController *child in vc.childViewControllers) {
                     [stack addObject:child];
                 }
@@ -596,7 +608,21 @@ static void SPScanWindowsForHosts(void) {
                 }
             }
         }
-    } @catch (__unused id e) {}
+        if (nodes.count) {
+            SPWriteJSONDump(@{
+                @"milestone": @1,
+                @"scan": @YES,
+                @"message": [NSString stringWithFormat:@"window scan nodes=%lu",
+                                                       (unsigned long)nodes.count],
+                @"nodes": nodes,
+            });
+            SPWriteHeartbeat(@"window scan wrote attach nodes", NO, @[], @[]);
+        } else {
+            SPWriteHeartbeat(@"window scan found no interesting controllers", NO, @[], @[]);
+        }
+    } @catch (__unused id e) {
+        SPWriteHeartbeat(@"window scan failed closed", NO, @[], @[]);
+    }
 }
 
 static void SPStartIfEnabled(void) {
@@ -610,49 +636,46 @@ static void SPStartIfEnabled(void) {
           NSProcessInfo.processInfo.processName ?: @"?",
           SPJailbreakRootPrefix() ?: @"");
 
-    // Immediate launch marker — proves package is in Music even before hooks.
     static dispatch_once_t launchOnce;
     dispatch_once(&launchOnce, ^{
-        SPWriteHeartbeat(@"enabled — launching hooks", NO, @[], @[]);
-        SPWriteJSONDump(@{
-            @"milestone": @0,
-            @"probe": @YES,
-            @"launch": @YES,
-            @"message": @"Music launch probe (enable on)",
-            @"nodes": @[],
+        // File I/O off the main queue — do not stall Music's first frames.
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+            SPWriteHeartbeat(@"enabled — scan-only mode (hooks off by default)", NO, @[], @[]);
+            SPWriteJSONDump(@{
+                @"milestone": @0,
+                @"probe": @YES,
+                @"launch": @YES,
+                @"message": @"Music launch probe (scan-only; installHooks default off)",
+                @"nodes": @[],
+            });
         });
     });
 
-    SPTryInstallHooks();
+    // Default: NO swizzle, NO class-list. One delayed light scan after UI settles.
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(4.0 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        if (!SPPrefBool(@"enabled", NO)) return;
+        SPScanWindowsForHosts();
+    });
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(10.0 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        if (!SPPrefBool(@"enabled", NO)) return;
+        SPScanWindowsForHosts();
+    });
 
-    if (!gSPDyldWatchInstalled) {
-        gSPDyldWatchInstalled = YES;
-        _dyld_register_func_for_add_image(SPOnImageAdded);
-    }
-
-    if (!gSPRetryTimersInstalled) {
-        gSPRetryTimersInstalled = YES;
-        NSArray *delays = @[ @0.5, @1.5, @3.0, @6.0, @12.0 ];
-        for (NSNumber *sec in delays) {
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
-                                         (int64_t)(sec.doubleValue * NSEC_PER_SEC)),
-                           dispatch_get_main_queue(), ^{
-                if (!SPPrefBool(@"enabled", NO)) return;
-                if (!gSPHookedHostingView && !gSPHookedHostingController) {
-                    SPTryInstallHooks();
-                }
-                SPScanWindowsForHosts();
-            });
-        }
-    }
-
-    if (!gSPScanTimerInstalled) {
-        gSPScanTimerInstalled = YES;
-        // Periodic scan even when hooks exist — covers Music UIKit library chrome.
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)),
+    // Opt-in only — 0.2.4/0.2.5 hook attempts froze or crashed Music.
+    if (SPPrefBool(@"installHooks", NO)) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(8.0 * NSEC_PER_SEC)),
                        dispatch_get_main_queue(), ^{
-            SPScanWindowsForHosts();
+            if (!SPPrefBool(@"installHooks", NO)) return;
+            SPTryInstallHooks();
         });
+        if (!gSPDyldWatchInstalled) {
+            gSPDyldWatchInstalled = YES;
+            _dyld_register_func_for_add_image(SPOnImageAdded);
+        }
+    } else {
+        NSLog(@"[SwiftPeek] installHooks off — not swizzling");
     }
 }
 

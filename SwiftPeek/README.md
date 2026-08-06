@@ -29,6 +29,7 @@ Domain: `com.kolby.swiftpeek`
 | Key | Default | Meaning |
 |-----|---------|---------|
 | `enabled` | `false` | Master kill switch |
+| `installHooks` | `false` | Swizzle hosting layout (unsafe; off — use window scan) |
 | `logAttach` | `true` | NSLog attach lines when enabled |
 | `dumpFields` | `false` | Walk fields + mirror/screen strings (milestone 2; off — can crash) |
 

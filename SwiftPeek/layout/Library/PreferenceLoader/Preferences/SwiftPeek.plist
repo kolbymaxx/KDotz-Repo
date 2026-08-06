@@ -17,7 +17,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>Music-only inspector (0.2.5+). Default off. Enable → force-quit Music → reopen. Leave Dump Fields off until attach dumps are stable. Check dumps/ for tool_version 0.2.5.</string>
+			<string>0.2.6 scan-only by default (no swizzle). Enable → force-quit Music → wait ~10s → check dumps/ for tool_version 0.2.6. Leave Install Hooks off unless debugging hooks.</string>
 			<key>label</key>
 			<string>SwiftPeek</string>
 		</dict>
@@ -35,34 +35,48 @@
 			<key>label</key>
 			<string>Enable SwiftPeek</string>
 		</dict>
-			<dict>
-				<key>PostNotification</key>
-				<string>com.kolby.swiftpeek/prefschanged</string>
-				<key>cell</key>
-				<string>PSSwitchCell</string>
-				<key>default</key>
-				<true/>
-				<key>defaults</key>
-				<string>com.kolby.swiftpeek</string>
-				<key>key</key>
-				<string>logAttach</string>
-				<key>label</key>
-				<string>Log Attach (os_log / NSLog)</string>
-			</dict>
-			<dict>
-				<key>PostNotification</key>
-				<string>com.kolby.swiftpeek/prefschanged</string>
-				<key>cell</key>
-				<string>PSSwitchCell</string>
-				<key>default</key>
-				<false/>
-				<key>defaults</key>
-				<string>com.kolby.swiftpeek</string>
-				<key>key</key>
-				<string>dumpFields</string>
-				<key>label</key>
-				<string>Dump Fields (milestone 2 — can crash; off by default)</string>
-			</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.kolby.swiftpeek/prefschanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.kolby.swiftpeek</string>
+			<key>key</key>
+			<string>installHooks</string>
+			<key>label</key>
+			<string>Install Hooks (unsafe — off by default)</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.kolby.swiftpeek/prefschanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.kolby.swiftpeek</string>
+			<key>key</key>
+			<string>logAttach</string>
+			<key>label</key>
+			<string>Log Attach (os_log / NSLog)</string>
+		</dict>
+		<dict>
+			<key>PostNotification</key>
+			<string>com.kolby.swiftpeek/prefschanged</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.kolby.swiftpeek</string>
+			<key>key</key>
+			<string>dumpFields</string>
+			<key>label</key>
+			<string>Dump Fields (milestone 2 — can crash; off)</string>
+		</dict>
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
