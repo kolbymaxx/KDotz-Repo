@@ -62,7 +62,11 @@ jobs:
           test -n "$FILTER"
           plutil -p "$FILTER"
           grep -q 'com.apple.Music' <(plutil -p "$FILTER")
-          grep -q 'com.apple.springboard' <(plutil -p "$FILTER")
+          # Music-only — SpringBoard + Swift-linked dylib caused Safe Mode on 0.2.0
+          if grep -qi 'springboard' <(plutil -p "$FILTER"); then
+            echo "ERROR: filter must not inject SpringBoard" >&2
+            exit 1
+          fi
           # rootless stages under var/jb/; roothide does not — locate either way
           PREFS="$(find "$TMP" -path '*/PreferenceLoader/Preferences/SwiftPeek.plist' | head -1)"
           test -n "$PREFS"
