@@ -18,13 +18,18 @@ Settings live under **Settings → Music27**.
 2. Scrolling down collapses into the merged red · mini · Search pill.
 3. Collapsed state stays until you tap the red Music button, which expands again.
 
-## 1.1.1 blank-screen fix
+## Blank-screen history
 
-1.1.0 could white-screen Music on launch by (a) mutating safe-area insets every
-layout pass and (b) walking/hiding views in the tab controller content tree
-while looking for the mini player. 1.1.1 installs the dock once, only fades
-strict mini-player matches that are siblings of the tab bar, and never hides
-content hosts.
+| Version | Notes |
+|--------|--------|
+| 1.1.0 | Safe-area mutation every layout + mini-player walk → white/blank Music |
+| 1.1.1 | Safer dock install; briefly worked on device |
+| 1.1.3–1.1.5 | Library blank / dock restore churn |
+| 1.1.8 | Claimed “overlay without safe-area crush” but still cleared `additionalSafeAreaInsets` and installed from broad hooks → blank on iPhone X / Dopamine |
+| **1.1.9** | **Never** mutates `additionalSafeAreaInsets`. Installs dock once from `UITabBarController viewDidAppear` only. One-time safe-boot forces Floating Glass Dock + Color Theme **OFF** so Music opens; re-enable after verifying |
+| **1.1.10** | Dock-ON blank Library: host dock on the **window** (not `UITabBarController.view`), never fade stock mini-player, pass-through hit-testing outside glass pills, alpha-hide stock tab bar only |
+
+Prefs are read preferring `/var/jb/.../com.music27.tweak.plist` (Dopamine), then jbroot (RootHide), then rootful.
 
 ## Install via Sileo (KDotz Repo — recommended)
 

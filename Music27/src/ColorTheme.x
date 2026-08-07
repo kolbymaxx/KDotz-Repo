@@ -17,10 +17,10 @@
 static const NSInteger kM27WashTag = 0x4D323757; // 'M27W' — used on layer name
 
 static BOOL M27LooksLikeAlbumOrPlaylist(UIViewController *vc) {
-    // Require a "detail-ish" token; bare "container"/"product" alone is too
-    // broad and matched Music's root container (the black-screen root cause).
+    // Require a "detail-ish" token; bare "container"/"product"/"album" on a
+    // Library grid matched root hosts and washed the app black.
     static NSArray<NSString *> *strong;
-    static NSArray<NSString *> *weak;
+    static NSArray<NSString *> *reject;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
         strong = @[
@@ -28,13 +28,21 @@ static BOOL M27LooksLikeAlbumOrPlaylist(UIViewController *vc) {
             @"librarydetail", @"albumpage", @"playlistpage",
             @"albumvc", @"playlistvc"
         ];
-        weak = @[ @"album", @"playlist" ];
+        reject = @[
+            @"tabbar", @"container", @"librarylanding", @"libraryview",
+            @"libraryroot", @"social", @"search", @"listennow", @"browse"
+        ];
     });
-    if (M27ClassNameContains(vc, strong)) return YES;
-    if (!M27ClassNameContains(vc, weak)) return NO;
-    // Weak match must also look like a detail surface (has large artwork).
+    if (M27ClassNameContains(vc, reject)) return NO;
+    if ([vc isKindOfClass:UITabBarController.class] ||
+        [vc isKindOfClass:UINavigationController.class] ||
+        [vc isKindOfClass:UISplitViewController.class]) {
+        return NO;
+    }
+    if (!M27ClassNameContains(vc, strong)) return NO;
+    // Strong match must also look like a detail surface (has large artwork).
     UIImage *art = M27LargestImageInView(vc.view);
-    return art != nil && art.size.width >= 120;
+    return art != nil && art.size.width >= 160;
 }
 
 static BOOL M27IsNowPlayingController(UIViewController *vc) {
