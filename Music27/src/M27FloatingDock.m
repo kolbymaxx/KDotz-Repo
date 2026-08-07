@@ -2,7 +2,7 @@
 #import "M27GlassChrome.h"
 #import "Music27.h"
 
-static const CGFloat kM27DockSideInset = 14.0;
+static const CGFloat kM27DockSideInset = 18.0;
 static const CGFloat kM27CollapsedHeight = 64.0;
 static const CGFloat kM27ExpandedMiniHeight = 52.0;
 static const CGFloat kM27ExpandedTabHeight = 58.0;
