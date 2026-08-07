@@ -8,16 +8,17 @@
 
 // Floating Liquid Glass dock for Music.
 //
-// 1.1.13 (visual floating dock on top of 1.1.12 safety):
-// - Keep dedicated passthrough UIWindow (never Music's key window).
-// - Soft-hide stock UITabBar + MiniPlayerViewController.view with alpha only
-//   so the glass pills read as the real dock (not double chrome).
-// - Never additionalSafeAreaInsets, never hidden=YES on hosts, never fade
-//   Library*/UIHosting* / oversized views.
-// - Scroll-collapse restored (dock overlay only).
+// 1.1.14 (real float — merges #48 geometry onto #49 chrome):
+// - 1.1.13 on main still used bottomPad = MIN(safeBottom*0.40, 18) (~18pt),
+//   so the dock barely lifted and looked glued. Correct float is
+//   bottomPad = safeBottom + 12 (~46pt on iPhone X).
+// - Soft-hide stock UITabBar + MiniPlayerViewController.view (alpha only).
+// - Keep dedicated passthrough UIWindow. Never safe-area mutation / hidden=YES
+//   on Library hosts.
 
 static const NSInteger kM27DockTag = 0x4D323744; // 'M27D'
 static const CGFloat kM27ScrollCollapseY = 48.0;
+static const CGFloat kM27FloatGap = 12.0;
 static const void *kM27DockControllerKey = &kM27DockControllerKey;
 static const void *kM27DockViewKey = &kM27DockViewKey;
 static const void *kM27DockWindowKey = &kM27DockWindowKey;
@@ -306,9 +307,9 @@ static void M27ApplyStockChromeVisibility(UITabBarController *tbc, BOOL glassOn)
 
     UITabBar *bar = tbc.tabBar;
     if (glassOn) {
-        bar.alpha = 0.01; // keep in compositing tree; effectively invisible
+        bar.alpha = 0.0;
         bar.userInteractionEnabled = NO;
-        bar.hidden = NO;
+        bar.hidden = NO; // keep geometry; do not remove from hierarchy
         if (@available(iOS 15.0, *)) {
             UITabBarAppearance *clear = [UITabBarAppearance new];
             [clear configureWithTransparentBackground];
@@ -327,10 +328,10 @@ static void M27ApplyStockChromeVisibility(UITabBarController *tbc, BOOL glassOn)
     if (!M27ClassNameHasSuffix(miniVC, @"MiniPlayerViewController")) return;
     UIView *mini = miniVC.view;
     if (!mini) return;
-    // Safety: refuse to fade anything that looks like a full content host.
+    // Fade only this VC's view. Refuse full-screen-sized hosts (safety).
     CGFloat h = CGRectGetHeight(mini.bounds);
     CGFloat hostH = mini.window ? CGRectGetHeight(mini.window.bounds) : 0;
-    if (h > 160.0 || (hostH > 0 && h > hostH * 0.35)) {
+    if (hostH > 0 && h > hostH * 0.55) {
         if (!glassOn) {
             mini.alpha = 1.0;
             mini.userInteractionEnabled = YES;
@@ -338,7 +339,7 @@ static void M27ApplyStockChromeVisibility(UITabBarController *tbc, BOOL glassOn)
         return;
     }
     if (glassOn) {
-        mini.alpha = 0.01;
+        mini.alpha = 0.0;
         mini.userInteractionEnabled = NO;
     } else {
         mini.alpha = 1.0;
@@ -405,9 +406,17 @@ static void M27LayoutDock(UITabBarController *tbc, M27FloatingDock *dock) {
             [host addSubview:dock];
         }
 
-        // Float above the home indicator — reads as a dock, not a tab-bar strip.
+        // Float above the home indicator. 1.1.12/1.1.13 crushed this to ~8–18pt
+        // and looked glued; #48 geometry is safeBottom + gap.
         CGFloat safeBottom = overlay.safeAreaInsets.bottom;
-        CGFloat bottomPad = safeBottom > 0 ? MIN(safeBottom * 0.40, 18.0) : 14.0;
+        if (safeBottom < 1.0 && tbc.isViewLoaded) {
+            safeBottom = tbc.view.safeAreaInsets.bottom;
+        }
+        if (safeBottom < 1.0) {
+            UIWindow *musicWindow = tbc.view.window;
+            if (musicWindow) safeBottom = musicWindow.safeAreaInsets.bottom;
+        }
+        CGFloat bottomPad = safeBottom + kM27FloatGap;
         CGFloat y = hostH - height - bottomPad;
         CGRect frame = CGRectMake(0, y, width, height);
         if (!CGRectEqualToRect(dock.frame, frame)) {
