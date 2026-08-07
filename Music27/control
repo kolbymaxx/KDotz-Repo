@@ -1,8 +1,8 @@
 Package: com.music27.tweak
 Name: Music27
-Version: 1.1.11
+Version: 1.1.12
 Architecture: iphoneos-arm64
-Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass look. 1.1.11 uses SwiftPeek MusicApplication host names; window dock overlay; kill switch tears down chrome; never hides Library/MiniPlayer hosts.
+Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass look. 1.1.12 hosts Floating Glass Dock in a dedicated passthrough UIWindow so Library stays visible/tappable.
 Maintainer: Music27
 Author: Music27
 Section: Tweaks
