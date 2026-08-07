@@ -38,10 +38,26 @@ PYTHONPATH=tools python3 -m swiftpeek scaffold ~/Downloads/annotated.json \
 
 ## Build & install
 
+Needs **Theos + an iPhoneOS SDK** on the Mac (same as Music27 / SwiftPeek). The scaffold Makefile does not install Theos for you.
+
 ```bash
+# One-time (if ~/theos is missing)
+git clone --recursive https://github.com/theos/theos.git ~/theos
+# Put an iPhoneOS*.sdk under ~/theos/sdks/ (clone theos/sdks or copy from another machine)
+
+export THEOS=~/theos
 cd ~/Tweaks/MyMusicTweak
 make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
-# install deb on Dopamine / iPhone X, force-quit Music
+# install the .deb from packages/ on Dopamine / iPhone X, force-quit Music
+```
+
+If `make` says `common.mk: No such file`, `THEOS` is unset or Theos is not at that path.
+
+To edit Logos sources without a default app for `.x`:
+
+```bash
+open -t ~/Tweaks/MyMusicTweak/src/Tweak.x
+# or: code ~/Tweaks/MyMusicTweak/src/Tweak.x
 ```
 
 ## Developing the tweak
