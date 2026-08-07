@@ -1,8 +1,8 @@
 Package: com.music27.tweak
 Name: Music27
-Version: 1.1.17
+Version: 1.1.18
 Architecture: iphoneos-arm64
-Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass look. 1.1.17 covers stock tab/mini with an overlay mask and floats dual glass pills — never mutates Music views.
+Description: Restyle Apple Music on iOS 16/17 toward the iOS 26/27 Liquid Glass look. 1.1.18 solid overlay cover + StatusBar-level float dock — never mutates Music views.
 Maintainer: Music27
 Author: Music27
 Section: Tweaks

@@ -17,7 +17,7 @@ Settings live under **Settings → Music27**.
 1. Fresh launch starts **expanded** (mini pill + 5-tab pill).
 2. Scrolling down collapses into the merged red · mini · Search pill.
 3. Tap the **red button** to expand back to the 5-tab layout.
-4. Stock tab bar / mini player are soft-hidden (alpha) while the glass dock is ON.
+4. Stock tab bar / mini player stay intact; an overlay cover paints over them while the glass dock is ON.
 
 ## Blank-screen history
 
@@ -36,6 +36,7 @@ Settings live under **Settings → Music27**.
 | **1.1.15** | **Never** fade MiniPlayer. Soft-hide UITabBar only. Keep `safeBottom+12` float + overlay window. One-time force dock OFF for recovery |
 | **1.1.16** | Soft-hide Music `tabsViewController` chrome — still left stock tabs visible on device for many users |
 | **1.1.17** | **Cover, don’t mutate:** overlay mask over stock chrome + dual glass pills on top. Never alpha-hide Music views |
+| **1.1.18** | **Make cover visible:** solid dark cover (not fragile blur), `UIWindowLevelStatusBar - 1`, `safeBottom+12` float, install retries + Console logs. Still never mutates Music views |
 
 Prefs are read preferring `/var/jb/.../com.music27.tweak.plist` (Dopamine), then jbroot (RootHide), then rootful.
 
