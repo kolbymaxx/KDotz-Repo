@@ -127,12 +127,13 @@ static void M27WritePrefsDictionary(NSDictionary *dict) {
     _plist = M27ReadPrefsDictionary();
 
     // One-time recovery markers. 1.1.9 forced dock/theme OFF so Music could
-    // launch; 1.1.11 records the SwiftPeek host-aware fix (does not re-force
-    // toggles if the user already re-enabled the dock).
+    // launch; later markers record safer dock hosting without re-forcing OFF
+    // if the user already re-enabled the dock for verification.
     if (_plist[@"blankScreenFix119"] == nil) {
         NSMutableDictionary *seed = [_plist mutableCopy] ?: [NSMutableDictionary dictionary];
         seed[@"blankScreenFix119"] = @YES;
         seed[@"hostBlankFix111"] = @YES;
+        seed[@"dockOverlayFix112"] = @YES;
         seed[@"dockSafeBoot115"] = @YES;
         if (seed[@"enabled"] == nil) seed[@"enabled"] = @YES;
         seed[@"glassTabBar"] = @NO;
@@ -144,11 +145,24 @@ static void M27WritePrefsDictionary(NSDictionary *dict) {
                                  (__bridge CFStringRef)M27PrefDomain);
         CFPreferencesSetAppValue(CFSTR("hostBlankFix111"), kCFBooleanTrue,
                                  (__bridge CFStringRef)M27PrefDomain);
+        CFPreferencesSetAppValue(CFSTR("dockOverlayFix112"), kCFBooleanTrue,
+                                 (__bridge CFStringRef)M27PrefDomain);
         CFPreferencesSetAppValue(CFSTR("glassTabBar"), kCFBooleanFalse,
                                  (__bridge CFStringRef)M27PrefDomain);
         CFPreferencesSetAppValue(CFSTR("colorTheme"), kCFBooleanFalse,
                                  (__bridge CFStringRef)M27PrefDomain);
         CFPreferencesSetAppValue(CFSTR("enabled"), kCFBooleanTrue,
+                                 (__bridge CFStringRef)M27PrefDomain);
+        CFPreferencesAppSynchronize((__bridge CFStringRef)M27PrefDomain);
+    } else if (_plist[@"dockOverlayFix112"] == nil) {
+        NSMutableDictionary *seed = [_plist mutableCopy] ?: [NSMutableDictionary dictionary];
+        seed[@"dockOverlayFix112"] = @YES;
+        seed[@"hostBlankFix111"] = @YES;
+        M27WritePrefsDictionary(seed);
+        _plist = [seed copy];
+        CFPreferencesSetAppValue(CFSTR("dockOverlayFix112"), kCFBooleanTrue,
+                                 (__bridge CFStringRef)M27PrefDomain);
+        CFPreferencesSetAppValue(CFSTR("hostBlankFix111"), kCFBooleanTrue,
                                  (__bridge CFStringRef)M27PrefDomain);
         CFPreferencesAppSynchronize((__bridge CFStringRef)M27PrefDomain);
     } else if (_plist[@"hostBlankFix111"] == nil) {

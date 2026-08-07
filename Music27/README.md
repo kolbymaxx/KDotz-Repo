@@ -15,8 +15,8 @@ Settings live under **Settings → Music27**.
 ## Dock behavior
 
 1. Fresh launch starts **expanded** (tabs visible).
-2. Scrolling down collapses into the merged red · mini · Search pill.
-3. Collapsed state stays until you tap the red Music button, which expands again.
+2. Collapsed mode (red · mini · Search) is still available via the dock API; 1.1.12 no longer drives collapse from a global `UIScrollView` hook (that was too invasive for Library).
+3. Tap the **red button** to expand back to the 5-tab layout.
 
 ## Blank-screen history
 
@@ -28,7 +28,8 @@ Settings live under **Settings → Music27**.
 | 1.1.8 | Claimed “overlay without safe-area crush” but still cleared `additionalSafeAreaInsets` and installed from broad hooks → blank on iPhone X / Dopamine |
 | **1.1.9** | **Never** mutates `additionalSafeAreaInsets`. Installs dock once from `UITabBarController viewDidAppear` only. One-time safe-boot forces Floating Glass Dock + Color Theme **OFF** so Music opens; re-enable after verifying |
 | **1.1.10** | Dock-ON blank Library: host dock on the **window** (not `UITabBarController.view`), never fade stock mini-player, pass-through hit-testing outside glass pills |
-| **1.1.11** | SwiftPeek proved `MusicApplication.LibraryViewController` / `MiniPlayerViewController` / SwiftUI hosts stay alive while Music looks black. Narrow matchers to those type names; never hide protected hosts; leave stock tab bar intact; kill switch (`enabled=NO`) tears down all chrome via `M27ApplyChromeForCurrentPrefs()` |
+| **1.1.11** | SwiftPeek proved `MusicApplication.LibraryViewController` / `MiniPlayerViewController` / SwiftUI hosts stay alive while Music looks black. Narrow matchers; never hide protected hosts; leave stock tab bar intact |
+| **1.1.12** | Dock moves to a **dedicated passthrough `UIWindow`** — never a subview of Music’s key window. Removes global scroll hook. Verify Floating Glass Dock ON on iPhone X before APT publish |
 
 Prefs are read preferring `/var/jb/.../com.music27.tweak.plist` (Dopamine), then jbroot (RootHide), then rootful.
 
