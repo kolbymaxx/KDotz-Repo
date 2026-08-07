@@ -10,7 +10,7 @@
 			<key>label</key>
 			<string>Music27</string>
 			<key>footerText</key>
-			<string>1.1.8: dock overlays without crushing Library. Keep Floating Glass Dock ON, force-quit Music, reopen. Pins are local only.</string>
+			<string>1.1.11: SwiftPeek showed Library hosts stay alive while Music looks black — Music27 no longer covers them. Enable Music27 OFF = fully stock. Dock is a window overlay; stock tab bar stays intact.</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -31,12 +31,14 @@
 			<string>PSGroupCell</string>
 			<key>label</key>
 			<string>Features</string>
+			<key>footerText</key>
+			<string>Turning Enable Music27 OFF removes the dock and other chrome immediately. Dock never mutates safe-area insets and never hides LibraryViewController / MiniPlayerViewController.</string>
 		</dict>
 		<dict>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
-			<true/>
+			<false/>
 			<key>defaults</key>
 			<string>com.music27.tweak</string>
 			<key>key</key>
@@ -50,7 +52,7 @@
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>default</key>
-			<true/>
+			<false/>
 			<key>defaults</key>
 			<string>com.music27.tweak</string>
 			<key>key</key>
@@ -92,7 +94,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>Music27 1.1.8 — safe dock overlay (fixes blank Library). Force-quit Music after toggling.</string>
+			<string>Music27 1.1.11 — SwiftPeek host-aware blank fix. No APT publish until verified on iPhone X.</string>
 		</dict>
 	</array>
 	<key>title</key>

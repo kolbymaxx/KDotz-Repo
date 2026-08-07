@@ -10,30 +10,10 @@ static const NSInteger kM27PinButtonTag = 0x4D323742;    // 'M27B'
 static const CGFloat kM27PinnedHeaderHeight = 128.0;
 
 static BOOL M27IsLibraryRoot(UIViewController *vc) {
-    static NSArray<NSString *> *needles;
-    static dispatch_once_t once;
-    dispatch_once(&once, ^{
-        needles = @[ @"library", @"landing", @"overview", @"musiclibrary" ];
-    });
-    // Library root, but not a nested detail.
-    if (!M27ClassNameContains(vc, needles)) return NO;
-    static NSArray<NSString *> *detail;
-    static dispatch_once_t once2;
-    dispatch_once(&once2, ^{
-        detail = @[ @"detail", @"album", @"playlist", @"artist", @"song", @"product" ];
-    });
-    // If it also looks like a detail page, skip.
-    NSString *name = NSStringFromClass(vc.class).lowercaseString;
-    for (NSString *d in detail) {
-        if ([name containsString:d] && ![d isEqualToString:@"library"]) {
-            // "librarydetail" etc. — not the root.
-            if ([name containsString:@"detail"] || [name containsString:@"album"] ||
-                [name containsString:@"playlist"] || [name containsString:@"artist"]) {
-                return NO;
-            }
-        }
-    }
-    return YES;
+    if (!vc) return NO;
+    // SwiftPeek: MusicApplication.LibraryViewController is the Library root host.
+    // Do not attach overlays to LibraryMenu / LibraryRecentlyAdded.
+    return M27ClassNameHasSuffix(vc, @"LibraryViewController");
 }
 
 static M27PinType M27InferTypeFromClassName(NSString *name) {
@@ -194,21 +174,19 @@ static void M27AttachPinnedHeader(UIViewController *vc) {
 }
 
 static BOOL M27LooksLikePinnableDetail(UIViewController *vc) {
-    static NSArray<NSString *> *needles;
-    static dispatch_once_t once;
-    dispatch_once(&once, ^{
-        needles = @[
-            @"album", @"playlist", @"artist", @"product", @"collectiondetail",
-            @"librarydetail", @"detail"
-        ];
-    });
-    return M27ClassNameContains(vc, needles) && !M27IsLibraryRoot(vc);
+    if (!vc || M27IsLibraryRoot(vc) || M27IsProtectedMusicHost(vc)) return NO;
+    return M27ClassNameHasSuffix(vc, @"AlbumDetailViewController")
+        || M27ClassNameHasSuffix(vc, @"PlaylistDetailViewController")
+        || M27ClassNameHasSuffix(vc, @"ArtistViewController");
 }
 
 %hook UIViewController
 
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
+    M27Prefs *prefs = M27Prefs.shared;
+    if (!(prefs.enabled && prefs.libraryPinsEnabled)) return;
+    if (!M27IsLibraryRoot(self)) return;
     M27AttachPinnedHeader(self);
 }
 

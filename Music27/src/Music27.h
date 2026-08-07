@@ -83,5 +83,12 @@ typedef NS_ENUM(NSInteger, M27PinType) {
 UIViewController *_Nullable M27TopViewController(void);
 UIImage *_Nullable M27LargestImageInView(UIView *_Nullable view);
 BOOL M27ClassNameContains(NSObject *_Nullable obj, NSArray<NSString *> *needles);
+/// Matches Swift `MusicApplication.Foo` or ObjC `Foo` by final type name.
+BOOL M27ClassNameHasSuffix(NSObject *_Nullable obj, NSString *suffix);
+/// SwiftPeek-proven content hosts that must never be hidden/faded/washed.
+BOOL M27IsProtectedMusicHost(NSObject *_Nullable obj);
+
+/// Tear down / reinstall chrome from current prefs (kill switch + dock toggle).
+void M27ApplyChromeForCurrentPrefs(void);
 
 NS_ASSUME_NONNULL_END
