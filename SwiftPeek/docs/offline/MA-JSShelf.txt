@@ -1,0 +1,67 @@
+class    MusicApplication.JSShelfModelRequest  [desc 0xb49654]
+    [ 0] shelfViewModel : <symbolic>
+class    MusicApplication.JSShelfModelRequestOperation  [desc 0xb496d0]
+    [ 0] request : <symbolic>
+    [ 1] responseHandler : ySo15MPModelResponseCyyXlyXlGSg_ <symbolic>
+class    MusicApplication.JSShelfModelResponse  [desc 0xb49728]
+    [ 0] personalizationResponse : So37MPStoreLibraryPersonalizationResponseC
+    [ 1] sectionsDidChangeNotificationObserver : <symbolic>
+    [ 2] personalizationResponseInvalidationObserver : <symbolic>
+    [ 3] jsResults : So21MPSectionedCollectionCyyXlyXlG
+class    MusicApplication.JSShelfViewController  [desc 0xb55d08]
+    [ 0] $__lazy_storage_$_impressionsTracker : <symbolic>
+    [ 1] cachedPreferredSizeForAllItemsInSection : <symbolic>
+    [ 2] cachedShouldUsePreferredSizeForAllItems : SbSg
+    [ 3] verticalStackItemPrefersTopHairline : Sb
+    [ 4] verticalStackItemPrefersTallerHeader : Sb
+    [ 5] artworkVideoPlaybackController : <symbolic>
+    [ 6] shelf : <symbolic>
+    [ 7] playbackIndicator : <symbolic>
+    [ 8] artworkVideoReportingController : <symbolic>
+    [ 9] bindings : Say <symbolic>
+    [10] cachedShelfAlbumItemSize : <symbolic>
+    [11] cachedShelfRankedAlbumItemSize : <symbolic>
+    [12] cachedShelfArtistItemSize : <symbolic>
+    [13] cachedShelfCuratorActivityItemSize : <symbolic>
+    [14] cachedShelfRadioShowItemSize : <symbolic>
+    [15] cachedShelfPlaylistItemSize : <symbolic>
+    [16] cachedShelfSongItemSize : <symbolic>
+    [17] cachedFeaturedSongSize : <symbolic>
+    [18] cachedMusicVideoItemSize : <symbolic>
+    [19] cachedMusicVideoWithHeadlineItemSize : <symbolic>
+    [20] cachedRankedMusicVideoItemSize : <symbolic>
+    [21] cachedFeaturedMusicVideoItemSize : <symbolic>
+    [22] cachedRadioStationItemSize : <symbolic>
+    [23] cachedFeaturedRadioShowItemSize : <symbolic>
+    [24] cachedFeaturedShowcaseItemSize : <symbolic>
+    [25] cachedShelfSocialPersonItemSize : <symbolic>
+    [26] cachedShelfSocialPersonCardItemSize : <symbolic>
+    [27] cachedRecentlyPlayedRadioItemSize : <symbolic>
+    [28] cachedPosterItemSize : <symbolic>
+    [29] customRoomAlbumSizingCell : <symbolic>
+    [30] customRoomMusicVideoSizingCell : <symbolic>
+    [31] cachedBottomPadding : <symbolic>
+    [32] cachedBottomHeaderInset : <symbolic>
+    [33] socialProfilesHelper : <symbolic>
+    [34] scrollingSectionHeaderSizingView : <symbolic>
+    [35] globalHeaderSizingView : <symbolic>
+    [36] _isLayoutScrollStylePrepared : Sb
+    [37] cachedHasScrollingHeaders : SbSg
+    [38] cachedSectionContentTypes : SDySi <symbolic>
+class    MusicJSCore.JSShelfItem  [desc 0xb7bd80]
+class    MusicJSCore.JSShelf  [desc 0xb7be74]
+    [ 0] _sections : <symbolic>
+    [ 1] supertitle : SS
+    [ 2] title : SS
+    [ 3] subtitle : SS
+    [ 4] accessoryButtonTitle : SS
+    [ 5] contentArtwork : <symbolic>
+    [ 6] containerDetailLink : <symbolic>
+class    MusicJSCore.JSShelfSection  [desc 0xb7faf4]
+    [ 0] items : Say <symbolic>
+    [ 1] title : SS
+    [ 2] isFeatured : Sb
+    [ 3] isRankedList : Sb
+    [ 4] height : <symbolic>
+    [ 5] uniformCellType : <symbolic>
+    [ 6] delegate : <symbolic>

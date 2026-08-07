@@ -1,0 +1,2334 @@
+{
+  ".AlbumDetailActions": {
+    "kind": "struct",
+    "fields": [
+      {
+        "index": 0,
+        "name": "rawValue",
+        "type": "Si"
+      }
+    ],
+    "sources": [
+      "MA-AlbumDetail.txt"
+    ]
+  },
+  ".CommerceNavigationController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "dismissCallback",
+        "type": "y <symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-NavigationController.txt"
+    ]
+  },
+  ".JSDrivenRequestedProperty": {
+    "kind": "enum",
+    "fields": [
+      {
+        "index": 0,
+        "name": "socialBadging",
+        "type": "<none>"
+      }
+    ],
+    "sources": [
+      "MA-JSDriven.txt"
+    ]
+  },
+  ".JSSearchLandingUpsellCompactContentView": {
+    "kind": "struct",
+    "fields": [
+      {
+        "index": 0,
+        "name": "_searchLandingUpsell",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "_environment",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "_colorScheme",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-SearchLanding.txt"
+    ]
+  },
+  ".JSSearchLandingUpsellRegularContentView": {
+    "kind": "struct",
+    "fields": [
+      {
+        "index": 0,
+        "name": "_searchLandingUpsell",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "_environment",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "_colorScheme",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-SearchLanding.txt"
+    ]
+  },
+  ".JSSearchLandingUpsellView": {
+    "kind": "struct",
+    "fields": [
+      {
+        "index": 0,
+        "name": "_searchLandingUpsell",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "_horizontalSizeClass",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "_environment",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-SearchLanding.txt"
+    ]
+  },
+  ".PrivacyOnboardingNavigationController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "dismissCallback",
+        "type": "y <symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-NavigationController.txt"
+    ]
+  },
+  ".SplayedLayoutContainer.DummyNavigationController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "rootViewController",
+        "type": "x"
+      }
+    ],
+    "sources": [
+      "MA-NavigationController.txt"
+    ]
+  },
+  "MusicApplication.AlbumDetailSongsViewController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "canCompleteAlbum",
+        "type": "Sb"
+      },
+      {
+        "index": 1,
+        "name": "recordLabels",
+        "type": "SaySo18MPModelRecordLabelCGSg"
+      },
+      {
+        "index": 2,
+        "name": "_awaitingModelResponse",
+        "type": "So15MPModelResponseCyyXlyXlGSg"
+      },
+      {
+        "index": 3,
+        "name": "isClassicalAlbum",
+        "type": "Sb"
+      },
+      {
+        "index": 4,
+        "name": "$__lazy_storage_$_songPopularityBackupCache",
+        "type": "SDy <symbolic>"
+      },
+      {
+        "index": 5,
+        "name": "currentAlbum",
+        "type": "So12MPModelAlbumCSg"
+      },
+      {
+        "index": 6,
+        "name": "previewPlayabilityStatus",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 7,
+        "name": "albumDetailActions",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-AlbumDetail.txt"
+    ]
+  },
+  "MusicApplication.AlbumDetailViewController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "hasAppearedOnce",
+        "type": "Sb"
+      },
+      {
+        "index": 1,
+        "name": "$__lazy_storage_$_openInClassicalButton",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "$__lazy_storage_$_openInClassicalBarButtonItem",
+        "type": "So15UIBarButtonItemCSg"
+      },
+      {
+        "index": 3,
+        "name": "canOpenInAppleClassical",
+        "type": "Sb"
+      }
+    ],
+    "sources": [
+      "MA-AlbumDetail.txt"
+    ]
+  },
+  "MusicApplication.CloudLibraryViewController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "completionHandler",
+        "type": "ySbcSg"
+      },
+      {
+        "index": 1,
+        "name": "message",
+        "type": "SSSg"
+      }
+    ],
+    "sources": [
+      "MA-LibraryViewController.txt"
+    ]
+  },
+  "MusicApplication.JSDrivenViewController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "componentController",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "contentViewController",
+        "type": "So16UIViewControllerC"
+      },
+      {
+        "index": 2,
+        "name": "forceShowingLargeFixedTitleHeader",
+        "type": "Sb"
+      },
+      {
+        "index": 3,
+        "name": "canShowOfflineMessage",
+        "type": "Sb"
+      },
+      {
+        "index": 4,
+        "name": "prefersCancelButton",
+        "type": "Sb"
+      },
+      {
+        "index": 5,
+        "name": "pageHeaderContentViewController",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 6,
+        "name": "promotionalParallaxViewController",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 7,
+        "name": "ppt_isContentReady",
+        "type": "Sb"
+      },
+      {
+        "index": 8,
+        "name": "ppt_onContentIsReady",
+        "type": "yycSg"
+      },
+      {
+        "index": 9,
+        "name": "appearanceState",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 10,
+        "name": "contentViewControllerAppearanceState",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 11,
+        "name": "hasInvokedDidLoadPreemptively",
+        "type": "Sb"
+      },
+      {
+        "index": 12,
+        "name": "lifecycleEventQueue",
+        "type": "Say <symbolic>"
+      },
+      {
+        "index": 13,
+        "name": "presentationSegue",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 14,
+        "name": "pushSegue",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 15,
+        "name": "$__lazy_storage_$_offlineMessageViewController",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 16,
+        "name": "networkConnectivityObserver",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 17,
+        "name": "isShowingOfflineMessage",
+        "type": "Sb"
+      },
+      {
+        "index": 18,
+        "name": "viewModelRevision",
+        "type": "Si"
+      },
+      {
+        "index": 19,
+        "name": "isPreparingContentViewController",
+        "type": "Sb"
+      },
+      {
+        "index": 20,
+        "name": "contentViewControllerPreparationCompletionHandlers",
+        "type": "SayyycG"
+      },
+      {
+        "index": 21,
+        "name": "shouldIgnorePromotionalProperties",
+        "type": "Sb"
+      },
+      {
+        "index": 22,
+        "name": "isArtistPromotionalLayoutStyle",
+        "type": "Sb"
+      },
+      {
+        "index": 23,
+        "name": "promotionalLayoutStyleDidChange",
+        "type": "Sb"
+      },
+      {
+        "index": 24,
+        "name": "wantsPromotionalParallaxViewController",
+        "type": "Sb"
+      },
+      {
+        "index": 25,
+        "name": "headerItemRevisionID",
+        "type": "Si"
+      },
+      {
+        "index": 26,
+        "name": "needsContentOffsetResetOnViewDidAppear",
+        "type": "Sb"
+      },
+      {
+        "index": 27,
+        "name": "artistRadioStationController",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 28,
+        "name": "$__lazy_storage_$_openInClassicalButton",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 29,
+        "name": "browseContentItem",
+        "type": "So13MPModelObjectCSg"
+      },
+      {
+        "index": 30,
+        "name": "$__lazy_storage_$_contextualActionsButton",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 31,
+        "name": "$__lazy_storage_$_favoritingButton",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 32,
+        "name": "cancelBarButtonItem",
+        "type": "So15UIBarButtonItemCSg"
+      },
+      {
+        "index": 33,
+        "name": "contextBarButtonItem",
+        "type": "So15UIBarButtonItemCSg"
+      },
+      {
+        "index": 34,
+        "name": "favoritingBarButtonItem",
+        "type": "So15UIBarButtonItemCSg"
+      },
+      {
+        "index": 35,
+        "name": "trailingBarButtonItemMap",
+        "type": "SDy <symbolic>"
+      },
+      {
+        "index": 36,
+        "name": "previousLeftBarButtonItems",
+        "type": "SaySo15UIBarButtonItemCG"
+      },
+      {
+        "index": 37,
+        "name": "previousRightBarButtonItems",
+        "type": "SaySo15UIBarButtonItemCG"
+      },
+      {
+        "index": 38,
+        "name": "contentNavigationItemBinding",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 39,
+        "name": "metricsPageProperties",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-JSDriven.txt"
+    ]
+  },
+  "MusicApplication.JSListenNowMusicSiriUpsellViewController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "musicSiriUpsell",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "environment",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-JSListenNow.txt"
+    ]
+  },
+  "MusicApplication.JSListenNowTabViewController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "profilePerson",
+        "type": "So19MPModelSocialPersonCSg"
+      },
+      {
+        "index": 1,
+        "name": "artworkCatalog",
+        "type": "So16MPArtworkCatalogCSg"
+      },
+      {
+        "index": 2,
+        "name": "artworkCachingReference",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 3,
+        "name": "allowedServicesSubscription",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 4,
+        "name": "accountButton",
+        "type": "So8UIButtonC"
+      },
+      {
+        "index": 5,
+        "name": "notificationBadgeView",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-JSListenNow.txt"
+    ]
+  },
+  "MusicApplication.JSModelSearchLandingItemBuilder": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "requestedProperties",
+        "type": "So13MPPropertySetC"
+      },
+      {
+        "index": 1,
+        "name": "initializedProperties",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "contentItemBuilder",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-SearchLanding.txt"
+    ]
+  },
+  "MusicApplication.JSSearchLandingModelRequest": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "sectionViewModel",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "previousResponse",
+        "type": "So15MPModelResponseCyyXlyXlGSg"
+      }
+    ],
+    "sources": [
+      "MA-SearchLanding.txt"
+    ]
+  },
+  "MusicApplication.JSSearchLandingModelResponse": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "itemsDidChangeNotificationObserver",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "personalizationResponseInvalidationObserver",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "personalizationResponse",
+        "type": "So37MPStoreLibraryPersonalizationResponseC"
+      },
+      {
+        "index": 3,
+        "name": "jsResults",
+        "type": "So21MPSectionedCollectionCyyXlyXlG"
+      }
+    ],
+    "sources": [
+      "MA-SearchLanding.txt"
+    ]
+  },
+  "MusicApplication.JSSearchLandingRequestOperation": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "request",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "responseHandler",
+        "type": "ySo15MPModelResponseCyyXlyXlGSg_ <symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-SearchLanding.txt"
+    ]
+  },
+  "MusicApplication.JSSearchLandingUpsellViewController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "artworkVideoPlaybackController",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "environment",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "searchLandingUpsell",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 3,
+        "name": "artworkVideoReportingController",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 4,
+        "name": "wideVideoArtworkObserver",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 5,
+        "name": "tallVideoArtworkObserver",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-SearchLanding.txt"
+    ]
+  },
+  "MusicApplication.JSSearchLandingViewController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "isHiddenBySearchController",
+        "type": "Sb"
+      },
+      {
+        "index": 1,
+        "name": "containerStyle",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "$__lazy_storage_$_impressionsTracker",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 3,
+        "name": "viewModel",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 4,
+        "name": "lastSeenViewSize",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 5,
+        "name": "titleLabel",
+        "type": "So7UILabelC"
+      }
+    ],
+    "sources": [
+      "MA-SearchLanding.txt"
+    ]
+  },
+  "MusicApplication.JSShelfModelRequest": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "shelfViewModel",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-JSShelf.txt"
+    ]
+  },
+  "MusicApplication.JSShelfModelRequestOperation": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "request",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "responseHandler",
+        "type": "ySo15MPModelResponseCyyXlyXlGSg_ <symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-JSShelf.txt"
+    ]
+  },
+  "MusicApplication.JSShelfModelResponse": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "personalizationResponse",
+        "type": "So37MPStoreLibraryPersonalizationResponseC"
+      },
+      {
+        "index": 1,
+        "name": "sectionsDidChangeNotificationObserver",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "personalizationResponseInvalidationObserver",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 3,
+        "name": "jsResults",
+        "type": "So21MPSectionedCollectionCyyXlyXlG"
+      }
+    ],
+    "sources": [
+      "MA-JSShelf.txt"
+    ]
+  },
+  "MusicApplication.JSShelfViewController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "$__lazy_storage_$_impressionsTracker",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "cachedPreferredSizeForAllItemsInSection",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "cachedShouldUsePreferredSizeForAllItems",
+        "type": "SbSg"
+      },
+      {
+        "index": 3,
+        "name": "verticalStackItemPrefersTopHairline",
+        "type": "Sb"
+      },
+      {
+        "index": 4,
+        "name": "verticalStackItemPrefersTallerHeader",
+        "type": "Sb"
+      },
+      {
+        "index": 5,
+        "name": "artworkVideoPlaybackController",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 6,
+        "name": "shelf",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 7,
+        "name": "playbackIndicator",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 8,
+        "name": "artworkVideoReportingController",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 9,
+        "name": "bindings",
+        "type": "Say <symbolic>"
+      },
+      {
+        "index": 10,
+        "name": "cachedShelfAlbumItemSize",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 11,
+        "name": "cachedShelfRankedAlbumItemSize",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 12,
+        "name": "cachedShelfArtistItemSize",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 13,
+        "name": "cachedShelfCuratorActivityItemSize",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 14,
+        "name": "cachedShelfRadioShowItemSize",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 15,
+        "name": "cachedShelfPlaylistItemSize",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 16,
+        "name": "cachedShelfSongItemSize",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 17,
+        "name": "cachedFeaturedSongSize",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 18,
+        "name": "cachedMusicVideoItemSize",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 19,
+        "name": "cachedMusicVideoWithHeadlineItemSize",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 20,
+        "name": "cachedRankedMusicVideoItemSize",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 21,
+        "name": "cachedFeaturedMusicVideoItemSize",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 22,
+        "name": "cachedRadioStationItemSize",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 23,
+        "name": "cachedFeaturedRadioShowItemSize",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 24,
+        "name": "cachedFeaturedShowcaseItemSize",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 25,
+        "name": "cachedShelfSocialPersonItemSize",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 26,
+        "name": "cachedShelfSocialPersonCardItemSize",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 27,
+        "name": "cachedRecentlyPlayedRadioItemSize",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 28,
+        "name": "cachedPosterItemSize",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 29,
+        "name": "customRoomAlbumSizingCell",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 30,
+        "name": "customRoomMusicVideoSizingCell",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 31,
+        "name": "cachedBottomPadding",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 32,
+        "name": "cachedBottomHeaderInset",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 33,
+        "name": "socialProfilesHelper",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 34,
+        "name": "scrollingSectionHeaderSizingView",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 35,
+        "name": "globalHeaderSizingView",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 36,
+        "name": "_isLayoutScrollStylePrepared",
+        "type": "Sb"
+      },
+      {
+        "index": 37,
+        "name": "cachedHasScrollingHeaders",
+        "type": "SbSg"
+      },
+      {
+        "index": 38,
+        "name": "cachedSectionContentTypes",
+        "type": "SDySi <symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-JSShelf.txt"
+    ]
+  },
+  "MusicApplication.JSTabViewController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "$__lazy_storage_$_accountButton",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "identifier",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-JSTabView.txt"
+    ]
+  },
+  "MusicApplication.LibraryMenuViewController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "editingDelegate",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "editingMenu",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "pendingSelectedIdentifier",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 3,
+        "name": "downloadManagerObserver",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 4,
+        "name": "prewarmedIdentifierViewController",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 5,
+        "name": "textDrawingCache",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 6,
+        "name": "requestResponseController",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 7,
+        "name": "dataSource",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 8,
+        "name": "allowsAnimatedChanges",
+        "type": "Sb"
+      },
+      {
+        "index": 9,
+        "name": "hasLoadedSuccessfulResponse",
+        "type": "Sb"
+      }
+    ],
+    "sources": [
+      "MA-LibraryMenu.txt"
+    ]
+  },
+  "MusicApplication.LibraryViewController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "shouldRecordPageMetrics",
+        "type": "Sb"
+      },
+      {
+        "index": 1,
+        "name": "libraryRecommendationUserOptInDidChangeObserver",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "sceneDidActivateNotificationObserver",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 3,
+        "name": "needsImmediateBannerUpdate",
+        "type": "Sb"
+      },
+      {
+        "index": 4,
+        "name": "libraryRecommendationBannerOptInStatus",
+        "type": "SbSg"
+      },
+      {
+        "index": 5,
+        "name": "$__lazy_storage_$_accountButton",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 6,
+        "name": "menuTableViewController",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 7,
+        "name": "recentlyAddedViewController",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 8,
+        "name": "cloudLibraryStatusObserver",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 9,
+        "name": "isCloudLibraryEnabled",
+        "type": "Sb"
+      },
+      {
+        "index": 10,
+        "name": "$__lazy_storage_$_cloudLibraryStatusViewController",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 11,
+        "name": "libraryRecommendationCoordinator",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 12,
+        "name": "$__lazy_storage_$_glideController",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 13,
+        "name": "dragDropController",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 14,
+        "name": "$__lazy_storage_$_dropIndicationView",
+        "type": "So6UIViewCSg"
+      },
+      {
+        "index": 15,
+        "name": "isActiveDropSessionInsideView",
+        "type": "Sb"
+      },
+      {
+        "index": 16,
+        "name": "shouldSkipRecordingPageMetricsForEditingStateChange",
+        "type": "Sb"
+      }
+    ],
+    "sources": [
+      "MA-LibraryViewController.txt"
+    ]
+  },
+  "MusicApplication.MediaPickerNavigationController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "mediaPickerDelegate",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "mediaPickerConfiguration",
+        "type": "So26MPMediaPickerConfigurationC"
+      },
+      {
+        "index": 2,
+        "name": "prompt",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 3,
+        "name": "$__lazy_storage_$_cancelBarButtonItem",
+        "type": "So15UIBarButtonItemCSg"
+      },
+      {
+        "index": 4,
+        "name": "$__lazy_storage_$_doneBarButtonItem",
+        "type": "So15UIBarButtonItemCSg"
+      },
+      {
+        "index": 5,
+        "name": "selectedItems",
+        "type": "SaySo13MPModelObjectCG"
+      },
+      {
+        "index": 6,
+        "name": "selectedPlaybackIntentDescriptor",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 7,
+        "name": "$__lazy_storage_$_spinnerBarButtonItem",
+        "type": "So15UIBarButtonItemCSg"
+      }
+    ],
+    "sources": [
+      "MA-NavigationController.txt"
+    ]
+  },
+  "MusicApplication.MiniPlayerViewController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "artworkView",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "queue",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "handoffToAction",
+        "type": "yycSg"
+      },
+      {
+        "index": 3,
+        "name": "handoffFromAction",
+        "type": "yycSg"
+      },
+      {
+        "index": 4,
+        "name": "nowPlaying",
+        "type": "So17MPCPlayerResponseCSg"
+      },
+      {
+        "index": 5,
+        "name": "nowPlayingPath",
+        "type": "So13MPCPlayerPathCSg"
+      },
+      {
+        "index": 6,
+        "name": "springLoadedInteraction",
+        "type": "So25UISpringLoadedInteractionCSg"
+      },
+      {
+        "index": 7,
+        "name": "nowPlayingItemStackView",
+        "type": "So11UIStackViewCSg"
+      },
+      {
+        "index": 8,
+        "name": "nowPlayingItemRouteLabel",
+        "type": "So12MPRouteLabelCSg"
+      },
+      {
+        "index": 9,
+        "name": "nowPlayingItemTitleLabel",
+        "type": "So7UILabelCSg"
+      },
+      {
+        "index": 10,
+        "name": "nowPlayingItemSecondaryLabel",
+        "type": "So7UILabelCSg"
+      },
+      {
+        "index": 11,
+        "name": "skipButton",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 12,
+        "name": "playPauseButton",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 13,
+        "name": "playPauseButtonWidthConstraint",
+        "type": "So18NSLayoutConstraintCSg"
+      },
+      {
+        "index": 14,
+        "name": "reverseButton",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 15,
+        "name": "sharedListeningParticipantsLabel",
+        "type": "So7UILabelCSg"
+      },
+      {
+        "index": 16,
+        "name": "playerSubscriptions",
+        "type": "Shy <symbolic>"
+      },
+      {
+        "index": 17,
+        "name": "artworkLayoutGuide",
+        "type": "So13UILayoutGuideCSg"
+      },
+      {
+        "index": 18,
+        "name": "shuffleButton",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 19,
+        "name": "repeatButton",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 20,
+        "name": "artworkConstraints",
+        "type": "SaySo18NSLayoutConstraintCG"
+      },
+      {
+        "index": 21,
+        "name": "nowPlayingItemVibrancyEffectHeadlineStackView",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 22,
+        "name": "nowPlayingItemVibrancyEffectTitleLabelView",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 23,
+        "name": "nowPlayingItemVibrancyEffectSecondaryLabelView",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 24,
+        "name": "nowPlayingItemLargeTextTitleLabel",
+        "type": "So7UILabelCSg"
+      },
+      {
+        "index": 25,
+        "name": "nowPlayingItemLargeTextMarqueeView",
+        "type": "So14MPUMarqueeViewCSg"
+      },
+      {
+        "index": 26,
+        "name": "playbackCancellationGesture",
+        "type": "So28UILongPressGestureRecognizerCSg"
+      },
+      {
+        "index": 27,
+        "name": "transportControlsController",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 28,
+        "name": "transportControlsStack",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 29,
+        "name": "reverseButtonConfiguration",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 30,
+        "name": "playPauseButtonConfiguration",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 31,
+        "name": "skipButtonConfiguration",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 32,
+        "name": "bindings",
+        "type": "Say <symbolic>"
+      },
+      {
+        "index": 33,
+        "name": "cancellables",
+        "type": "Shy <symbolic>"
+      },
+      {
+        "index": 34,
+        "name": "dragDropController",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 35,
+        "name": "highlightGestureRecognizer",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 36,
+        "name": "highlightGestureRecognizerHandler",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 37,
+        "name": "reverseButtonVibrancyEffectContainerView",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 38,
+        "name": "playPauseButtonVibrancyEffectContainerView",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 39,
+        "name": "skipButtonVibrancyEffectContainerView",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 40,
+        "name": "handoffButton",
+        "type": "So8UIButtonCSg"
+      },
+      {
+        "index": 41,
+        "name": "isPreviewing",
+        "type": "Sb"
+      },
+      {
+        "index": 42,
+        "name": "isSharedListeningLoading",
+        "type": "Sb"
+      },
+      {
+        "index": 43,
+        "name": "sharedListeningParticipantsCount",
+        "type": "Si"
+      },
+      {
+        "index": 44,
+        "name": "$__lazy_storage_$_loadingString",
+        "type": "SSSg"
+      },
+      {
+        "index": 45,
+        "name": "$__lazy_storage_$_nowPlayingHeadlineStackView",
+        "type": "So11UIStackViewCSg"
+      }
+    ],
+    "sources": [
+      "MA-MiniPlayerView.txt"
+    ]
+  },
+  "MusicApplication.NavigationController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "onWillShowViewController",
+        "type": "ySo16UIViewControllerCcSg"
+      },
+      {
+        "index": 1,
+        "name": "onDidShowViewController",
+        "type": "ySo16UIViewControllerCcSg"
+      },
+      {
+        "index": 2,
+        "name": "popoverMenuController",
+        "type": "16MusicApplication25PopoverMenuControllerType_pSg"
+      },
+      {
+        "index": 3,
+        "name": "adaptivePresentationStyle",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 4,
+        "name": "isPoppingViewController",
+        "type": "Sb"
+      },
+      {
+        "index": 5,
+        "name": "overrideNavigationBarPropertiesTopViewController",
+        "type": "So16UIViewControllerCSg"
+      },
+      {
+        "index": 6,
+        "name": "existingTopPalette",
+        "type": "So30_UINavigationControllerPaletteCSg"
+      },
+      {
+        "index": 7,
+        "name": "isHandlingNavigationTransition",
+        "type": "Sb"
+      },
+      {
+        "index": 8,
+        "name": "isHostingExtaStatusBar",
+        "type": "Sb"
+      },
+      {
+        "index": 9,
+        "name": "statusBarEffectViewAnimationCoordinator",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 10,
+        "name": "$__lazy_storage_$_statusBarEffectView",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-NavigationController.txt"
+    ]
+  },
+  "MusicApplication.NowPlayingContentView": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "mode",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "videoContext",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "artworkDidChangeHandler",
+        "type": "yycSg"
+      },
+      {
+        "index": 3,
+        "name": "artworkCachingReference",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 4,
+        "name": "artworkComponent",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 5,
+        "name": "lastSeenBounds",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 6,
+        "name": "playerPath",
+        "type": "So13MPCPlayerPathCSg"
+      },
+      {
+        "index": 7,
+        "name": "deferArtworkUpdates",
+        "type": "Sb"
+      }
+    ],
+    "sources": [
+      "MA-NowPlayingContentView.txt"
+    ]
+  },
+  "MusicApplication.NowPlayingContentViewDonationItem": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "resignsActiveVideoContainer",
+        "type": "Sb"
+      }
+    ],
+    "sources": [
+      "MA-NowPlayingContentView.txt"
+    ]
+  },
+  "MusicApplication.NowPlayingTransportButton": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "packageView",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "currentStates",
+        "type": "SaySSG"
+      },
+      {
+        "index": 2,
+        "name": "stateAnimationTimer",
+        "type": "So7NSTimerCSg"
+      },
+      {
+        "index": 3,
+        "name": "package",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 4,
+        "name": "highlightIndicatorView",
+        "type": "So6UIViewCSg"
+      },
+      {
+        "index": 5,
+        "name": "highlightIndicatorWidthConstraint",
+        "type": "So18NSLayoutConstraintCSg"
+      },
+      {
+        "index": 6,
+        "name": "highlightIndicatorWidth",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-NowPlayingTransport.txt"
+    ]
+  },
+  "MusicApplication.NowPlayingTransportControlStackView": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "useBoundsAsPointInside",
+        "type": "Sb"
+      }
+    ],
+    "sources": [
+      "MA-NowPlayingTransport.txt"
+    ]
+  },
+  "MusicApplication.NowPlayingVibrancyEffectView": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "vibrancyState",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "contentItemView",
+        "type": "So6UIViewC"
+      },
+      {
+        "index": 2,
+        "name": "vibrancyStyle",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-NowPlayingVibrancy.txt"
+    ]
+  },
+  "MusicApplication.PaletteContainerView": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "contentInsets",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "separatorConfiguration",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "backgroundView",
+        "type": "So18UIVisualEffectViewC"
+      },
+      {
+        "index": 3,
+        "name": "containerView",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 4,
+        "name": "$__lazy_storage_$_separator",
+        "type": "So18UIVisualEffectViewCSg"
+      },
+      {
+        "index": 5,
+        "name": "gradientLayer",
+        "type": "So15CAGradientLayerCSg"
+      },
+      {
+        "index": 6,
+        "name": "destOverLayer",
+        "type": "So15CABackdropLayerCSg"
+      }
+    ],
+    "sources": [
+      "MA-PaletteContainerView.txt"
+    ]
+  },
+  "MusicApplication.PaletteTabBarController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "paletteView",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "isRebuildingTabBarItems",
+        "type": "Sb"
+      },
+      {
+        "index": 2,
+        "name": "appearanceState",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 3,
+        "name": "accessoryView",
+        "type": "So6UIViewC"
+      },
+      {
+        "index": 4,
+        "name": "paletteViewControllers",
+        "type": "Say <symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-TabBarController.txt"
+    ]
+  },
+  "MusicApplication.SearchLandingCell": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "title",
+        "type": "SS"
+      },
+      {
+        "index": 1,
+        "name": "lockupImageArtworkCatalog",
+        "type": "So16MPArtworkCatalogCSg"
+      },
+      {
+        "index": 2,
+        "name": "layoutStyle",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 3,
+        "name": "containerStyle",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 4,
+        "name": "artworkCachingReference",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 5,
+        "name": "artworkComponent",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 6,
+        "name": "titleLabel",
+        "type": "So7UILabelC"
+      }
+    ],
+    "sources": [
+      "MA-SearchLanding.txt"
+    ]
+  },
+  "MusicApplication.SearchLandingViewController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "$__lazy_storage_$_accountButton",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "availabilityBinding",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "landingDrivenViewController",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-SearchLanding.txt"
+    ]
+  },
+  "MusicApplication.TabBarController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "jsApplication",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "pendingJSSingletonAccessBlocks",
+        "type": "Sayy <symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "_pendingTabIdentifiers",
+        "type": "Say <symbolic>"
+      },
+      {
+        "index": 3,
+        "name": "_tabIdentifiers",
+        "type": "Say <symbolic>"
+      },
+      {
+        "index": 4,
+        "name": "miniPlayerPaletteInteraction",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 5,
+        "name": "miniPlayerViewController",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 6,
+        "name": "tabsViewController",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 7,
+        "name": "bindings",
+        "type": "Say <symbolic>"
+      },
+      {
+        "index": 8,
+        "name": "canLoadTabRootViewControllers",
+        "type": "Sb"
+      },
+      {
+        "index": 9,
+        "name": "forceReloadTabViewControllers",
+        "type": "Sb"
+      }
+    ],
+    "sources": [
+      "MA-TabBarController.txt"
+    ]
+  },
+  "MusicApplication.TraitNavigationController": {
+    "kind": "class",
+    "fields": [],
+    "sources": [
+      "MA-NavigationController.txt"
+    ]
+  },
+  "MusicApplication.UberNavigationTitleView": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "navigationController",
+        "type": "So22UINavigationControllerCSgXw"
+      },
+      {
+        "index": 1,
+        "name": "_backButtonStyle",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "splitViewDisplayMode",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 3,
+        "name": "$__lazy_storage_$_customBackButton",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-UberNavigationTitleView.txt"
+    ]
+  },
+  "MusicCore.LibraryMenu": {
+    "kind": "struct",
+    "fields": [
+      {
+        "index": 0,
+        "name": "identifiers",
+        "type": "Say <symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "defaults",
+        "type": "So14NSUserDefaultsC"
+      },
+      {
+        "index": 2,
+        "name": "revision",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-LibraryMenu.txt"
+    ]
+  },
+  "MusicCoreUI.SyncedLyricsLineView": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "specs",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "line",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "isScrolling",
+        "type": "Sb"
+      },
+      {
+        "index": 3,
+        "name": "alignment",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 4,
+        "name": "containerView",
+        "type": "So6UIViewC"
+      },
+      {
+        "index": 5,
+        "name": "contentView",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 6,
+        "name": "$__lazy_storage_$_backgroundView",
+        "type": "So6UIViewCSg"
+      },
+      {
+        "index": 7,
+        "name": "blurFilter",
+        "type": "So8CAFilterC"
+      },
+      {
+        "index": 8,
+        "name": "blurRadius",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 9,
+        "name": "previousBlurRadius",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-SyncedLyrics.txt"
+    ]
+  },
+  "MusicCoreUI.SyncedLyricsManager": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "lyrics",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "configuration",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "delegate",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 3,
+        "name": "selectedLines",
+        "type": "Say <symbolic>"
+      },
+      {
+        "index": 4,
+        "name": "elapsedTimeProvider",
+        "type": "SdycSg"
+      },
+      {
+        "index": 5,
+        "name": "nextLine",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-SyncedLyrics.txt"
+    ]
+  },
+  "MusicCoreUI.SyncedLyricsSharingTransitionInfo": {
+    "kind": "struct",
+    "fields": [
+      {
+        "index": 0,
+        "name": "line",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "initialView",
+        "type": "So6UIViewC"
+      },
+      {
+        "index": 2,
+        "name": "alignment",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 3,
+        "name": "frame",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 4,
+        "name": "isSelected",
+        "type": "Sb"
+      },
+      {
+        "index": 5,
+        "name": "transform",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 6,
+        "name": "transitionWillBeginHandler",
+        "type": "yyc"
+      },
+      {
+        "index": 7,
+        "name": "transitionCompletionHandler",
+        "type": "yyc"
+      }
+    ],
+    "sources": [
+      "MA-SyncedLyrics.txt"
+    ]
+  },
+  "MusicCoreUI.SyncedLyricsViewController": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "isFullScreen",
+        "type": "Sb"
+      },
+      {
+        "index": 1,
+        "name": "bottomTapAreaHeight",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "containerHeight",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 3,
+        "name": "specs",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 4,
+        "name": "delegate",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 5,
+        "name": "mode",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 6,
+        "name": "lyrics",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 7,
+        "name": "timingProvider",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 8,
+        "name": "shareHandler",
+        "type": "y <symbolic>"
+      },
+      {
+        "index": 9,
+        "name": "scrollView",
+        "type": "So12UIScrollViewC"
+      },
+      {
+        "index": 10,
+        "name": "manager",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 11,
+        "name": "displayLink",
+        "type": "So13CADisplayLinkCSg"
+      },
+      {
+        "index": 12,
+        "name": "lineViews",
+        "type": "Say <symbolic>"
+      },
+      {
+        "index": 13,
+        "name": "selectedLineViews",
+        "type": "Say <symbolic>"
+      },
+      {
+        "index": 14,
+        "name": "blurredLineViews",
+        "type": "Shy <symbolic>"
+      },
+      {
+        "index": 15,
+        "name": "instrumentalBreakVisibleView",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 16,
+        "name": "tapFeedbackGenerator",
+        "type": "So28UISelectionFeedbackGeneratorC"
+      },
+      {
+        "index": 17,
+        "name": "currentAnimators",
+        "type": "SaySo22UIViewPropertyAnimatorCG"
+      },
+      {
+        "index": 18,
+        "name": "isAnimating",
+        "type": "Sb"
+      },
+      {
+        "index": 19,
+        "name": "needsTapHandling",
+        "type": "Sb"
+      },
+      {
+        "index": 20,
+        "name": "isBackgrounded",
+        "type": "Sb"
+      },
+      {
+        "index": 21,
+        "name": "previousBounds",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 22,
+        "name": "allowAnimateToNextLineAfterScrollTimer",
+        "type": "So7NSTimerCSg"
+      },
+      {
+        "index": 23,
+        "name": "allowAnimateToNextLineAfterScroll",
+        "type": "Sb"
+      }
+    ],
+    "sources": [
+      "MA-SyncedLyrics.txt"
+    ]
+  },
+  "MusicJSCore.JSListenNowMusicSiriUpsell": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "_title",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "_subtitle",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "_buttonTitle",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-JSListenNow.txt"
+    ]
+  },
+  "MusicJSCore.JSSearchLandingComponentController": {
+    "kind": "class",
+    "fields": [],
+    "sources": [
+      "MA-SearchLanding.txt"
+    ]
+  },
+  "MusicJSCore.JSSearchLandingItem": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "titleText",
+        "type": "SS"
+      },
+      {
+        "index": 1,
+        "name": "displayStyle",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "isFeatured",
+        "type": "Sb"
+      }
+    ],
+    "sources": [
+      "MA-SearchLanding.txt"
+    ]
+  },
+  "MusicJSCore.JSSearchLandingUpsell": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "_marketingID",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "_headline",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 2,
+        "name": "_subtitle",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 3,
+        "name": "_primaryButtonTitle",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 4,
+        "name": "_accessoryButtonTitle",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 5,
+        "name": "_tallArtwork",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 6,
+        "name": "_wideArtwork",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 7,
+        "name": "_tallVideoArtwork",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 8,
+        "name": "_wideVideoArtwork",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 9,
+        "name": "_shouldDisplayCloseButton",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-SearchLanding.txt"
+    ]
+  },
+  "MusicJSCore.JSSearchLandingViewModel": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "delegate",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "title",
+        "type": "SSSg"
+      },
+      {
+        "index": 2,
+        "name": "_items",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-SearchLanding.txt"
+    ]
+  },
+  "MusicJSCore.JSShelf": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "_sections",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "supertitle",
+        "type": "SS"
+      },
+      {
+        "index": 2,
+        "name": "title",
+        "type": "SS"
+      },
+      {
+        "index": 3,
+        "name": "subtitle",
+        "type": "SS"
+      },
+      {
+        "index": 4,
+        "name": "accessoryButtonTitle",
+        "type": "SS"
+      },
+      {
+        "index": 5,
+        "name": "contentArtwork",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 6,
+        "name": "containerDetailLink",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-JSShelf.txt"
+    ]
+  },
+  "MusicJSCore.JSShelfItem": {
+    "kind": "class",
+    "fields": [],
+    "sources": [
+      "MA-JSShelf.txt"
+    ]
+  },
+  "MusicJSCore.JSShelfSection": {
+    "kind": "class",
+    "fields": [
+      {
+        "index": 0,
+        "name": "items",
+        "type": "Say <symbolic>"
+      },
+      {
+        "index": 1,
+        "name": "title",
+        "type": "SS"
+      },
+      {
+        "index": 2,
+        "name": "isFeatured",
+        "type": "Sb"
+      },
+      {
+        "index": 3,
+        "name": "isRankedList",
+        "type": "Sb"
+      },
+      {
+        "index": 4,
+        "name": "height",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 5,
+        "name": "uniformCellType",
+        "type": "<symbolic>"
+      },
+      {
+        "index": 6,
+        "name": "delegate",
+        "type": "<symbolic>"
+      }
+    ],
+    "sources": [
+      "MA-JSShelf.txt"
+    ]
+  }
+}

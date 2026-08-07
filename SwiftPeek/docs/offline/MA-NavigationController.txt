@@ -1,0 +1,28 @@
+class    .CommerceNavigationController  [desc 0xb29d90]
+    [ 0] dismissCallback : y <symbolic>
+class    .SplayedLayoutContainer.DummyNavigationController  [desc 0xb3248c]
+    [ 0] rootViewController : x
+class    MusicApplication.NavigationController  [desc 0xb36d68]
+    [ 0] onWillShowViewController : ySo16UIViewControllerCcSg
+    [ 1] onDidShowViewController : ySo16UIViewControllerCcSg
+    [ 2] popoverMenuController : 16MusicApplication25PopoverMenuControllerType_pSg
+    [ 3] adaptivePresentationStyle : <symbolic>
+    [ 4] isPoppingViewController : Sb
+    [ 5] overrideNavigationBarPropertiesTopViewController : So16UIViewControllerCSg
+    [ 6] existingTopPalette : So30_UINavigationControllerPaletteCSg
+    [ 7] isHandlingNavigationTransition : Sb
+    [ 8] isHostingExtaStatusBar : Sb
+    [ 9] statusBarEffectViewAnimationCoordinator : <symbolic>
+    [10] $__lazy_storage_$_statusBarEffectView : <symbolic>
+class    .PrivacyOnboardingNavigationController  [desc 0xb43268]
+    [ 0] dismissCallback : y <symbolic>
+class    MusicApplication.TraitNavigationController  [desc 0xb536cc]
+class    MusicApplication.MediaPickerNavigationController  [desc 0xb5b240]
+    [ 0] mediaPickerDelegate : <symbolic>
+    [ 1] mediaPickerConfiguration : So26MPMediaPickerConfigurationC
+    [ 2] prompt : <symbolic>
+    [ 3] $__lazy_storage_$_cancelBarButtonItem : So15UIBarButtonItemCSg
+    [ 4] $__lazy_storage_$_doneBarButtonItem : So15UIBarButtonItemCSg
+    [ 5] selectedItems : SaySo13MPModelObjectCG
+    [ 6] selectedPlaybackIntentDescriptor : <symbolic>
+    [ 7] $__lazy_storage_$_spinnerBarButtonItem : So15UIBarButtonItemCSg

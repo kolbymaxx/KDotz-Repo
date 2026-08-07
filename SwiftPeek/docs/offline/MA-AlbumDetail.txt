@@ -1,0 +1,16 @@
+class    MusicApplication.AlbumDetailSongsViewController  [desc 0xb3dcf0]
+    [ 0] canCompleteAlbum : Sb
+    [ 1] recordLabels : SaySo18MPModelRecordLabelCGSg
+    [ 2] _awaitingModelResponse : So15MPModelResponseCyyXlyXlGSg
+    [ 3] isClassicalAlbum : Sb
+    [ 4] $__lazy_storage_$_songPopularityBackupCache : SDy <symbolic>
+    [ 5] currentAlbum : So12MPModelAlbumCSg
+    [ 6] previewPlayabilityStatus : <symbolic>
+    [ 7] albumDetailActions : <symbolic>
+struct   .AlbumDetailActions  [desc 0xb3e0a4]  fovo=2
+    [ 0] rawValue : Si
+class    MusicApplication.AlbumDetailViewController  [desc 0xb4bb1c]
+    [ 0] hasAppearedOnce : Sb
+    [ 1] $__lazy_storage_$_openInClassicalButton : <symbolic>
+    [ 2] $__lazy_storage_$_openInClassicalBarButtonItem : So15UIBarButtonItemCSg
+    [ 3] canOpenInAppleClassical : Sb

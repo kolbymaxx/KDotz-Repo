@@ -1,0 +1,43 @@
+class    MusicApplication.JSDrivenViewController  [desc 0xb22c98]
+    [ 0] componentController : <symbolic>
+    [ 1] contentViewController : So16UIViewControllerC
+    [ 2] forceShowingLargeFixedTitleHeader : Sb
+    [ 3] canShowOfflineMessage : Sb
+    [ 4] prefersCancelButton : Sb
+    [ 5] pageHeaderContentViewController : <symbolic>
+    [ 6] promotionalParallaxViewController : <symbolic>
+    [ 7] ppt_isContentReady : Sb
+    [ 8] ppt_onContentIsReady : yycSg
+    [ 9] appearanceState : <symbolic>
+    [10] contentViewControllerAppearanceState : <symbolic>
+    [11] hasInvokedDidLoadPreemptively : Sb
+    [12] lifecycleEventQueue : Say <symbolic>
+    [13] presentationSegue : <symbolic>
+    [14] pushSegue : <symbolic>
+    [15] $__lazy_storage_$_offlineMessageViewController : <symbolic>
+    [16] networkConnectivityObserver : <symbolic>
+    [17] isShowingOfflineMessage : Sb
+    [18] viewModelRevision : Si
+    [19] isPreparingContentViewController : Sb
+    [20] contentViewControllerPreparationCompletionHandlers : SayyycG
+    [21] shouldIgnorePromotionalProperties : Sb
+    [22] isArtistPromotionalLayoutStyle : Sb
+    [23] promotionalLayoutStyleDidChange : Sb
+    [24] wantsPromotionalParallaxViewController : Sb
+    [25] headerItemRevisionID : Si
+    [26] needsContentOffsetResetOnViewDidAppear : Sb
+    [27] artistRadioStationController : <symbolic>
+    [28] $__lazy_storage_$_openInClassicalButton : <symbolic>
+    [29] browseContentItem : So13MPModelObjectCSg
+    [30] $__lazy_storage_$_contextualActionsButton : <symbolic>
+    [31] $__lazy_storage_$_favoritingButton : <symbolic>
+    [32] cancelBarButtonItem : So15UIBarButtonItemCSg
+    [33] contextBarButtonItem : So15UIBarButtonItemCSg
+    [34] favoritingBarButtonItem : So15UIBarButtonItemCSg
+    [35] trailingBarButtonItemMap : SDy <symbolic>
+    [36] previousLeftBarButtonItems : SaySo15UIBarButtonItemCG
+    [37] previousRightBarButtonItems : SaySo15UIBarButtonItemCG
+    [38] contentNavigationItemBinding : <symbolic>
+    [39] metricsPageProperties : <symbolic>
+enum     .JSDrivenRequestedProperty  [desc 0xb38ddc]
+    [ 0] socialBadging : <none>
