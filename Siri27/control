@@ -1,9 +1,9 @@
 Package: com.kolby.siri27
 Name: Siri27
 Depends: mobilesubstrate, preferenceloader
-Version: 1.40.5
+Version: 1.40.6
 Architecture: iphoneos-arm64
-Description: iOS 27-style liquid glass Siri orb — 1.40.3 wave size/voice feel with de-whitened vivid rainbow. rootless + roothide (Relaxin'), iOS 14–17.3. Replaces FloatingSiri.
+Description: iOS 27-style liquid glass Siri orb — wide glowing rainbow band, single pop on roothide. rootless + roothide (Relaxin'), iOS 14–17.3. Replaces FloatingSiri.
 Maintainer: Kolby
 Author: Kolby
 Section: Tweaks
