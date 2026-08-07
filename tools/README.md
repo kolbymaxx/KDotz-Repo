@@ -9,33 +9,11 @@ Parses a 64-bit Mach-O and dumps Swift type / field names from
 cc -O2 -o tools/swiftmd tools/swiftmd.c
 python3 tools/mkfixture.py && ./tools/swiftmd /tmp/fixture.macho
 # expect: TestKit.MyView with title : Swift.String, tint : SwiftUI.Color
-
-# Against a cache-extracted SwiftUI:
-ipsw dyld extract /path/to/dyld_shared_cache_arm64e \
-  /System/Library/Frameworks/SwiftUI.framework/SwiftUI \
-  --output /tmp/swiftui-out --force
-./tools/swiftmd /tmp/swiftui-out/SwiftUI
-./tools/swiftmd /tmp/swiftui-out/SwiftUI --filter Hosting
 ```
 
 **Relative pointer trap:** `RelativeDirectPointer` (names, field records) uses
 the full int32 — do **not** mask the low bit. `RelativeIndirectablePointer`
-(parent refs) uses bit 0 as an indirect flag. Conflating them yields empty
-strings that look like stripped metadata.
-
-Cache-extracted dylibs often leave mangled *type* strings as `<unresolved>`
-when the relative pointer lands outside the file. Field *names* still resolve;
-a high unresolved rate means lossy extraction, not missing metadata.
-
-## Drift sweep
-
-```bash
-# Requires: ipsw, apfs-fuse (IPSW_APFS_FUSE_PATH), tools/swiftmd
-./tools/drift-sweep.sh /tmp/swiftpeek-dsc
-```
-
-Downloads remote dyld caches for iPhone13,1 (17.0–17.3.1) and iPhone10,6
-(16.7.10), extracts SwiftUI, runs `swiftmd`, writes per-version summaries.
+(parent refs) uses bit 0 as an indirect flag.
 
 ## Offline Music fields
 
@@ -43,25 +21,31 @@ Live FOVO on Music crashes. Dump field names from the IPSW instead:
 
 ```bash
 ./tools/offline-music-fields.sh /tmp/sp-offline-music
-# → MusicApplication-summary.txt + MA-NowPlayingContentView.txt …
 ```
 
 See [`SwiftPeek/docs/OFFLINE_MUSIC_FIELDS.md`](../SwiftPeek/docs/OFFLINE_MUSIC_FIELDS.md).
 
-## Phase 2 read API (`tools/swiftpeek`)
+## Host API (`tools/swiftpeek`, v0.6.0)
 
 ```bash
 cd ~/KDotz-Repo
+
+# Dump workflow
 PYTHONPATH=tools python3 -m swiftpeek annotate ~/Downloads/Music_….json -o ~/Downloads/annotated.json
 PYTHONPATH=tools python3 -m swiftpeek summary ~/Downloads/annotated.json
-PYTHONPATH=tools python3 -m swiftpeek fields ~/Downloads/annotated.json MiniPlayer
-PYTHONPATH=tools python3 -m swiftpeek find ~/Downloads/annotated.json artwork
+PYTHONPATH=tools python3 -m swiftpeek targets ~/Downloads/annotated.json
+PYTHONPATH=tools python3 -m swiftpeek scaffold ~/Downloads/annotated.json \
+  -o ~/Tweaks/MyMusicTweak --name MyMusicTweak --filter MiniPlayer
+
+# Catalog only (no dump)
+PYTHONPATH=tools python3 -m swiftpeek catalog fields MiniPlayer
+PYTHONPATH=tools python3 -m swiftpeek catalog find artwork
+
+# Tests (Linux-friendly)
+PYTHONPATH=tools python3 -m unittest tools.swiftpeek.test_api tools.swiftpeek.test_scaffold -v
+PYTHONPATH=tools python3 -m swiftpeek summary SwiftPeek/docs/fixtures/Music_sample.json
 ```
 
 Legacy wrappers `annotate-dump.py` / `peek-query.py` still work.
-See [`SwiftPeek/docs/READ_API.md`](../SwiftPeek/docs/READ_API.md).
-
-```bash
-cd tools && python3 -m unittest swiftpeek.test_api -v
-```
-
+See [`SwiftPeek/docs/READ_API.md`](../SwiftPeek/docs/READ_API.md) and
+[`SwiftPeek/docs/TWEAK_WORKFLOW.md`](../SwiftPeek/docs/TWEAK_WORKFLOW.md).

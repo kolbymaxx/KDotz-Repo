@@ -2,6 +2,17 @@
 
 Turn a **0.3.6** Music dump into a starter Theos project without live FOVO.
 
+## Zero-dump exploration (catalog only)
+
+Before pulling a dump, browse offline layouts:
+
+```bash
+cd ~/KDotz-Repo
+PYTHONPATH=tools python3 -m swiftpeek catalog types MiniPlayer
+PYTHONPATH=tools python3 -m swiftpeek catalog fields MiniPlayer
+PYTHONPATH=tools python3 -m swiftpeek catalog find artwork
+```
+
 ## Device (once)
 
 1. SwiftPeek prefs: Enable + Scan Windows + Dump Fields **on**; Field Meta **off**; Hooks **off**.
@@ -15,47 +26,60 @@ cd ~/KDotz-Repo
 git pull origin main
 
 # Annotate (optional — targets/scaffold auto-annotate)
-PYTHONPATH=tools python3 -m swiftpeek annotate ~/Downloads/Music_….json \
+PYTHONPATH=tools python3 -m swiftpeek annotate ~/Downloads/Music_2026-….json \
   -o ~/Downloads/annotated.json
 
 # Rank what is worth hooking
 PYTHONPATH=tools python3 -m swiftpeek targets ~/Downloads/annotated.json
 
-# Emit a Music-only Theos skeleton
+# Emit a Music-only Theos skeleton (real @try valueForKey: stubs)
 PYTHONPATH=tools python3 -m swiftpeek scaffold ~/Downloads/annotated.json \
   -o ~/Tweaks/MyMusicTweak \
   --name MyMusicTweak \
   --filter MiniPlayer
 ```
 
+Use your real dump filename (not `….json`).
+
 ## What you get
 
 | File | Purpose |
 |------|---------|
-| `TARGETS.md` | Ranked types + screen strings + interesting offline fields |
-| `src/Tweak.x` | One `%hook UIViewController` + `class_getName` filters (Music27 pattern) |
+| `TARGETS.md` | Ranked types + screen strings + KVC candidate fields |
+| `src/Tweak.x` | `%hook UIViewController` and/or `%hook UIView` + class-name filters + `@try`/`valueForKey:` stubs |
 | `Makefile` / `control` / `*.plist` | Rootless Theos, Music filter only |
 
 ## Build & install
 
+Needs **Theos + an iPhoneOS SDK** on the Mac (same as Music27).
+
 ```bash
+# One-time (if ~/theos is missing)
+git clone --recursive https://github.com/theos/theos.git ~/theos
+# Put an iPhoneOS*.sdk under ~/theos/sdks/
+
+export THEOS=~/theos
 cd ~/Tweaks/MyMusicTweak
 make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
-# install deb on Dopamine / iPhone X, force-quit Music
 ```
+
+If `make` says `common.mk: No such file`, `THEOS` is unset or Theos is not at that path.
+
+Edit Logos with `open -t src/Tweak.x` (or VS Code) — macOS has no default app for `.x`.
 
 ## Developing the tweak
 
 1. Pick a high-score type from `TARGETS.md`.
-2. Fill the TODO in `Tweak.x` — prefer `valueForKey:` with offline field names from:
+2. Run the generated KVC stubs — they already probe offline field names.
+3. Expand with:
 
    ```bash
    PYTHONPATH=tools python3 -m swiftpeek fields ~/Downloads/annotated.json MiniPlayer
-   PYTHONPATH=tools python3 -m swiftpeek find ~/Downloads/annotated.json artwork
+   PYTHONPATH=tools python3 -m swiftpeek catalog find artwork
    ```
 
-3. Do **not** enable SwiftPeek Dump Field Meta on device.
-4. Keep the filter Music-only (`com.apple.Music`).
+4. Do **not** enable SwiftPeek Dump Field Meta on device.
+5. Keep the filter Music-only (`com.apple.Music`).
 
 ## Safety (do not regress)
 

@@ -9,6 +9,9 @@
   python3 -m swiftpeek find annotated.json artwork
   python3 -m swiftpeek targets annotated.json
   python3 -m swiftpeek scaffold annotated.json -o ~/Tweaks/MyMusicTweak --name MyMusicTweak
+  python3 -m swiftpeek catalog types MiniPlayer
+  python3 -m swiftpeek catalog fields MiniPlayer
+  python3 -m swiftpeek catalog find artwork
 """
 from __future__ import annotations
 
@@ -161,6 +164,42 @@ def _cmd_scaffold(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_catalog_types(args: argparse.Namespace) -> int:
+    cat = FieldCatalog(args.catalog)
+    rows = cat.search_types(args.needle, limit=args.limit)
+    if not rows:
+        print(f"no catalog types matching {args.needle!r}", file=sys.stderr)
+        return 1
+    for row in rows:
+        print(f"{row['field_count']:3d}f  {row['type']}")
+    return 0
+
+
+def _cmd_catalog_fields(args: argparse.Namespace) -> int:
+    cat = FieldCatalog(args.catalog)
+    rows = cat.search_types(args.needle, limit=args.limit)
+    if not rows:
+        print(f"no catalog types matching {args.needle!r}", file=sys.stderr)
+        return 1
+    for row in rows:
+        print(f"## {row['type']}  ({row['field_count']} fields)")
+        for f in row["fields"]:
+            print(f"  [{f.get('index')}] {f.get('name')} : {f.get('type')}")
+        print()
+    return 0
+
+
+def _cmd_catalog_find(args: argparse.Namespace) -> int:
+    cat = FieldCatalog(args.catalog)
+    hits = cat.find_fields(args.needle, limit=args.limit)
+    if not hits:
+        print(f"no catalog fields matching {args.needle!r}", file=sys.stderr)
+        return 1
+    for h in hits:
+        print(f"{h['type']}.{h['name']} : {h['type_hint']}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="swiftpeek", description=__doc__)
     ap.add_argument(
@@ -186,12 +225,12 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("dump", type=Path)
         p.set_defaults(func=fn)
 
-    p = sub.add_parser("fields", help="show offline fields for type substring")
+    p = sub.add_parser("fields", help="show offline fields for dump type substring")
     p.add_argument("dump", type=Path)
     p.add_argument("needle")
     p.set_defaults(func=_cmd_fields)
 
-    p = sub.add_parser("find", help="search field names / screen strings")
+    p = sub.add_parser("find", help="search dump field names / screen strings")
     p.add_argument("dump", type=Path)
     p.add_argument("needle")
     p.set_defaults(func=_cmd_find)
@@ -224,6 +263,24 @@ def main(argv: list[str] | None = None) -> int:
     )
     p.add_argument("-n", "--limit", type=int, default=12, help="targets listed in TARGETS.md")
     p.set_defaults(func=_cmd_scaffold)
+
+    cat = sub.add_parser("catalog", help="browse offline field catalog (no dump needed)")
+    cat_sub = cat.add_subparsers(dest="catalog_cmd", required=True)
+
+    p = cat_sub.add_parser("types", help="list catalog types matching substring")
+    p.add_argument("needle")
+    p.add_argument("-n", "--limit", type=int, default=40)
+    p.set_defaults(func=_cmd_catalog_types)
+
+    p = cat_sub.add_parser("fields", help="show fields for matching catalog types")
+    p.add_argument("needle")
+    p.add_argument("-n", "--limit", type=int, default=10)
+    p.set_defaults(func=_cmd_catalog_fields)
+
+    p = cat_sub.add_parser("find", help="search field names across the catalog")
+    p.add_argument("needle")
+    p.add_argument("-n", "--limit", type=int, default=80)
+    p.set_defaults(func=_cmd_catalog_find)
 
     args = ap.parse_args(argv)
     return args.func(args)
