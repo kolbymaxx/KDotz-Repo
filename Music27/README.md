@@ -34,7 +34,8 @@ Settings live under **Settings → Music27**.
 | **1.1.13** | Soft-hide stock chrome + stronger glass, but float pad still capped (~18pt) — still looked glued on iPhone X |
 | **1.1.14** | Real float + faded MiniPlayerViewController.view → black/crash regression on iPhone X |
 | **1.1.15** | **Never** fade MiniPlayer. Soft-hide UITabBar only. Keep `safeBottom+12` float + overlay window. One-time force dock OFF for recovery |
-| **1.1.16** | Soft-hide Music `tabsViewController` chrome (SwiftPeek); force expanded dual-pill; fix tab button layout so 5 glass tabs actually render |
+| **1.1.16** | Soft-hide Music `tabsViewController` chrome — still left stock tabs visible on device for many users |
+| **1.1.17** | **Cover, don’t mutate:** overlay mask over stock chrome + dual glass pills on top. Never alpha-hide Music views |
 
 Prefs are read preferring `/var/jb/.../com.music27.tweak.plist` (Dopamine), then jbroot (RootHide), then rootful.
 

@@ -10,7 +10,7 @@
 			<key>label</key>
 			<string>Music27</string>
 			<key>footerText</key>
-			<string>1.1.16: Dual-pill floating dock (mini + 5 tabs). Soft-hides Music's tabsViewController chrome (not just UITabBar). Never fades MiniPlayer. Library must stay tappable.</string>
+			<string>1.1.17: Covers stock tab/mini with an overlay mask (does not fade Music views), then floats dual glass pills on top. Safer than soft-hide. Confirm footer says 1.1.17 after install.</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -94,7 +94,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>Music27 1.1.16 — dual-pill glass dock. No APT publish until verified on iPhone X.</string>
+			<string>Music27 1.1.17 — cover + float dock. No APT publish until verified on iPhone X.</string>
 		</dict>
 	</array>
 	<key>title</key>
