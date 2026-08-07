@@ -61,9 +61,9 @@
 
 + (void)addSoftShadowToHost:(UIView *)host {
     host.layer.shadowColor = [UIColor blackColor].CGColor;
-    host.layer.shadowOpacity = 0.18;
-    host.layer.shadowRadius = 18.0;
-    host.layer.shadowOffset = CGSizeMake(0, 6);
+    host.layer.shadowOpacity = 0.28;
+    host.layer.shadowRadius = 24.0;
+    host.layer.shadowOffset = CGSizeMake(0, 10);
     host.layer.masksToBounds = NO;
 }
 

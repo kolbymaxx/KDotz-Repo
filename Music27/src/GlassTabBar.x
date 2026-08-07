@@ -9,13 +9,15 @@
 // Floating Liquid Glass dock for Music.
 //
 // 1.1.12:
-// - 1.1.11 still added the dock as a subview of Music's key UIWindow.
-//   On iPhone X / 16.7 that can blank SwiftUI Library hosts and steal touches
-//   even with pill hitTest — UIVisualEffectView sibling of the root VC is unsafe.
-// - Host the dock in a *dedicated* passthrough UIWindow instead. Music's window
+// - Host the dock in a *dedicated* passthrough UIWindow. Music's window
 //   hierarchy is never mutated. Touches outside glass pills fall through.
-// - Remove the global UIScrollView contentOffset hook (too invasive for Library).
 // - Still never touch additionalSafeAreaInsets / MiniPlayer / Library hosts.
+//
+// 1.1.13:
+// - 1.1.12 crushed bottomPad to ~7–8pt (MIN(safeBottom*0.22, 10)), so the dock
+//   sat on the home indicator and read as a glued stock tab bar.
+// - Float with bottomPad = safeBottom + 12, soft-hide stock tabBar via alpha
+//   only (never hidden=YES / safe-area mutation).
 
 static const NSInteger kM27DockTag = 0x4D323744; // 'M27D'
 static const void *kM27DockControllerKey = &kM27DockControllerKey;
@@ -274,6 +276,18 @@ static UITabBarController *M27MusicTabBarController(void) {
     return nil;
 }
 
+// Visual-only stock tab bar hide. Never set hidden=YES or mutate safe-area —
+// those paths blanked Library in earlier builds.
+static void M27SoftHideStockTabBar(UITabBarController *tbc, BOOL hide) {
+    if (!tbc) return;
+    UITabBar *bar = tbc.tabBar;
+    if (!bar) return;
+    bar.alpha = hide ? 0.0 : 1.0;
+    bar.userInteractionEnabled = !hide;
+    // Keep hidden=NO so UIKit still reserves tab-bar layout space.
+    bar.hidden = NO;
+}
+
 static void M27SweepLegacyDockSubviews(void) {
     // Remove any dock that older builds left on Music's own windows / tbc.view.
     for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
@@ -291,9 +305,12 @@ static void M27SweepLegacyDockSubviews(void) {
             }
             if ([root isKindOfClass:UITabBarController.class]) {
                 UITabBarController *tbc = (UITabBarController *)root;
-                tbc.tabBar.alpha = 1.0;
-                tbc.tabBar.userInteractionEnabled = YES;
-                tbc.tabBar.hidden = NO;
+                // Don't flash the stock bar back if our overlay dock is live.
+                M27FloatingDock *live = objc_getAssociatedObject(tbc, kM27DockViewKey);
+                M27DockOverlayWindow *overlay = objc_getAssociatedObject(tbc, kM27DockWindowKey);
+                if (!(live && overlay && live.superview)) {
+                    M27SoftHideStockTabBar(tbc, NO);
+                }
             }
         }
     }
@@ -359,7 +376,16 @@ static void M27LayoutDock(UITabBarController *tbc, M27FloatingDock *dock) {
         }
 
         CGFloat safeBottom = overlay.safeAreaInsets.bottom;
-        CGFloat bottomPad = safeBottom > 0 ? MIN(safeBottom * 0.22, 10.0) : 8.0;
+        if (safeBottom < 1.0 && tbc.isViewLoaded) {
+            safeBottom = tbc.view.safeAreaInsets.bottom;
+        }
+        if (safeBottom < 1.0) {
+            UIWindow *musicWindow = tbc.view.window;
+            if (musicWindow) safeBottom = musicWindow.safeAreaInsets.bottom;
+        }
+        // Float above the home indicator. 1.1.12 used ~7–8pt and looked glued.
+        static const CGFloat kM27FloatGap = 12.0;
+        CGFloat bottomPad = safeBottom + kM27FloatGap;
         CGFloat y = hostH - height - bottomPad;
         CGRect frame = CGRectMake(0, y, width, height);
         if (!CGRectEqualToRect(dock.frame, frame)) {
@@ -369,6 +395,9 @@ static void M27LayoutDock(UITabBarController *tbc, M27FloatingDock *dock) {
         dock.alpha = 1.0;
         dock.userInteractionEnabled = YES;
         dock.backgroundColor = UIColor.clearColor;
+
+        // Soft-hide stock chrome so the glass pills read as floating.
+        M27SoftHideStockTabBar(tbc, YES);
     } @finally {
         objc_setAssociatedObject(tbc, kM27LayoutGuardKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
@@ -386,6 +415,7 @@ static void M27RemoveDock(UITabBarController *tbc) {
         objc_setAssociatedObject(tbc, kM27DockWindowKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
 
+    M27SoftHideStockTabBar(tbc, NO);
     M27SweepLegacyDockSubviews();
 
     // Tear down any leftover overlay windows from prior installs.
@@ -410,7 +440,8 @@ static void M27InstallDockIfNeeded(UITabBarController *tbc) {
     }
 
     @try {
-        // Never mutate Music's window / tabBar / mini-player / safe-area / content hosts.
+        // Never mutate Music's window / mini-player / safe-area / content hosts.
+        // Stock tabBar is alpha-hidden only (see M27SoftHideStockTabBar).
         M27SweepLegacyDockSubviews();
 
         M27DockController *controller = M27ControllerForTabBarController(tbc);
