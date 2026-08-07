@@ -1,0 +1,14 @@
+class    MusicApplication.JSListenNowMusicSiriUpsellViewController  [desc 0xb2011c]
+    [ 0] musicSiriUpsell : <symbolic>
+    [ 1] environment : <symbolic>
+class    MusicApplication.JSListenNowTabViewController  [desc 0xb65410]
+    [ 0] profilePerson : So19MPModelSocialPersonCSg
+    [ 1] artworkCatalog : So16MPArtworkCatalogCSg
+    [ 2] artworkCachingReference : <symbolic>
+    [ 3] allowedServicesSubscription : <symbolic>
+    [ 4] accountButton : So8UIButtonC
+    [ 5] notificationBadgeView : <symbolic>
+class    MusicJSCore.JSListenNowMusicSiriUpsell  [desc 0xb896ac]
+    [ 0] _title : <symbolic>
+    [ 1] _subtitle : <symbolic>
+    [ 2] _buttonTitle : <symbolic>

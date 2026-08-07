@@ -1,0 +1,15 @@
+class    MusicApplication.LibraryMenuViewController  [desc 0xb3d88c]
+    [ 0] editingDelegate : <symbolic>
+    [ 1] editingMenu : <symbolic>
+    [ 2] pendingSelectedIdentifier : <symbolic>
+    [ 3] downloadManagerObserver : <symbolic>
+    [ 4] prewarmedIdentifierViewController : <symbolic>
+    [ 5] textDrawingCache : <symbolic>
+    [ 6] requestResponseController : <symbolic>
+    [ 7] dataSource : <symbolic>
+    [ 8] allowsAnimatedChanges : Sb
+    [ 9] hasLoadedSuccessfulResponse : Sb
+struct   MusicCore.LibraryMenu  [desc 0xb6fb1c]  fovo=2
+    [ 0] identifiers : Say <symbolic>
+    [ 1] defaults : So14NSUserDefaultsC
+    [ 2] revision : <symbolic>

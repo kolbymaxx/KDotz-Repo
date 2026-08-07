@@ -1,0 +1,6 @@
+__swift5_types  @0xcc1c64  8352 bytes  (2088 descriptors)
+__swift5_fieldmd @0xc98058 140996 bytes
+
+
+2088 descriptors parsed, 2088 printed, 1834 with field records, 0 unresolved slots
+verdict: field names ARE recoverable — proceed to the runtime step

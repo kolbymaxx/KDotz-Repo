@@ -1,17 +1,21 @@
 # SwiftPeek
 
 Read-only SwiftUI / Music view inspector for jailbroken iOS. Recovers live
-type names (M1) and optional field layouts / on-screen strings (M2) without
-mutating the UI.
+type names (M1) and optional on-screen strings (M2) without mutating the UI.
 
-**Status:** Phase 1 — M1 proven on device (scan); M2 field walk opt-in (0.3.0).
-Not published to the APT repo.
+**Status:** Phase 1 — M1 + safe M2 `screen_strings` proven on iPhone X /
+16.7.14. Live FOVO field meta is **unsafe** on Music — leave Dump Field Meta
+**off** (0.3.6). Field **names/layouts** for device-sampled Music types are
+recoverable **offline** via `swiftmd` on `MusicApplication.framework`
+([docs/OFFLINE_MUSIC_FIELDS.md](docs/OFFLINE_MUSIC_FIELDS.md)). Join a live
+dump to those layouts with `python3 tools/annotate-dump.py dump.json`. Not
+published to APT.
 
 ## Targets
 
 | Process | Why |
 |---------|-----|
-| Music | Primary — SwiftUI-heavy, present on 16.7 and 17.3 |
+| Music | Primary prove device — stay here before any other app |
 
 Music only. Prefs default **off**.
 
@@ -23,15 +27,13 @@ Domain: `com.kolby.swiftpeek`
 |-----|---------|---------|
 | `enabled` | `false` | Master kill switch |
 | `scanWindows` | `false` | Walk loaded VC tree → coalesced attach dump |
-| `dumpFields` | `false` | M2: on-screen UILabel/accessibility strings (safe) |
-| `dumpFieldMeta` | `false` | M2: Swift field metadata walk (unsafe on Music VCs) |
-| `installHooks` | `false` | Swizzle hosting layout (unsafe — leave off) |
+| `dumpFields` | `false` | M2: on-screen UILabel/accessibility strings (**safe**) |
+| `dumpFieldMeta` | `false` | Hosting FOVO only; Music 16.7 has no hosts — **leave off** |
+| `installHooks` | `false` | Swizzle hosting layout (**leave off**) |
 | `logAttach` | `true` | NSLog attach lines when enabled |
 
-**Recommended device path:** Enable + Scan Windows. For M2 strings turn on
-Dump Fields only. Leave Dump Field Meta and Install Hooks off unless debugging.
-
-No respring needed for prefs — force-quit Music.
+**Proven device path:** Enable + Scan Windows + Dump Fields. Field Meta off.
+Hooks off. Force-quit Music after pref changes.
 
 ## Dumps
 
@@ -39,8 +41,6 @@ No respring needed for prefs — force-quit Music.
 $jbroot/var/mobile/Library/SwiftPeek/dumps/<process>_<timestamp>.json
 $jbroot/var/mobile/Library/SwiftPeek/status.json
 ```
-
-Darwin notification on write: `com.kolby.swiftpeek/dump`.
 
 ## Build
 
@@ -52,15 +52,8 @@ make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=roothide   # 12 mini / Relaxin
 
 ObjC-only dylib (no Swift). Depends on `mobilesubstrate` at runtime.
 
-## Phase 0 host tool
-
-See [`../tools/`](../tools/) — `swiftmd` parses Mach-O `__swift5_types` /
-`__swift5_fieldmd`.
-
 ## Safety
 
 - Read-only. No view mutation.
-- Fail closed on unexpected metadata.
-- Never force-load `vc.view`; never swizzle UIKit bases.
+- Never FOVO-walk Music UIViewControllers or Music UIViews (known crash).
 - Install Hooks remains opt-in and off by default.
-

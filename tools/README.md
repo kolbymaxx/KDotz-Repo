@@ -36,3 +36,34 @@ a high unresolved rate means lossy extraction, not missing metadata.
 
 Downloads remote dyld caches for iPhone13,1 (17.0–17.3.1) and iPhone10,6
 (16.7.10), extracts SwiftUI, runs `swiftmd`, writes per-version summaries.
+
+## Offline Music fields
+
+Live FOVO on Music crashes. Dump field names from the IPSW instead:
+
+```bash
+./tools/offline-music-fields.sh /tmp/sp-offline-music
+# → MusicApplication-summary.txt + MA-NowPlayingContentView.txt …
+```
+
+See [`SwiftPeek/docs/OFFLINE_MUSIC_FIELDS.md`](../SwiftPeek/docs/OFFLINE_MUSIC_FIELDS.md).
+
+## Annotate a device dump
+
+```bash
+cd ~/KDotz-Repo   # real clone path
+git pull origin cursor/swiftpeek-m2-screen-99e4
+python3 tools/annotate-dump.py ~/Downloads/Music_YYYY-….json -o ~/Downloads/annotated.json
+# → matched N/M nodes; offline_fields from full MusicApplication catalog
+```
+
+## Query an annotated dump
+
+```bash
+python3 tools/peek-query.py ~/Downloads/annotated.json summary
+python3 tools/peek-query.py ~/Downloads/annotated.json types
+python3 tools/peek-query.py ~/Downloads/annotated.json strings
+python3 tools/peek-query.py ~/Downloads/annotated.json fields MiniPlayer
+python3 tools/peek-query.py ~/Downloads/annotated.json find artwork
+```
+

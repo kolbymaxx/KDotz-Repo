@@ -1,0 +1,5 @@
+class    MusicApplication.UberNavigationTitleView  [desc 0xb29648]
+    [ 0] navigationController : So22UINavigationControllerCSgXw
+    [ 1] _backButtonStyle : <symbolic>
+    [ 2] splitViewDisplayMode : <symbolic>
+    [ 3] $__lazy_storage_$_customBackButton : <symbolic>

@@ -1,0 +1,17 @@
+class    MusicApplication.PaletteTabBarController  [desc 0xb2f868]
+    [ 0] paletteView : <symbolic>
+    [ 1] isRebuildingTabBarItems : Sb
+    [ 2] appearanceState : <symbolic>
+    [ 3] accessoryView : So6UIViewC
+    [ 4] paletteViewControllers : Say <symbolic>
+class    MusicApplication.TabBarController  [desc 0xb2f934]
+    [ 0] jsApplication : <symbolic>
+    [ 1] pendingJSSingletonAccessBlocks : Sayy <symbolic>
+    [ 2] _pendingTabIdentifiers : Say <symbolic>
+    [ 3] _tabIdentifiers : Say <symbolic>
+    [ 4] miniPlayerPaletteInteraction : <symbolic>
+    [ 5] miniPlayerViewController : <symbolic>
+    [ 6] tabsViewController : <symbolic>
+    [ 7] bindings : Say <symbolic>
+    [ 8] canLoadTabRootViewControllers : Sb
+    [ 9] forceReloadTabViewControllers : Sb

@@ -1,0 +1,8 @@
+class    MusicApplication.PaletteContainerView  [desc 0xb22588]
+    [ 0] contentInsets : <symbolic>
+    [ 1] separatorConfiguration : <symbolic>
+    [ 2] backgroundView : So18UIVisualEffectViewC
+    [ 3] containerView : <symbolic>
+    [ 4] $__lazy_storage_$_separator : So18UIVisualEffectViewCSg
+    [ 5] gradientLayer : So15CAGradientLayerCSg
+    [ 6] destOverLayer : So15CABackdropLayerCSg

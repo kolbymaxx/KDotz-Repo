@@ -1,0 +1,3 @@
+class    MusicApplication.JSTabViewController  [desc 0xb23f44]
+    [ 0] $__lazy_storage_$_accountButton : <symbolic>
+    [ 1] identifier : <symbolic>

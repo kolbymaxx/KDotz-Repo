@@ -1,0 +1,73 @@
+class    MusicApplication.SearchLandingViewController  [desc 0xb23ecc]
+    [ 0] $__lazy_storage_$_accountButton : <symbolic>
+    [ 1] availabilityBinding : <symbolic>
+    [ 2] landingDrivenViewController : <symbolic>
+class    MusicApplication.JSSearchLandingUpsellViewController  [desc 0xb2c504]
+    [ 0] artworkVideoPlaybackController : <symbolic>
+    [ 1] environment : <symbolic>
+    [ 2] searchLandingUpsell : <symbolic>
+    [ 3] artworkVideoReportingController : <symbolic>
+    [ 4] wideVideoArtworkObserver : <symbolic>
+    [ 5] tallVideoArtworkObserver : <symbolic>
+struct   .JSSearchLandingUpsellView  [desc 0xb2c78c]  fovo=2
+    [ 0] _searchLandingUpsell : <symbolic>
+    [ 1] _horizontalSizeClass : <symbolic>
+    [ 2] _environment : <symbolic>
+struct   .JSSearchLandingUpsellRegularContentView  [desc 0xb2c898]  fovo=2
+    [ 0] _searchLandingUpsell : <symbolic>
+    [ 1] _environment : <symbolic>
+    [ 2] _colorScheme : <symbolic>
+struct   .JSSearchLandingUpsellCompactContentView  [desc 0xb2c8f8]  fovo=2
+    [ 0] _searchLandingUpsell : <symbolic>
+    [ 1] _environment : <symbolic>
+    [ 2] _colorScheme : <symbolic>
+class    MusicApplication.JSSearchLandingModelRequest  [desc 0xb3e93c]
+    [ 0] sectionViewModel : <symbolic>
+    [ 1] previousResponse : So15MPModelResponseCyyXlyXlGSg
+class    MusicApplication.JSSearchLandingRequestOperation  [desc 0xb3e9d0]
+    [ 0] request : <symbolic>
+    [ 1] responseHandler : ySo15MPModelResponseCyyXlyXlGSg_ <symbolic>
+class    MusicApplication.JSSearchLandingModelResponse  [desc 0xb3ea30]
+    [ 0] itemsDidChangeNotificationObserver : <symbolic>
+    [ 1] personalizationResponseInvalidationObserver : <symbolic>
+    [ 2] personalizationResponse : So37MPStoreLibraryPersonalizationResponseC
+    [ 3] jsResults : So21MPSectionedCollectionCyyXlyXlG
+class    MusicApplication.JSModelSearchLandingItemBuilder  [desc 0xb40930]
+    [ 0] requestedProperties : So13MPPropertySetC
+    [ 1] initializedProperties : <symbolic>
+    [ 2] contentItemBuilder : <symbolic>
+class    MusicApplication.JSSearchLandingViewController  [desc 0xb42ec0]
+    [ 0] isHiddenBySearchController : Sb
+    [ 1] containerStyle : <symbolic>
+    [ 2] $__lazy_storage_$_impressionsTracker : <symbolic>
+    [ 3] viewModel : <symbolic>
+    [ 4] lastSeenViewSize : <symbolic>
+    [ 5] titleLabel : So7UILabelC
+class    MusicApplication.SearchLandingCell  [desc 0xb56a54]
+    [ 0] title : SS
+    [ 1] lockupImageArtworkCatalog : So16MPArtworkCatalogCSg
+    [ 2] layoutStyle : <symbolic>
+    [ 3] containerStyle : <symbolic>
+    [ 4] artworkCachingReference : <symbolic>
+    [ 5] artworkComponent : <symbolic>
+    [ 6] titleLabel : So7UILabelC
+class    MusicJSCore.JSSearchLandingUpsell  [desc 0xb7e388]
+    [ 0] _marketingID : <symbolic>
+    [ 1] _headline : <symbolic>
+    [ 2] _subtitle : <symbolic>
+    [ 3] _primaryButtonTitle : <symbolic>
+    [ 4] _accessoryButtonTitle : <symbolic>
+    [ 5] _tallArtwork : <symbolic>
+    [ 6] _wideArtwork : <symbolic>
+    [ 7] _tallVideoArtwork : <symbolic>
+    [ 8] _wideVideoArtwork : <symbolic>
+    [ 9] _shouldDisplayCloseButton : <symbolic>
+class    MusicJSCore.JSSearchLandingViewModel  [desc 0xb7f88c]
+    [ 0] delegate : <symbolic>
+    [ 1] title : SSSg
+    [ 2] _items : <symbolic>
+class    MusicJSCore.JSSearchLandingItem  [desc 0xb81214]
+    [ 0] titleText : SS
+    [ 1] displayStyle : <symbolic>
+    [ 2] isFeatured : Sb
+class    MusicJSCore.JSSearchLandingComponentController  [desc 0xb84434]

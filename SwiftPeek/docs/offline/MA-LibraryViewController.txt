@@ -1,0 +1,21 @@
+class    MusicApplication.LibraryViewController  [desc 0xb2bc38]
+    [ 0] shouldRecordPageMetrics : Sb
+    [ 1] libraryRecommendationUserOptInDidChangeObserver : <symbolic>
+    [ 2] sceneDidActivateNotificationObserver : <symbolic>
+    [ 3] needsImmediateBannerUpdate : Sb
+    [ 4] libraryRecommendationBannerOptInStatus : SbSg
+    [ 5] $__lazy_storage_$_accountButton : <symbolic>
+    [ 6] menuTableViewController : <symbolic>
+    [ 7] recentlyAddedViewController : <symbolic>
+    [ 8] cloudLibraryStatusObserver : <symbolic>
+    [ 9] isCloudLibraryEnabled : Sb
+    [10] $__lazy_storage_$_cloudLibraryStatusViewController : <symbolic>
+    [11] libraryRecommendationCoordinator : <symbolic>
+    [12] $__lazy_storage_$_glideController : <symbolic>
+    [13] dragDropController : <symbolic>
+    [14] $__lazy_storage_$_dropIndicationView : So6UIViewCSg
+    [15] isActiveDropSessionInsideView : Sb
+    [16] shouldSkipRecordingPageMetricsForEditingStateChange : Sb
+class    MusicApplication.CloudLibraryViewController  [desc 0xb46fec]
+    [ 0] completionHandler : ySbcSg
+    [ 1] message : SSSg

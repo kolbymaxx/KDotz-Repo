@@ -151,9 +151,35 @@ static BOOL SPIsBoringTypeName(NSString *name) {
 
 static BOOL SPClassNameLooksLikeHostingView(const char *name) {
     if (!name) return NO;
-    if (strcmp(name, "_UIHostingView") == 0) return YES;
     if (strstr(name, "_UIHostingView") != NULL) return YES;
     if (strstr(name, "UIHostingView") != NULL) return YES;
+    // Mangled Swift generics often embed HostingView without the UIKit spelling.
+    if (strstr(name, "HostingView") != NULL && strstr(name, "Controller") == NULL) {
+        return YES;
+    }
+    return NO;
+}
+
+/// True for live `_UIHostingView` instances (incl. generic subclasses).
+static BOOL SPViewIsHostingView(UIView *v) {
+    if (!v) return NO;
+    @try {
+        if ([v isKindOfClass:[UIViewController class]]) return NO;
+        Class hv = NSClassFromString(@"_UIHostingView");
+        if (hv && [v isKindOfClass:hv]) return YES;
+        Class hv2 = NSClassFromString(@"UIHostingView");
+        if (hv2 && [v isKindOfClass:hv2]) return YES;
+        const char *cn = object_getClassName(v);
+        if (SPClassNameLooksLikeHostingView(cn)) return YES;
+        NSString *tn = SPSwiftTypeNameFromObject(v);
+        if (tn.length == 0) return NO;
+        if ([tn rangeOfString:@"_UIHostingView"].location != NSNotFound) return YES;
+        if ([tn rangeOfString:@"UIHostingView"].location != NSNotFound) return YES;
+        if ([tn rangeOfString:@"HostingView"].location != NSNotFound &&
+            [tn rangeOfString:@"Controller"].location == NSNotFound) {
+            return YES;
+        }
+    } @catch (__unused id e) {}
     return NO;
 }
 
@@ -210,58 +236,111 @@ static void SPWriteHeartbeat(NSString *message, BOOL hooked,
     });
 }
 
-static UIView *SPFindHostingViewBFS(UIView *root, NSInteger maxNodes) {
-    if (!root) return nil;
+/// Collect hosting views under `root` (BFS). Dedupes by pointer.
+static NSArray<UIView *> *SPCollectHostingViews(UIView *root, NSInteger maxNodes,
+                                                NSInteger maxResults) {
+    if (!root || maxNodes <= 0 || maxResults <= 0) return @[];
+    NSMutableArray *out = [NSMutableArray array];
+    NSMutableSet *seen = [NSMutableSet set];
     NSMutableArray *q = [NSMutableArray arrayWithObject:root];
-    NSInteger seen = 0;
-    while (q.count && seen < maxNodes) {
+    NSInteger n = 0;
+    while (q.count && n < maxNodes && (NSInteger)out.count < maxResults) {
         UIView *v = q.firstObject;
         [q removeObjectAtIndex:0];
-        seen++;
-        const char *cn = object_getClassName(v);
-        if (SPClassNameLooksLikeHostingView(cn)) return v;
-        for (UIView *sub in v.subviews) {
-            [q addObject:sub];
-        }
+        NSValue *key = [NSValue valueWithNonretainedObject:v];
+        if ([seen containsObject:key]) continue;
+        [seen addObject:key];
+        n++;
+        if (SPViewIsHostingView(v)) [out addObject:v];
+        for (UIView *sub in v.subviews) [q addObject:sub];
     }
-    return nil;
+    return out;
 }
 
-/// Visible UIKit strings under a view — pixel correspondence for milestone 2.
+static UIView *SPFindHostingViewBFS(UIView *root, NSInteger maxNodes) {
+    NSArray *found = SPCollectHostingViews(root, maxNodes, 1);
+    return found.firstObject;
+}
+
+/// Unique view class names seen in a shallow BFS — diagnostics when hosts=0.
+static NSArray<NSString *> *SPSampleViewClassNames(UIView *root, NSInteger maxNodes,
+                                                   NSInteger maxNames) {
+    if (!root || maxNodes <= 0 || maxNames <= 0) return @[];
+    NSMutableArray *out = [NSMutableArray array];
+    NSMutableSet *seenNames = [NSMutableSet set];
+    NSMutableSet *seenPtrs = [NSMutableSet set];
+    NSMutableArray *q = [NSMutableArray arrayWithObject:root];
+    NSInteger n = 0;
+    while (q.count && n < maxNodes && (NSInteger)out.count < maxNames) {
+        UIView *v = q.firstObject;
+        [q removeObjectAtIndex:0];
+        NSValue *key = [NSValue valueWithNonretainedObject:v];
+        if ([seenPtrs containsObject:key]) continue;
+        [seenPtrs addObject:key];
+        n++;
+        NSString *cn = @(object_getClassName(v) ?: "?");
+        if (![seenNames containsObject:cn]) {
+            [seenNames addObject:cn];
+            // Skip pure UIKit noise; keep anything that might be a host/app view.
+            BOOL keep = SPClassNameLooksLikeHostingView(cn.UTF8String) ||
+                        [cn rangeOfString:@"Hosting"].location != NSNotFound ||
+                        [cn rangeOfString:@"SwiftUI"].location != NSNotFound ||
+                        [cn hasPrefix:@"_Tt"] ||
+                        [cn hasPrefix:@"Music"] ||
+                        [cn rangeOfString:@"MusicApplication"].location != NSNotFound;
+            if (keep) [out addObject:cn];
+        }
+        for (UIView *sub in v.subviews) [q addObject:sub];
+    }
+    return out;
+}
+
+static void SPAddScreenString(NSMutableArray *out, NSMutableSet *seen, NSString *raw) {
+    if (!raw) return;
+    NSString *t = [raw stringByTrimmingCharactersInSet:
+                   [NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if (t.length < 2 || t.length > 80) return;
+    if ([seen containsObject:t]) return;
+    [seen addObject:t];
+    [out addObject:t];
+}
+
+/// Visible UIKit strings under a view — safe M2 pixel correspondence (no Swift meta).
 static NSArray<NSString *> *SPScreenStrings(UIView *root) {
     if (!root) return @[];
     NSMutableArray *out = [NSMutableArray array];
     NSMutableSet *seen = [NSMutableSet set];
     NSMutableArray *q = [NSMutableArray arrayWithObject:root];
-    NSInteger budget = 80;
+    NSInteger budget = 64;
     while (q.count && budget-- > 0) {
         UIView *v = q.firstObject;
         [q removeObjectAtIndex:0];
         if ([v isKindOfClass:[UILabel class]]) {
-            NSString *t = [[(UILabel *)v text] ?: @"" stringByTrimmingCharactersInSet:
-                           [NSCharacterSet whitespaceAndNewlineCharacterSet]];
-            if (t.length >= 2 && t.length <= 80 && ![seen containsObject:t]) {
-                [seen addObject:t];
-                [out addObject:t];
-            }
+            SPAddScreenString(out, seen, [(UILabel *)v text]);
+        } else if ([v isKindOfClass:[UIButton class]]) {
+            SPAddScreenString(out, seen, [(UIButton *)v titleForState:UIControlStateNormal]);
+        } else if ([v isKindOfClass:[UITextField class]]) {
+            UITextField *tf = (UITextField *)v;
+            SPAddScreenString(out, seen, tf.text.length ? tf.text : tf.placeholder);
+        } else if ([v isKindOfClass:[UINavigationBar class]]) {
+            UINavigationItem *item = [(UINavigationBar *)v topItem];
+            SPAddScreenString(out, seen, item.title);
         }
-        if ([v isKindOfClass:[UIButton class]]) {
-            NSString *t = [[(UIButton *)v titleForState:UIControlStateNormal] ?: @""
-                           stringByTrimmingCharactersInSet:
-                           [NSCharacterSet whitespaceAndNewlineCharacterSet]];
-            if (t.length >= 2 && t.length <= 80 && ![seen containsObject:t]) {
-                [seen addObject:t];
-                [out addObject:t];
-            }
-        }
-        NSString *acc = v.accessibilityLabel;
-        if (acc.length >= 2 && acc.length <= 80 && ![seen containsObject:acc]) {
-            [seen addObject:acc];
-            [out addObject:acc];
-        }
+        SPAddScreenString(out, seen, v.accessibilityLabel);
         for (UIView *sub in v.subviews) [q addObject:sub];
-        if (out.count >= 24) break;
+        if (out.count >= 16) break;
     }
+    return out;
+}
+
+/// Cheap titles from a VC without forcing view load.
+static NSArray<NSString *> *SPControllerTitles(UIViewController *vc) {
+    if (!vc) return @[];
+    NSMutableArray *out = [NSMutableArray array];
+    NSMutableSet *seen = [NSMutableSet set];
+    SPAddScreenString(out, seen, vc.title);
+    SPAddScreenString(out, seen, vc.navigationItem.title);
+    SPAddScreenString(out, seen, vc.tabBarItem.title);
     return out;
 }
 
@@ -331,18 +410,19 @@ static void SPLogAttachObject(id object, NSString *role) {
         }
         if (SPPrefBool(@"dumpFieldMeta", NO)) {
             @try {
-                // Prefer hosting views; skip plain UIViewControllers (crashy on Music).
-                BOOL allow = [obj isKindOfClass:[UIView class]];
-                if (!allow && [obj isKindOfClass:[UIViewController class]]) {
-                    const char *cn = object_getClassName(obj);
-                    allow = SPClassNameLooksLikeHostingController(cn);
-                }
+                // Hosting UIViews only — never Music / hosting controllers.
+                BOOL allow = [obj isKindOfClass:[UIView class]] &&
+                             SPViewIsHostingView((UIView *)obj);
                 if (allow) {
-                    NSArray *fields = SPWalkFields(obj, 1, 16);
+                    NSArray *fields = SPWalkFields(obj, 0, 8);
                     if (fields.count) {
                         node[@"fields"] = fields;
                         milestone = 2;
+                    } else {
+                        node[@"meta_empty"] = @YES;
                     }
+                } else {
+                    node[@"meta_skipped"] = @"not_hosting_view";
                 }
             } @catch (__unused id e) {}
         }
@@ -580,13 +660,65 @@ static BOOL gSPDyldWatchInstalled = NO;
 static void SPScanWindowsForHosts(void) {
     if (!SPPrefBool(@"enabled", NO)) return;
     @try {
+        // Ensure `_UIHostingView` is registered for isKindOfClass checks.
+        SPEnsureSwiftUILoaded();
+
         NSMutableArray *captured = [NSMutableArray array]; // @{obj, role, ...}
+        NSMutableSet *hostAddrs = [NSMutableSet set];
+        NSMutableArray *viewClassSample = [NSMutableArray array];
+        NSMutableSet *sampleSeen = [NSMutableSet set];
+        __block NSInteger hostsFound = 0;
+        BOOL wantMeta = SPPrefBool(@"dumpFieldMeta", NO);
+
+        void (^captureHost)(UIView *) = ^(UIView *host) {
+            if (!host || !SPViewIsHostingView(host)) return;
+            NSString *akey = [NSString stringWithFormat:@"0x%lx",
+                              (unsigned long)(uintptr_t)(__bridge void *)host];
+            if ([hostAddrs containsObject:akey]) return;
+            [hostAddrs addObject:akey];
+            hostsFound++;
+            NSString *hObjc = @(object_getClassName(host) ?: "?");
+            NSString *hType = SPSwiftTypeNameFromObject(host) ?: hObjc;
+            NSMutableDictionary *entry = [@{
+                @"object": host,
+                @"role": @"scan_view",
+                @"objc_class": hObjc,
+                @"type": hType,
+                @"address": akey,
+                @"view_loaded": @YES,
+            } mutableCopy];
+            if (SPPrefBool(@"dumpFields", NO)) {
+                @try {
+                    NSArray *screen = SPScreenStrings(host);
+                    if (screen.count) entry[@"screen_strings"] = screen;
+                } @catch (__unused id e) {}
+            }
+            [captured addObject:entry];
+            if (SPPrefBool(@"logAttach", YES)) {
+                NSLog(@"[SwiftPeek] scan_view type=%@ addr=%@", hType, akey);
+            }
+        };
+
         NSArray *windows = [UIApplication sharedApplication].windows;
         for (UIWindow *w in windows) {
+            // Window-level pass catches hosts outside the VC.view we happen to walk.
+            for (UIView *host in SPCollectHostingViews(w, 160, 6)) {
+                captureHost(host);
+            }
+            // Diagnostic only — FOVO on Music UIViews crashed on 0.3.5; do not walk.
+            if (wantMeta) {
+                for (NSString *cn in SPSampleViewClassNames(w, 80, 16)) {
+                    if (![sampleSeen containsObject:cn]) {
+                        [sampleSeen addObject:cn];
+                        [viewClassSample addObject:cn];
+                    }
+                }
+            }
+
             UIViewController *root = w.rootViewController;
             NSMutableArray *stack = [NSMutableArray array];
             if (root) [stack addObject:root];
-            NSInteger budget = 24;
+            NSInteger budget = 36;
             while (stack.count && budget-- > 0) {
                 UIViewController *vc = stack.lastObject;
                 [stack removeLastObject];
@@ -602,10 +734,19 @@ static void SPScanWindowsForHosts(void) {
                                      (unsigned long)(uintptr_t)(__bridge void *)vc],
                         @"view_loaded": @(vc.isViewLoaded),
                     } mutableCopy];
-                    // Screen strings only on main, only if view already loaded.
-                    if (SPPrefBool(@"dumpFields", NO) && vc.isViewLoaded) {
+                    // Safe M2: titles always; view walk only if already loaded.
+                    if (SPPrefBool(@"dumpFields", NO)) {
                         @try {
-                            NSArray *screen = SPScreenStrings(vc.view);
+                            NSArray *titles = SPControllerTitles(vc);
+                            NSMutableArray *screen = titles.count
+                                ? [titles mutableCopy]
+                                : [NSMutableArray array];
+                            if (vc.isViewLoaded) {
+                                NSArray *fromView = SPScreenStrings(vc.view);
+                                for (NSString *s in fromView) {
+                                    if (![screen containsObject:s]) [screen addObject:s];
+                                }
+                            }
                             if (screen.count) entry[@"screen_strings"] = screen;
                         } @catch (__unused id e) {}
                     }
@@ -616,26 +757,9 @@ static void SPScanWindowsForHosts(void) {
                     }
                 }
                 if (vc.isViewLoaded) {
-                    UIView *host = SPFindHostingViewBFS(vc.view, 24);
-                    if (host) {
-                        NSString *hObjc = @(object_getClassName(host) ?: "?");
-                        NSString *hType = SPSwiftTypeNameFromObject(host) ?: hObjc;
-                        NSMutableDictionary *entry = [@{
-                            @"object": host,
-                            @"role": @"scan_view",
-                            @"objc_class": hObjc,
-                            @"type": hType,
-                            @"address": [NSString stringWithFormat:@"0x%lx",
-                                         (unsigned long)(uintptr_t)(__bridge void *)host],
-                            @"view_loaded": @YES,
-                        } mutableCopy];
-                        if (SPPrefBool(@"dumpFields", NO)) {
-                            @try {
-                                NSArray *screen = SPScreenStrings(host);
-                                if (screen.count) entry[@"screen_strings"] = screen;
-                            } @catch (__unused id e) {}
-                        }
-                        [captured addObject:entry];
+                    // Deeper per-VC BFS; also covers UIHostingController.view itself.
+                    for (UIView *host in SPCollectHostingViews(vc.view, 96, 4)) {
+                        captureHost(host);
                     }
                 }
                 for (UIViewController *child in vc.childViewControllers) {
@@ -653,12 +777,17 @@ static void SPScanWindowsForHosts(void) {
         }
 
         BOOL enrichScreen = SPPrefBool(@"dumpFields", NO);
-        BOOL enrichMeta = SPPrefBool(@"dumpFieldMeta", NO);
+        BOOL enrichMeta = wantMeta;
         NSArray *snapshot = [captured copy];
+        NSArray *sampleCopy = [viewClassSample copy];
+        NSInteger hostsCopy = hostsFound;
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
             NSMutableArray *nodes = [NSMutableArray array];
             NSInteger milestone = 1;
-            NSInteger metaBudget = 4; // very small — Music VC meta walks crash
+            // Hosting FOVO only. Music UIView FOVO crashed on 0.3.5 — disabled.
+            NSInteger metaBudget = 4;
+            NSInteger metaTried = 0;
+            NSInteger metaHit = 0;
             for (NSDictionary *item in snapshot) {
                 NSMutableDictionary *node = [@{
                     @"address": item[@"address"] ?: @"",
@@ -674,32 +803,47 @@ static void SPScanWindowsForHosts(void) {
 
                 if (enrichMeta && metaBudget > 0) {
                     NSString *role = item[@"role"] ?: @"";
-                    // Only metadata-walk hosting views for now — not Music VCs.
-                    if ([role isEqualToString:@"scan_view"]) {
+                    id obj = item[@"object"];
+                    // Never FOVO-walk Music VCs (0.3.0) or Music UIViews (0.3.5).
+                    if ([role isEqualToString:@"scan_view"] &&
+                        [obj isKindOfClass:[UIView class]] &&
+                        SPViewIsHostingView((UIView *)obj)) {
                         metaBudget--;
-                        id obj = item[@"object"];
+                        metaTried++;
                         @try {
-                            NSArray *fields = SPWalkFields(obj, 1, 16);
+                            NSArray *fields = SPWalkFields(obj, 0, 8);
                             if (fields.count) {
                                 node[@"fields"] = fields;
                                 milestone = 2;
+                                metaHit++;
+                            } else {
+                                node[@"meta_empty"] = @YES;
                             }
-                        } @catch (__unused id e) {}
+                        } @catch (__unused id e) {
+                            node[@"meta_skipped"] = @"walk_exception";
+                        }
                     }
                 }
                 [nodes addObject:node];
             }
 
             NSString *msg = [NSString stringWithFormat:
-                @"window scan nodes=%lu milestone=%ld screen=%d meta=%d",
+                @"window scan nodes=%lu milestone=%ld screen=%d meta=%d hosts=%ld tried=%ld hit=%ld",
                 (unsigned long)nodes.count, (long)milestone,
-                enrichScreen ? 1 : 0, enrichMeta ? 1 : 0];
-            NSString *path = SPWriteJSONDump(@{
+                enrichScreen ? 1 : 0, enrichMeta ? 1 : 0,
+                (long)hostsCopy, (long)metaTried, (long)metaHit];
+            NSMutableDictionary *payload = [@{
                 @"milestone": @(milestone),
                 @"scan": @YES,
                 @"message": msg,
                 @"nodes": nodes,
-            });
+                @"hosts_found": @(hostsCopy),
+            } mutableCopy];
+            // Class sample only — no FOVO. Safe when hosts=0 on Music 16.7.
+            if (enrichMeta && hostsCopy == 0 && sampleCopy.count) {
+                payload[@"view_class_sample"] = sampleCopy;
+            }
+            NSString *path = SPWriteJSONDump(payload);
             SPWriteHeartbeat(path ? msg : @"window scan dump write failed", NO, @[], @[]);
             if (path) NSLog(@"[SwiftPeek] %@", msg);
         });
@@ -730,7 +874,7 @@ static void SPStartIfEnabled(void) {
     dispatch_once(&launchOnce, ^{
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
             NSString *msg = [NSString stringWithFormat:
-                @"Music launch probe (0.3.1) scanWindows=%d installHooks=%d dumpFields=%d dumpFieldMeta=%d",
+                @"Music launch probe (0.3.6) scanWindows=%d installHooks=%d dumpFields=%d dumpFieldMeta=%d",
                 scanOn ? 1 : 0, hooksOn ? 1 : 0, fieldsOn ? 1 : 0, metaOn ? 1 : 0];
             SPWriteHeartbeat(msg, NO, @[], @[]);
             SPWriteJSONDump(@{

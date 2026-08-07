@@ -1,5 +1,5 @@
 #import "SPFieldWalk.h"
-#import "SPSwiftMeta.h"
+#import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 #import <stdint.h>
 #import <string.h>
@@ -10,6 +10,11 @@ enum {
     SPKindStruct = 17,
     SPKindEnum   = 18,
 };
+
+// Hard caps for the Music-safe path (0.3.3). Depth 0 = names/offsets/types only.
+static const uint32_t kSPMaxFieldsPerObject = 8;
+static const NSInteger kSPHardMaxDepth = 0;
+static const NSInteger kSPHardMaxNodes = 32;
 
 static const void *SPStripMeta(const void *isa) {
     if (!isa) return NULL;
@@ -39,6 +44,56 @@ static const char *SPReadCStringAt(uint64_t addr) {
     if (addr < 0x1000) return NULL;
     const char *p = (const char *)(uintptr_t)addr;
     return SPReadableCString(p, 256) ? p : NULL;
+}
+
+static BOOL SPClassNameLooksLikeHostingView(const char *name) {
+    if (!name) return NO;
+    if (strstr(name, "_UIHostingView") != NULL) return YES;
+    if (strstr(name, "UIHostingView") != NULL) return YES;
+    if (strstr(name, "HostingView") != NULL && strstr(name, "Controller") == NULL) {
+        return YES;
+    }
+    return NO;
+}
+
+static BOOL SPObjectIsHostingView(id object) {
+    if (![object isKindOfClass:[UIView class]]) return NO;
+    if ([object isKindOfClass:[UIViewController class]]) return NO;
+    Class hv = NSClassFromString(@"_UIHostingView");
+    if (hv && [object isKindOfClass:hv]) return YES;
+    Class hv2 = NSClassFromString(@"UIHostingView");
+    if (hv2 && [object isKindOfClass:hv2]) return YES;
+    return SPClassNameLooksLikeHostingView(object_getClassName(object));
+}
+
+/// Reject types that previously SIGSEGV'd under FOVO walks on Music.
+static BOOL SPClassNameIsMetaDenylisted(const char *name) {
+    if (!name) return YES;
+    if (strstr(name, "ViewController") != NULL) return YES;
+    if (strstr(name, "UIHostingController") != NULL) return YES;
+    if (strstr(name, "ViewGraph") != NULL) return YES;
+    if (strstr(name, "AttributeGraph") != NULL) return YES;
+    if (strstr(name, "ScrollView") != NULL) return YES;
+    return NO;
+}
+
+BOOL SPClassNameIsMusicMetaView(const char *name) {
+    if (!name) return NO;
+    if (SPClassNameIsMetaDenylisted(name)) return NO;
+    // From 0.3.4 view_class_sample on iPhone X / 16.7.14 — UIViews only.
+    static const char *const allow[] = {
+        "NowPlayingContentView",
+        "PaletteContainerView",
+        "UberNavigationTitleView",
+        "MusicArtworkComponentImageView",
+        "NowPlayingTransportControlStackView",
+        "NowPlayingVibrancyEffectView",
+        NULL,
+    };
+    for (const char *const *p = allow; *p; p++) {
+        if (strstr(name, *p) != NULL) return YES;
+    }
+    return NO;
 }
 
 static const void *SPFindTypeDescriptor(const void *metadata, uint32_t *outKind) {
@@ -104,46 +159,6 @@ static NSString *SPMangledTypePrefix(const char *ftype) {
     return n ? @(buf) : @"?";
 }
 
-static NSString *SPPreviewAt(const void *base, uint32_t offset, const char *typeHint) {
-    if (!base) return nil;
-    const uint8_t *p = (const uint8_t *)base + offset;
-
-    BOOL maybeString = (typeHint && (strcmp(typeHint, "SS") == 0 ||
-                                     strstr(typeHint, "String") != NULL));
-    if (maybeString) {
-        void *object = NULL;
-        memcpy(&object, p + 8, 8);
-        if (object) {
-            @try {
-                id obj = (__bridge id)object;
-                if ([obj isKindOfClass:[NSString class]]) {
-                    NSString *s = (NSString *)obj;
-                    if (s.length > 0 && s.length < 2000) return s;
-                }
-            } @catch (__unused id e) {}
-        }
-    }
-
-    if (typeHint && strcmp(typeHint, "Sb") == 0) {
-        return (*p) ? @"true" : @"false";
-    }
-
-    if (typeHint && (typeHint[0] == 'C' || strncmp(typeHint, "So", 2) == 0)) {
-        void *ptr = NULL;
-        memcpy(&ptr, p, sizeof(ptr));
-        if (ptr && ((uintptr_t)ptr > 0x100000000ULL)) {
-            @try {
-                id obj = (__bridge id)ptr;
-                if ([obj isKindOfClass:[NSString class]]) return (NSString *)obj;
-                NSString *tn = SPSwiftTypeNameFromObject(obj);
-                if (tn.length) return [NSString stringWithFormat:@"<%@>", tn];
-            } @catch (__unused id e) {}
-        }
-    }
-
-    return nil;
-}
-
 static NSArray *SPWalkFieldsFromMetadata(const void *metadata, const void *valueBase,
                                          BOOL isHeapObject,
                                          NSInteger depth, NSInteger maxDepth,
@@ -175,6 +190,7 @@ static NSArray *SPWalkFieldsFromMetadata(const void *metadata, const void *value
         memcpy(&nf, (const uint8_t *)desc + 20, 4);
         if (nf > 0 && nf < nfields) nfields = nf;
     }
+    if (nfields > kSPMaxFieldsPerObject) nfields = kSPMaxFieldsPerObject;
 
     uint32_t fovo = SPReadFOVO(desc, kind);
     if (fovo == 0 || fovo > 128) return @[];
@@ -202,54 +218,57 @@ static NSArray *SPWalkFieldsFromMetadata(const void *metadata, const void *value
         if (isHeapObject && offset < sizeof(void *) && (!fname || !fname[0])) continue;
 
         NSString *name = fname ? @(fname) : [NSString stringWithFormat:@"$field%u", i];
-        NSMutableDictionary *entry = [@{
+        // Names / offsets / mangled types only — no heap value previews.
+        // Bridging class pointers + String storage crashed Music on 0.3.0.
+        NSDictionary *entry = @{
             @"name": name,
             @"offset": @(offset),
             @"type": SPMangledTypePrefix(ftype),
-        } mutableCopy];
-
-        NSString *preview = SPPreviewAt(valueBase, offset, ftype);
-        if (preview.length) entry[@"value"] = preview;
-
-        if (depth < maxDepth && ftype && ftype[0] == 'C') {
-            void *ptr = NULL;
-            memcpy(&ptr, (const uint8_t *)valueBase + offset, sizeof(ptr));
-            if (ptr && ((uintptr_t)ptr > 0x100000000ULL)) {
-                @try {
-                    id child = (__bridge id)ptr;
-                    const void *childMeta = SPStripMeta((__bridge const void *)object_getClass(child));
-                    NSArray *nested = SPWalkFieldsFromMetadata(childMeta,
-                                                               (__bridge const void *)child,
-                                                               YES, depth + 1, maxDepth, nodeBudget);
-                    if (nested.count) entry[@"children"] = nested;
-                    if (!preview) {
-                        NSString *ct = SPSwiftTypeNameFromObject(child);
-                        if (ct.length) entry[@"value"] = [NSString stringWithFormat:@"<%@>", ct];
-                    }
-                } @catch (__unused id e) {}
-            }
-        }
-
+        };
         [out addObject:entry];
     }
     return out;
 }
 
+static NSArray<NSDictionary *> *SPWalkFieldsCommon(id object, NSInteger maxDepth,
+                                                   NSInteger maxNodes) {
+    (void)maxDepth;
+    maxDepth = kSPHardMaxDepth;
+    if (maxNodes <= 0 || maxNodes > kSPHardMaxNodes) maxNodes = kSPHardMaxNodes;
+
+    Class cls = object_getClass(object);
+    if (!cls) return @[];
+    const void *metadata = SPStripMeta((__bridge const void *)cls);
+    if (!metadata) return @[];
+    NSInteger budget = maxNodes;
+    return SPWalkFieldsFromMetadata(metadata, (__bridge const void *)object,
+                                    YES, 0, maxDepth, &budget) ?: @[];
+}
+
 NSArray<NSDictionary *> *SPWalkFields(id object, NSInteger maxDepth, NSInteger maxNodes) {
     if (!object) return @[];
-    if (maxDepth < 0) maxDepth = 0;
-    if (maxDepth > 4) maxDepth = 4;
-    if (maxNodes <= 0) maxNodes = 64;
-    if (maxNodes > 256) maxNodes = 256;
 
     @try {
-        Class cls = object_getClass(object);
-        if (!cls) return @[];
-        const void *metadata = SPStripMeta((__bridge const void *)cls);
-        if (!metadata) return @[];
-        NSInteger budget = maxNodes;
-        return SPWalkFieldsFromMetadata(metadata, (__bridge const void *)object,
-                                        YES, 0, maxDepth, &budget) ?: @[];
+        // Hard gates: hosting UIView only. Never walk UIViewControllers.
+        if (!SPObjectIsHostingView(object)) return @[];
+        const char *cn = object_getClassName(object);
+        if (SPClassNameIsMetaDenylisted(cn)) return @[];
+        return SPWalkFieldsCommon(object, maxDepth, maxNodes);
+    } @catch (__unused id e) {
+        return @[];
+    }
+}
+
+NSArray<NSDictionary *> *SPWalkFieldsMusicView(id object, NSInteger maxDepth,
+                                               NSInteger maxNodes) {
+    if (!object) return @[];
+
+    @try {
+        if (![object isKindOfClass:[UIView class]]) return @[];
+        if ([object isKindOfClass:[UIViewController class]]) return @[];
+        const char *cn = object_getClassName(object);
+        if (!SPClassNameIsMusicMetaView(cn)) return @[];
+        return SPWalkFieldsCommon(object, maxDepth, maxNodes);
     } @catch (__unused id e) {
         return @[];
     }
