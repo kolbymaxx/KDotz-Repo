@@ -7,6 +7,9 @@ Examples:
   python3 tools/peek-query.py ~/Downloads/annotated.json summary
   python3 tools/peek-query.py ~/Downloads/annotated.json fields MiniPlayer
   python3 tools/peek-query.py ~/Downloads/annotated.json find artwork
+  python3 tools/peek-query.py ~/Downloads/annotated.json targets
+
+For scaffold (needs -o), use: PYTHONPATH=tools python3 -m swiftpeek scaffold …
 """
 from __future__ import annotations
 
