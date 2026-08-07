@@ -95,12 +95,16 @@ ipsw dyld extract "$DSC" \
 
 ## Annotate a live dump (join)
 
-Copy a Filza dump off-device (AirDrop / Files), then:
+Copy a Filza dump off-device (AirDrop / Files), then on a Mac with the repo:
 
 ```bash
-python3 tools/annotate-dump.py Music_2026-….json -o annotated.json
+cd ~/KDotz-Repo
+git pull origin cursor/swiftpeek-m2-screen-99e4
+python3 tools/annotate-dump.py ~/Downloads/Music_….json -o ~/Downloads/annotated.json
 ```
 
-Uses [`offline/field-catalog.json`](offline/field-catalog.json). Each node may gain
-`offline_fields` / `offline_type` without any live FOVO. Smoke-tested against
-TabBar / MiniPlayer / AlbumDetail / NowPlayingContentView / Palette / JSShelf.
+Uses [`offline/field-catalog.json`](offline/field-catalog.json) — full
+`MusicApplication` pass (**~1955** types, **~1728** with fields), built from
+[`offline/MusicApplication-full.txt`](offline/MusicApplication-full.txt).
+
+Each matched node gains `offline_fields` / `offline_type` without live FOVO.

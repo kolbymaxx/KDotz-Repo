@@ -51,7 +51,8 @@ See [`SwiftPeek/docs/OFFLINE_MUSIC_FIELDS.md`](../SwiftPeek/docs/OFFLINE_MUSIC_F
 ## Annotate a device dump
 
 ```bash
-# After copying a Filza dump JSON to the host:
-python3 tools/annotate-dump.py Music_….json -o annotated.json
-# → nodes get offline_fields from docs/offline/field-catalog.json
+cd ~/KDotz-Repo   # real clone path
+git pull origin cursor/swiftpeek-m2-screen-99e4
+python3 tools/annotate-dump.py ~/Downloads/Music_YYYY-….json -o ~/Downloads/annotated.json
+# → matched N/M nodes; offline_fields from full MusicApplication catalog
 ```
