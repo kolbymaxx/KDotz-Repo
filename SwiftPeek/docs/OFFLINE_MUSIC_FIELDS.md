@@ -92,3 +92,15 @@ ipsw dyld extract "$DSC" \
    tables (this doc), keyed by the live `type` / `objc_class` strings already in dumps.
 4. A future runtime step needs pointer-validated reads (or a different host process
    that actually embeds `_UIHostingView`) — not another unguarded FOVO pass.
+
+## Annotate a live dump (join)
+
+Copy a Filza dump off-device (AirDrop / Files), then:
+
+```bash
+python3 tools/annotate-dump.py Music_2026-….json -o annotated.json
+```
+
+Uses [`offline/field-catalog.json`](offline/field-catalog.json). Each node may gain
+`offline_fields` / `offline_type` without any live FOVO. Smoke-tested against
+TabBar / MiniPlayer / AlbumDetail / NowPlayingContentView / Palette / JSShelf.
