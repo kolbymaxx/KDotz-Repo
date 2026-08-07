@@ -56,3 +56,14 @@ git pull origin cursor/swiftpeek-m2-screen-99e4
 python3 tools/annotate-dump.py ~/Downloads/Music_YYYY-….json -o ~/Downloads/annotated.json
 # → matched N/M nodes; offline_fields from full MusicApplication catalog
 ```
+
+## Query an annotated dump
+
+```bash
+python3 tools/peek-query.py ~/Downloads/annotated.json summary
+python3 tools/peek-query.py ~/Downloads/annotated.json types
+python3 tools/peek-query.py ~/Downloads/annotated.json strings
+python3 tools/peek-query.py ~/Downloads/annotated.json fields MiniPlayer
+python3 tools/peek-query.py ~/Downloads/annotated.json find artwork
+```
+
