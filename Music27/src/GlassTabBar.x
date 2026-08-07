@@ -8,13 +8,12 @@
 
 // Floating Liquid Glass dock for Music.
 //
-// 1.1.14 (real float — merges #48 geometry onto #49 chrome):
-// - 1.1.13 on main still used bottomPad = MIN(safeBottom*0.40, 18) (~18pt),
-//   so the dock barely lifted and looked glued. Correct float is
-//   bottomPad = safeBottom + 12 (~46pt on iPhone X).
-// - Soft-hide stock UITabBar + MiniPlayerViewController.view (alpha only).
-// - Keep dedicated passthrough UIWindow. Never safe-area mutation / hidden=YES
-//   on Library hosts.
+// 1.1.16 (dual-pill dock + Music custom tab chrome):
+// - 1.1.15 floated a mini glass pill but stock Listen Now/Browse/… tabs stayed
+//   visible — MusicApplication.TabBarController draws tabs via
+//   tabsViewController, not UITabBar. Soft-hide that chrome (height-capped).
+// - NEVER fade MiniPlayerViewController (1.1.14 crash). Overlay covers it.
+// - Force expanded dual-pill (mini + 5 tabs); fix tab button layout.
 
 static const NSInteger kM27DockTag = 0x4D323744; // 'M27D'
 static const CGFloat kM27ScrollCollapseY = 48.0;
@@ -300,8 +299,21 @@ static void M27SweepLegacyDockSubviews(void) {
     }
 }
 
-/// Soft-hide stock bottom chrome so the glass dock is the visible UI.
-/// Alpha / interaction only — never hidden=YES, never safe-area mutation.
+static void M27SoftHideChromeView(UIView *view, BOOL hide) {
+    if (!view) return;
+    // Never hide large content hosts (Library / full-screen).
+    CGFloat h = CGRectGetHeight(view.bounds);
+    CGFloat w = CGRectGetWidth(view.bounds);
+    if (h > 140.0 || (w > 0 && h > w)) return;
+    if (M27IsProtectedMusicHost(view)) return;
+    NSString *name = NSStringFromClass(view.class);
+    if ([name containsString:@"Hosting"] || [name containsString:@"Library"]) return;
+    view.alpha = hide ? 0.0 : 1.0;
+    view.userInteractionEnabled = !hide;
+}
+
+/// Soft-hide stock bottom tab chrome. NEVER fade MiniPlayer / Library hosts.
+/// Music 16 uses tabsViewController (SwiftPeek) — UITabBar alone is not enough.
 static void M27ApplyStockChromeVisibility(UITabBarController *tbc, BOOL glassOn) {
     if (!tbc || !tbc.isViewLoaded) return;
 
@@ -309,7 +321,7 @@ static void M27ApplyStockChromeVisibility(UITabBarController *tbc, BOOL glassOn)
     if (glassOn) {
         bar.alpha = 0.0;
         bar.userInteractionEnabled = NO;
-        bar.hidden = NO; // keep geometry; do not remove from hierarchy
+        bar.hidden = NO;
         if (@available(iOS 15.0, *)) {
             UITabBarAppearance *clear = [UITabBarAppearance new];
             [clear configureWithTransparentBackground];
@@ -322,28 +334,42 @@ static void M27ApplyStockChromeVisibility(UITabBarController *tbc, BOOL glassOn)
         bar.hidden = NO;
     }
 
+    // SwiftPeek: MusicApplication.TabBarController.tabsViewController
+    @try {
+        id tabsVC = [tbc valueForKey:@"tabsViewController"];
+        if ([tabsVC isKindOfClass:UIViewController.class]) {
+            UIViewController *vc = (UIViewController *)tabsVC;
+            if (vc.isViewLoaded) M27SoftHideChromeView(vc.view, glassOn);
+        }
+    } @catch (__unused NSException *ex) {}
+
+    // Also soft-hide bottom-aligned tab chrome siblings under the TBC view.
+    if (tbc.isViewLoaded) {
+        CGFloat hostH = CGRectGetHeight(tbc.view.bounds);
+        for (UIView *sub in tbc.view.subviews) {
+            if (sub == tbc.selectedViewController.view) continue;
+            if (sub == tbc.tabBar) continue;
+            NSString *name = NSStringFromClass(sub.class);
+            BOOL nameHit = [name localizedCaseInsensitiveContainsString:@"tabbar"]
+                || [name localizedCaseInsensitiveContainsString:@"tabsview"]
+                || [name localizedCaseInsensitiveContainsString:@"tabstrip"];
+            CGFloat y = CGRectGetMinY(sub.frame);
+            CGFloat h = CGRectGetHeight(sub.bounds);
+            BOOL bottomChrome = (h > 0 && h <= 120.0 && y > hostH * 0.65);
+            if (nameHit || (bottomChrome && [sub isKindOfClass:UITabBar.class])) {
+                M27SoftHideChromeView(sub, glassOn);
+            }
+        }
+    }
+
+    // Always restore MiniPlayer if a prior build faded it — never fade again.
     UIViewController *miniVC = M27FindMiniPlayerViewController(tbc);
-    if (!miniVC || !miniVC.isViewLoaded) return;
-    // Exact SwiftPeek type only — never climb to parents / Library hosts.
-    if (!M27ClassNameHasSuffix(miniVC, @"MiniPlayerViewController")) return;
-    UIView *mini = miniVC.view;
-    if (!mini) return;
-    // Fade only this VC's view. Refuse full-screen-sized hosts (safety).
-    CGFloat h = CGRectGetHeight(mini.bounds);
-    CGFloat hostH = mini.window ? CGRectGetHeight(mini.window.bounds) : 0;
-    if (hostH > 0 && h > hostH * 0.55) {
-        if (!glassOn) {
+    if (miniVC.isViewLoaded && M27ClassNameHasSuffix(miniVC, @"MiniPlayerViewController")) {
+        UIView *mini = miniVC.view;
+        if (mini) {
             mini.alpha = 1.0;
             mini.userInteractionEnabled = YES;
         }
-        return;
-    }
-    if (glassOn) {
-        mini.alpha = 0.0;
-        mini.userInteractionEnabled = NO;
-    } else {
-        mini.alpha = 1.0;
-        mini.userInteractionEnabled = YES;
     }
 }
 
@@ -471,8 +497,8 @@ static void M27InstallDockIfNeeded(UITabBarController *tbc) {
     }
 
     @try {
-        // Never touch Music's key window / safe-area / Library hosts.
-        // Soft-hide stock tab bar + MiniPlayer view only (alpha), via layout.
+        // Never touch Music's key window / safe-area / MiniPlayer / Library hosts.
+        // Soft-hide stock UITabBar only (alpha).
         M27SweepLegacyDockSubviews();
 
         M27DockController *controller = M27ControllerForTabBarController(tbc);
@@ -488,6 +514,10 @@ static void M27InstallDockIfNeeded(UITabBarController *tbc) {
         }
         dock.delegate = controller;
         controller.dock = dock;
+        // Always expanded dual-pill on install; reload tabs every time so icons
+        // appear after Music finishes populating viewControllers.
+        [dock reloadTabs];
+        [dock setMode:M27DockModeExpanded animated:NO];
         dock.selectedTabIndex = (NSInteger)tbc.selectedIndex;
         [controller syncNowPlaying];
         M27LayoutDock(tbc, dock);

@@ -32,7 +32,9 @@ Settings live under **Settings → Music27**.
 | **1.1.11** | SwiftPeek proved `MusicApplication.LibraryViewController` / `MiniPlayerViewController` / SwiftUI hosts stay alive while Music looks black. Narrow matchers; never hide protected hosts; leave stock tab bar intact |
 | **1.1.12** | Dock moves to a **dedicated passthrough `UIWindow`** — never a subview of Music’s key window. Library usable with dock ON |
 | **1.1.13** | Soft-hide stock chrome + stronger glass, but float pad still capped (~18pt) — still looked glued on iPhone X |
-| **1.1.14** | Real float: `bottomPad = safeBottom + 12` (from #48) + soft-hide stock tab/mini. Verify before APT |
+| **1.1.14** | Real float + faded MiniPlayerViewController.view → black/crash regression on iPhone X |
+| **1.1.15** | **Never** fade MiniPlayer. Soft-hide UITabBar only. Keep `safeBottom+12` float + overlay window. One-time force dock OFF for recovery |
+| **1.1.16** | Soft-hide Music `tabsViewController` chrome (SwiftPeek); force expanded dual-pill; fix tab button layout so 5 glass tabs actually render |
 
 Prefs are read preferring `/var/jb/.../com.music27.tweak.plist` (Dopamine), then jbroot (RootHide), then rootful.
 
