@@ -48,22 +48,20 @@ Live FOVO on Music crashes. Dump field names from the IPSW instead:
 
 See [`SwiftPeek/docs/OFFLINE_MUSIC_FIELDS.md`](../SwiftPeek/docs/OFFLINE_MUSIC_FIELDS.md).
 
-## Annotate a device dump
+## Phase 2 read API (`tools/swiftpeek`)
 
 ```bash
-cd ~/KDotz-Repo   # real clone path
-git pull origin cursor/swiftpeek-m2-screen-99e4
-python3 tools/annotate-dump.py ~/Downloads/Music_YYYY-….json -o ~/Downloads/annotated.json
-# → matched N/M nodes; offline_fields from full MusicApplication catalog
+cd ~/KDotz-Repo
+PYTHONPATH=tools python3 -m swiftpeek annotate ~/Downloads/Music_….json -o ~/Downloads/annotated.json
+PYTHONPATH=tools python3 -m swiftpeek summary ~/Downloads/annotated.json
+PYTHONPATH=tools python3 -m swiftpeek fields ~/Downloads/annotated.json MiniPlayer
+PYTHONPATH=tools python3 -m swiftpeek find ~/Downloads/annotated.json artwork
 ```
 
-## Query an annotated dump
+Legacy wrappers `annotate-dump.py` / `peek-query.py` still work.
+See [`SwiftPeek/docs/READ_API.md`](../SwiftPeek/docs/READ_API.md).
 
 ```bash
-python3 tools/peek-query.py ~/Downloads/annotated.json summary
-python3 tools/peek-query.py ~/Downloads/annotated.json types
-python3 tools/peek-query.py ~/Downloads/annotated.json strings
-python3 tools/peek-query.py ~/Downloads/annotated.json fields MiniPlayer
-python3 tools/peek-query.py ~/Downloads/annotated.json find artwork
+cd tools && python3 -m unittest swiftpeek.test_api -v
 ```
 

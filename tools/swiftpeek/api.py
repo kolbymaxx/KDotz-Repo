@@ -1,0 +1,198 @@
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Iterable, Iterator
+
+from .paths import DEFAULT_CATALOG
+
+
+def load_dump(path: str | Path) -> dict[str, Any]:
+    return json.loads(Path(path).read_text())
+
+
+@dataclass
+class FieldHit:
+    type_name: str
+    name: str
+    type_hint: str
+    index: int
+    source: str  # "field" | "screen_string"
+    node: dict[str, Any]
+
+
+class FieldCatalog:
+    """Offline MusicApplication (etc.) field layouts from swiftmd."""
+
+    def __init__(self, path: str | Path | None = None):
+        self.path = Path(path) if path else DEFAULT_CATALOG
+        raw = json.loads(self.path.read_text())
+        self._full: dict[str, dict[str, Any]] = raw
+        self._short: dict[str, list[str]] = {}
+        for full in self._full:
+            short = full.rsplit(".", 1)[-1]
+            self._short.setdefault(short, []).append(full)
+
+    def __len__(self) -> int:
+        return len(self._full)
+
+    def lookup(self, type_name: str | None, objc: str | None = None) -> dict[str, Any] | None:
+        for cand in (type_name, objc):
+            if not cand:
+                continue
+            if cand in self._full:
+                return {"key": cand, **self._full[cand]}
+            base = cand.split("<", 1)[0]
+            if base in self._full:
+                return {"key": base, **self._full[base]}
+            short = base.rsplit(".", 1)[-1]
+            hits = self._short.get(short) or []
+            pref = [h for h in hits if h.startswith("MusicApplication.")]
+            chosen = pref or hits
+            if chosen:
+                k = chosen[0]
+                return {"key": k, **self._full[k]}
+        return None
+
+    def fields_for(self, type_name: str | None, objc: str | None = None) -> list[dict[str, Any]]:
+        hit = self.lookup(type_name, objc)
+        if not hit:
+            return []
+        return list(hit.get("fields") or [])
+
+
+def annotate_dump(dump: dict[str, Any], catalog: FieldCatalog | None = None) -> dict[str, Any]:
+    cat = catalog or FieldCatalog()
+    nodes = dump.get("nodes") or []
+    annotated: list[dict[str, Any]] = []
+    matched = 0
+    for node in nodes:
+        out = dict(node)
+        hit = cat.lookup(node.get("type"), node.get("objc_class"))
+        if hit and hit.get("fields"):
+            out["offline_fields"] = hit["fields"]
+            out["offline_type"] = hit["key"]
+            out["offline_kind"] = hit.get("kind")
+            matched += 1
+        else:
+            out["offline_fields"] = []
+        annotated.append(out)
+
+    result = dict(dump)
+    result["nodes"] = annotated
+    result["offline_annotate"] = {
+        "matched_nodes": matched,
+        "total_nodes": len(annotated),
+        "catalog_types": len(cat),
+        "note": "layouts from offline swiftmd; not live FOVO",
+        "api_version": "0.4.0",
+    }
+    return result
+
+
+class PeekSession:
+    """Read API over a live dump (+ optional annotate)."""
+
+    def __init__(
+        self,
+        dump: dict[str, Any] | str | Path,
+        catalog: FieldCatalog | None = None,
+        *,
+        annotate: bool = True,
+    ):
+        if isinstance(dump, (str, Path)):
+            data = load_dump(dump)
+        else:
+            data = dump
+        self.catalog = catalog or FieldCatalog()
+        if annotate:
+            data = annotate_dump(data, self.catalog)
+        self.dump = data
+
+    @property
+    def nodes(self) -> list[dict[str, Any]]:
+        return list(self.dump.get("nodes") or [])
+
+    def summary(self) -> dict[str, Any]:
+        nodes = self.nodes
+        ann = self.dump.get("offline_annotate") or {}
+        return {
+            "tool_version": self.dump.get("tool_version"),
+            "milestone": self.dump.get("milestone"),
+            "message": self.dump.get("message"),
+            "nodes": len(nodes),
+            "matched_nodes": ann.get("matched_nodes"),
+            "catalog_types": ann.get("catalog_types", len(self.catalog)),
+            "with_fields": sum(1 for n in nodes if n.get("offline_fields")),
+            "with_strings": sum(1 for n in nodes if n.get("screen_strings")),
+        }
+
+    def iter_types(self) -> Iterator[dict[str, Any]]:
+        for n in self.nodes:
+            yield {
+                "type": n.get("offline_type") or n.get("type") or n.get("objc_class"),
+                "role": n.get("role"),
+                "field_count": len(n.get("offline_fields") or []),
+                "string_count": len(n.get("screen_strings") or []),
+                "screen_strings": n.get("screen_strings") or [],
+                "address": n.get("address"),
+            }
+
+    def nodes_matching(self, needle: str) -> list[dict[str, Any]]:
+        n = needle.lower()
+        out = []
+        for node in self.nodes:
+            blob = " ".join(
+                str(x or "")
+                for x in (node.get("offline_type"), node.get("type"), node.get("objc_class"))
+            ).lower()
+            if n in blob:
+                out.append(node)
+        return out
+
+    def fields(self, type_needle: str) -> list[dict[str, Any]]:
+        """Return field lists for nodes whose type matches substring."""
+        rows = []
+        for node in self.nodes_matching(type_needle):
+            rows.append(
+                {
+                    "type": node.get("offline_type") or node.get("type"),
+                    "fields": node.get("offline_fields") or [],
+                    "screen_strings": node.get("screen_strings") or [],
+                }
+            )
+        return rows
+
+    def find(self, needle: str) -> list[FieldHit]:
+        n = needle.lower()
+        hits: list[FieldHit] = []
+        for node in self.nodes:
+            t = node.get("offline_type") or node.get("type") or "?"
+            for f in node.get("offline_fields") or []:
+                name = str(f.get("name") or "")
+                typ = str(f.get("type") or "")
+                if n in name.lower() or n in typ.lower():
+                    hits.append(
+                        FieldHit(
+                            type_name=t,
+                            name=name,
+                            type_hint=typ,
+                            index=int(f.get("index") or 0),
+                            source="field",
+                            node=node,
+                        )
+                    )
+            for s in node.get("screen_strings") or []:
+                if n in str(s).lower():
+                    hits.append(
+                        FieldHit(
+                            type_name=t,
+                            name=str(s),
+                            type_hint="screen_string",
+                            index=-1,
+                            source="screen_string",
+                            node=node,
+                        )
+                    )
+        return hits
