@@ -8,13 +8,12 @@
 
 // Floating Liquid Glass dock for Music.
 //
-// 1.1.14 (real float — merges #48 geometry onto #49 chrome):
-// - 1.1.13 on main still used bottomPad = MIN(safeBottom*0.40, 18) (~18pt),
-//   so the dock barely lifted and looked glued. Correct float is
-//   bottomPad = safeBottom + 12 (~46pt on iPhone X).
-// - Soft-hide stock UITabBar + MiniPlayerViewController.view (alpha only).
-// - Keep dedicated passthrough UIWindow. Never safe-area mutation / hidden=YES
-//   on Library hosts.
+// 1.1.15 (safe recovery after 1.1.14 black/crash):
+// - 1.1.14 faded MiniPlayerViewController.view — that blanked/crashed Music again.
+// - NEVER fade/hide MiniPlayer or any protected host. Soft-hide UITabBar only.
+// - Keep passthrough overlay + bottomPad = safeBottom + 12 float.
+// - One-time prefs marker forces Floating Glass Dock OFF so Music can launch;
+//   re-enable after verifying Library.
 
 static const NSInteger kM27DockTag = 0x4D323744; // 'M27D'
 static const CGFloat kM27ScrollCollapseY = 48.0;
@@ -300,8 +299,8 @@ static void M27SweepLegacyDockSubviews(void) {
     }
 }
 
-/// Soft-hide stock bottom chrome so the glass dock is the visible UI.
-/// Alpha / interaction only — never hidden=YES, never safe-area mutation.
+/// Soft-hide stock UITabBar only. NEVER touch MiniPlayer / Library hosts —
+/// fading MiniPlayerViewController.view in 1.1.14 blanked/crashed Music.
 static void M27ApplyStockChromeVisibility(UITabBarController *tbc, BOOL glassOn) {
     if (!tbc || !tbc.isViewLoaded) return;
 
@@ -322,28 +321,14 @@ static void M27ApplyStockChromeVisibility(UITabBarController *tbc, BOOL glassOn)
         bar.hidden = NO;
     }
 
+    // Always restore MiniPlayer if a prior 1.1.13/1.1.14 build faded it.
     UIViewController *miniVC = M27FindMiniPlayerViewController(tbc);
-    if (!miniVC || !miniVC.isViewLoaded) return;
-    // Exact SwiftPeek type only — never climb to parents / Library hosts.
-    if (!M27ClassNameHasSuffix(miniVC, @"MiniPlayerViewController")) return;
-    UIView *mini = miniVC.view;
-    if (!mini) return;
-    // Fade only this VC's view. Refuse full-screen-sized hosts (safety).
-    CGFloat h = CGRectGetHeight(mini.bounds);
-    CGFloat hostH = mini.window ? CGRectGetHeight(mini.window.bounds) : 0;
-    if (hostH > 0 && h > hostH * 0.55) {
-        if (!glassOn) {
+    if (miniVC.isViewLoaded && M27ClassNameHasSuffix(miniVC, @"MiniPlayerViewController")) {
+        UIView *mini = miniVC.view;
+        if (mini && (mini.alpha < 0.99 || !mini.userInteractionEnabled)) {
             mini.alpha = 1.0;
             mini.userInteractionEnabled = YES;
         }
-        return;
-    }
-    if (glassOn) {
-        mini.alpha = 0.0;
-        mini.userInteractionEnabled = NO;
-    } else {
-        mini.alpha = 1.0;
-        mini.userInteractionEnabled = YES;
     }
 }
 
@@ -471,8 +456,8 @@ static void M27InstallDockIfNeeded(UITabBarController *tbc) {
     }
 
     @try {
-        // Never touch Music's key window / safe-area / Library hosts.
-        // Soft-hide stock tab bar + MiniPlayer view only (alpha), via layout.
+        // Never touch Music's key window / safe-area / MiniPlayer / Library hosts.
+        // Soft-hide stock UITabBar only (alpha).
         M27SweepLegacyDockSubviews();
 
         M27DockController *controller = M27ControllerForTabBarController(tbc);
