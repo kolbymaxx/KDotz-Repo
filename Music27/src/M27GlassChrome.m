@@ -4,7 +4,8 @@
 @implementation M27GlassChrome
 
 + (UIVisualEffectView *)pillWithCornerRadius:(CGFloat)radius {
-    UIBlurEffect *effect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterial];
+    // Thin (not ultra-thin) reads more like floating glass over Music artwork.
+    UIBlurEffect *effect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThinMaterial];
     UIVisualEffectView *glass = [[UIVisualEffectView alloc] initWithEffect:effect];
     glass.clipsToBounds = YES;
     glass.userInteractionEnabled = YES;
@@ -18,7 +19,7 @@
     UIView *highlight = [[UIView alloc] initWithFrame:CGRectZero];
     highlight.tag = 0x4D324847; // 'M2HG'
     highlight.userInteractionEnabled = NO;
-    highlight.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.16];
+    highlight.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.22];
     highlight.autoresizingMask = UIViewAutoresizingFlexibleWidth;
     [glass.contentView insertSubview:highlight atIndex:0];
 
@@ -26,8 +27,8 @@
 }
 
 + (void)applySpecularBorderToView:(UIView *)view {
-    view.layer.borderWidth = 0.55;
-    view.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.32].CGColor;
+    view.layer.borderWidth = 0.7;
+    view.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.42].CGColor;
 }
 
 + (void)applyPaletteTintToGlass:(UIVisualEffectView *)glass {
@@ -41,8 +42,8 @@
             dark = glass.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark;
         }
         glass.contentView.backgroundColor = dark
-            ? [UIColor colorWithWhite:1.0 alpha:0.06]
-            : [UIColor colorWithWhite:1.0 alpha:0.10];
+            ? [UIColor colorWithWhite:1.0 alpha:0.10]
+            : [UIColor colorWithWhite:1.0 alpha:0.16];
     }
 
     UIView *highlight = [glass.contentView viewWithTag:0x4D324847];
@@ -61,9 +62,9 @@
 
 + (void)addSoftShadowToHost:(UIView *)host {
     host.layer.shadowColor = [UIColor blackColor].CGColor;
-    host.layer.shadowOpacity = 0.18;
-    host.layer.shadowRadius = 18.0;
-    host.layer.shadowOffset = CGSizeMake(0, 6);
+    host.layer.shadowOpacity = 0.28;
+    host.layer.shadowRadius = 22.0;
+    host.layer.shadowOffset = CGSizeMake(0, 8);
     host.layer.masksToBounds = NO;
 }
 

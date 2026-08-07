@@ -8,16 +8,16 @@
 
 // Floating Liquid Glass dock for Music.
 //
-// 1.1.12:
-// - 1.1.11 still added the dock as a subview of Music's key UIWindow.
-//   On iPhone X / 16.7 that can blank SwiftUI Library hosts and steal touches
-//   even with pill hitTest — UIVisualEffectView sibling of the root VC is unsafe.
-// - Host the dock in a *dedicated* passthrough UIWindow instead. Music's window
-//   hierarchy is never mutated. Touches outside glass pills fall through.
-// - Remove the global UIScrollView contentOffset hook (too invasive for Library).
-// - Still never touch additionalSafeAreaInsets / MiniPlayer / Library hosts.
+// 1.1.13 (visual floating dock on top of 1.1.12 safety):
+// - Keep dedicated passthrough UIWindow (never Music's key window).
+// - Soft-hide stock UITabBar + MiniPlayerViewController.view with alpha only
+//   so the glass pills read as the real dock (not double chrome).
+// - Never additionalSafeAreaInsets, never hidden=YES on hosts, never fade
+//   Library*/UIHosting* / oversized views.
+// - Scroll-collapse restored (dock overlay only).
 
 static const NSInteger kM27DockTag = 0x4D323744; // 'M27D'
+static const CGFloat kM27ScrollCollapseY = 48.0;
 static const void *kM27DockControllerKey = &kM27DockControllerKey;
 static const void *kM27DockViewKey = &kM27DockViewKey;
 static const void *kM27DockWindowKey = &kM27DockWindowKey;
@@ -299,6 +299,53 @@ static void M27SweepLegacyDockSubviews(void) {
     }
 }
 
+/// Soft-hide stock bottom chrome so the glass dock is the visible UI.
+/// Alpha / interaction only — never hidden=YES, never safe-area mutation.
+static void M27ApplyStockChromeVisibility(UITabBarController *tbc, BOOL glassOn) {
+    if (!tbc || !tbc.isViewLoaded) return;
+
+    UITabBar *bar = tbc.tabBar;
+    if (glassOn) {
+        bar.alpha = 0.01; // keep in compositing tree; effectively invisible
+        bar.userInteractionEnabled = NO;
+        bar.hidden = NO;
+        if (@available(iOS 15.0, *)) {
+            UITabBarAppearance *clear = [UITabBarAppearance new];
+            [clear configureWithTransparentBackground];
+            bar.standardAppearance = clear;
+            bar.scrollEdgeAppearance = clear;
+        }
+    } else {
+        bar.alpha = 1.0;
+        bar.userInteractionEnabled = YES;
+        bar.hidden = NO;
+    }
+
+    UIViewController *miniVC = M27FindMiniPlayerViewController(tbc);
+    if (!miniVC || !miniVC.isViewLoaded) return;
+    // Exact SwiftPeek type only — never climb to parents / Library hosts.
+    if (!M27ClassNameHasSuffix(miniVC, @"MiniPlayerViewController")) return;
+    UIView *mini = miniVC.view;
+    if (!mini) return;
+    // Safety: refuse to fade anything that looks like a full content host.
+    CGFloat h = CGRectGetHeight(mini.bounds);
+    CGFloat hostH = mini.window ? CGRectGetHeight(mini.window.bounds) : 0;
+    if (h > 160.0 || (hostH > 0 && h > hostH * 0.35)) {
+        if (!glassOn) {
+            mini.alpha = 1.0;
+            mini.userInteractionEnabled = YES;
+        }
+        return;
+    }
+    if (glassOn) {
+        mini.alpha = 0.01;
+        mini.userInteractionEnabled = NO;
+    } else {
+        mini.alpha = 1.0;
+        mini.userInteractionEnabled = YES;
+    }
+}
+
 static M27DockOverlayWindow *M27EnsureOverlayWindow(UITabBarController *tbc) {
     M27DockOverlayWindow *overlay = objc_getAssociatedObject(tbc, kM27DockWindowKey);
     if (overlay) return overlay;
@@ -358,8 +405,9 @@ static void M27LayoutDock(UITabBarController *tbc, M27FloatingDock *dock) {
             [host addSubview:dock];
         }
 
+        // Float above the home indicator — reads as a dock, not a tab-bar strip.
         CGFloat safeBottom = overlay.safeAreaInsets.bottom;
-        CGFloat bottomPad = safeBottom > 0 ? MIN(safeBottom * 0.22, 10.0) : 8.0;
+        CGFloat bottomPad = safeBottom > 0 ? MIN(safeBottom * 0.40, 18.0) : 14.0;
         CGFloat y = hostH - height - bottomPad;
         CGRect frame = CGRectMake(0, y, width, height);
         if (!CGRectEqualToRect(dock.frame, frame)) {
@@ -369,6 +417,8 @@ static void M27LayoutDock(UITabBarController *tbc, M27FloatingDock *dock) {
         dock.alpha = 1.0;
         dock.userInteractionEnabled = YES;
         dock.backgroundColor = UIColor.clearColor;
+
+        M27ApplyStockChromeVisibility(tbc, YES);
     } @finally {
         objc_setAssociatedObject(tbc, kM27LayoutGuardKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
@@ -378,6 +428,8 @@ static void M27RemoveDock(UITabBarController *tbc) {
     M27FloatingDock *dock = M27DockForTabBarController(tbc);
     [dock removeFromSuperview];
     objc_setAssociatedObject(tbc, kM27DockViewKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+
+    M27ApplyStockChromeVisibility(tbc, NO);
 
     M27DockOverlayWindow *overlay = objc_getAssociatedObject(tbc, kM27DockWindowKey);
     if (overlay) {
@@ -410,7 +462,8 @@ static void M27InstallDockIfNeeded(UITabBarController *tbc) {
     }
 
     @try {
-        // Never mutate Music's window / tabBar / mini-player / safe-area / content hosts.
+        // Never touch Music's key window / safe-area / Library hosts.
+        // Soft-hide stock tab bar + MiniPlayer view only (alpha), via layout.
         M27SweepLegacyDockSubviews();
 
         M27DockController *controller = M27ControllerForTabBarController(tbc);
@@ -432,6 +485,21 @@ static void M27InstallDockIfNeeded(UITabBarController *tbc) {
     } @catch (__unused NSException *ex) {
         M27RemoveDock(tbc);
     }
+}
+
+static void M27HandleScrollOffset(UIScrollView *scrollView) {
+    if (!scrollView.isDragging && !scrollView.isDecelerating) return;
+    if (fabs(scrollView.contentOffset.x) > fabs(scrollView.contentOffset.y)) return;
+    if (scrollView.contentOffset.y < kM27ScrollCollapseY) return;
+
+    // Collapse the overlay dock only — never mutate scroll hosts / Library.
+    UITabBarController *tbc = M27MusicTabBarController();
+    if (!tbc) return;
+    M27Prefs *prefs = M27Prefs.shared;
+    if (!(prefs.enabled && prefs.glassTabBarEnabled)) return;
+    M27FloatingDock *dock = M27DockForTabBarController(tbc);
+    if (!dock || dock.mode == M27DockModeCollapsed) return;
+    [dock collapseFromScroll];
 }
 
 void M27ApplyChromeForCurrentPrefs(void) {
@@ -531,6 +599,22 @@ void M27ApplyChromeForCurrentPrefs(void) {
     %orig;
     M27FloatingDock *dock = M27DockForTabBarController(self);
     if (dock) dock.selectedTabIndex = (NSInteger)self.selectedIndex;
+}
+
+%end
+
+%hook UIScrollView
+
+- (void)setContentOffset:(CGPoint)contentOffset {
+    %orig;
+    M27Prefs *prefs = M27Prefs.shared;
+    if (!(prefs.enabled && prefs.glassTabBarEnabled)) return;
+    if (!self.isDragging && !self.isDecelerating) return;
+    static NSTimeInterval last = 0;
+    NSTimeInterval now = CACurrentMediaTime();
+    if (now - last < 0.15) return;
+    last = now;
+    M27HandleScrollOffset(self);
 }
 
 %end

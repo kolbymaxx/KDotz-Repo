@@ -10,7 +10,7 @@
 			<key>label</key>
 			<string>Music27</string>
 			<key>footerText</key>
-			<string>1.1.12: Floating Glass Dock uses a dedicated passthrough UIWindow (not Music's key window). Library should stay visible and tappable with the dock ON. Enable Music27 OFF = fully stock.</string>
+			<string>1.1.13: Floating Glass Dock soft-hides the stock tab bar + mini player (alpha only) so the glass pills are the dock. Still uses a passthrough overlay window — Library stays tappable. Enable Music27 OFF = fully stock.</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -94,7 +94,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>Music27 1.1.12 — dedicated dock overlay window. No APT publish until verified on iPhone X.</string>
+			<string>Music27 1.1.13 — floating glass dock chrome. No APT publish until verified on iPhone X.</string>
 		</dict>
 	</array>
 	<key>title</key>
