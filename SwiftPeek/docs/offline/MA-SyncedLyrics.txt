@@ -1,0 +1,52 @@
+class    MusicCoreUI.SyncedLyricsLineView  [desc 0xb76bf8]
+    [ 0] specs : <symbolic>
+    [ 1] line : <symbolic>
+    [ 2] isScrolling : Sb
+    [ 3] alignment : <symbolic>
+    [ 4] containerView : So6UIViewC
+    [ 5] contentView : <symbolic>
+    [ 6] $__lazy_storage_$_backgroundView : So6UIViewCSg
+    [ 7] blurFilter : So8CAFilterC
+    [ 8] blurRadius : <symbolic>
+    [ 9] previousBlurRadius : <symbolic>
+class    MusicCoreUI.SyncedLyricsManager  [desc 0xb76ea4]
+    [ 0] lyrics : <symbolic>
+    [ 1] configuration : <symbolic>
+    [ 2] delegate : <symbolic>
+    [ 3] selectedLines : Say <symbolic>
+    [ 4] elapsedTimeProvider : SdycSg
+    [ 5] nextLine : <symbolic>
+struct   MusicCoreUI.SyncedLyricsSharingTransitionInfo  [desc 0xb77214]  fovo=2
+    [ 0] line : <symbolic>
+    [ 1] initialView : So6UIViewC
+    [ 2] alignment : <symbolic>
+    [ 3] frame : <symbolic>
+    [ 4] isSelected : Sb
+    [ 5] transform : <symbolic>
+    [ 6] transitionWillBeginHandler : yyc
+    [ 7] transitionCompletionHandler : yyc
+class    MusicCoreUI.SyncedLyricsViewController  [desc 0xb7724c]
+    [ 0] isFullScreen : Sb
+    [ 1] bottomTapAreaHeight : <symbolic>
+    [ 2] containerHeight : <symbolic>
+    [ 3] specs : <symbolic>
+    [ 4] delegate : <symbolic>
+    [ 5] mode : <symbolic>
+    [ 6] lyrics : <symbolic>
+    [ 7] timingProvider : <symbolic>
+    [ 8] shareHandler : y <symbolic>
+    [ 9] scrollView : So12UIScrollViewC
+    [10] manager : <symbolic>
+    [11] displayLink : So13CADisplayLinkCSg
+    [12] lineViews : Say <symbolic>
+    [13] selectedLineViews : Say <symbolic>
+    [14] blurredLineViews : Shy <symbolic>
+    [15] instrumentalBreakVisibleView : <symbolic>
+    [16] tapFeedbackGenerator : So28UISelectionFeedbackGeneratorC
+    [17] currentAnimators : SaySo22UIViewPropertyAnimatorCG
+    [18] isAnimating : Sb
+    [19] needsTapHandling : Sb
+    [20] isBackgrounded : Sb
+    [21] previousBounds : <symbolic>
+    [22] allowAnimateToNextLineAfterScrollTimer : So7NSTimerCSg
+    [23] allowAnimateToNextLineAfterScroll : Sb

@@ -1,0 +1,11 @@
+class    MusicApplication.NowPlayingContentView  [desc 0xb40418]
+    [ 0] mode : <symbolic>
+    [ 1] videoContext : <symbolic>
+    [ 2] artworkDidChangeHandler : yycSg
+    [ 3] artworkCachingReference : <symbolic>
+    [ 4] artworkComponent : <symbolic>
+    [ 5] lastSeenBounds : <symbolic>
+    [ 6] playerPath : So13MPCPlayerPathCSg
+    [ 7] deferArtworkUpdates : Sb
+class    MusicApplication.NowPlayingContentViewDonationItem  [desc 0xb40474]
+    [ 0] resignsActiveVideoContainer : Sb

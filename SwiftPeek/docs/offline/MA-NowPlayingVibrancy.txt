@@ -1,0 +1,4 @@
+class    MusicApplication.NowPlayingVibrancyEffectView  [desc 0xb2e350]
+    [ 0] vibrancyState : <symbolic>
+    [ 1] contentItemView : So6UIViewC
+    [ 2] vibrancyStyle : <symbolic>

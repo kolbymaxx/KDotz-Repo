@@ -4,9 +4,11 @@ Read-only SwiftUI / Music view inspector for jailbroken iOS. Recovers live
 type names (M1) and optional on-screen strings (M2) without mutating the UI.
 
 **Status:** Phase 1 — M1 + safe M2 `screen_strings` proven on iPhone X /
-16.7.14. Music has **no** in-window `_UIHostingView` (0.3.4). FOVO field
-meta on Music VCs (0.3.0) and allowlisted Music UIViews (0.3.5) **crashed**
-— leave Dump Field Meta **off** (0.3.6). Not published to APT.
+16.7.14. Live FOVO field meta is **unsafe** on Music — leave Dump Field Meta
+**off** (0.3.6). Field **names/layouts** for device-sampled Music types are
+recoverable **offline** via `swiftmd` on `MusicApplication.framework`
+([docs/OFFLINE_MUSIC_FIELDS.md](docs/OFFLINE_MUSIC_FIELDS.md)). Not published
+to APT.
 
 ## Targets
 

@@ -1,0 +1,9 @@
+struct   MiniPlayerContentView  [desc 0x20c41b128]  fovo=4
+    [ 0] namespace : <symbolic>
+    [ 1] _viewModel : <symbolic>
+    [ 2] _controller : <symbolic>
+struct   MiniPlayerMetadataView  [desc 0x20c41c0b8]  fovo=4
+    [ 0] _viewModel : <symbolic>
+struct   MiniPlayerTransportControlsView  [desc 0x20c41fe20]  fovo=4
+    [ 0] _viewModel : <symbolic>
+    [ 1] _controller : <symbolic>

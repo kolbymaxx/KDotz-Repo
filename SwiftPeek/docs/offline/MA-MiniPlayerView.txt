@@ -1,0 +1,47 @@
+class    MusicApplication.MiniPlayerViewController  [desc 0xb615fc]
+    [ 0] artworkView : <symbolic>
+    [ 1] queue : <symbolic>
+    [ 2] handoffToAction : yycSg
+    [ 3] handoffFromAction : yycSg
+    [ 4] nowPlaying : So17MPCPlayerResponseCSg
+    [ 5] nowPlayingPath : So13MPCPlayerPathCSg
+    [ 6] springLoadedInteraction : So25UISpringLoadedInteractionCSg
+    [ 7] nowPlayingItemStackView : So11UIStackViewCSg
+    [ 8] nowPlayingItemRouteLabel : So12MPRouteLabelCSg
+    [ 9] nowPlayingItemTitleLabel : So7UILabelCSg
+    [10] nowPlayingItemSecondaryLabel : So7UILabelCSg
+    [11] skipButton : <symbolic>
+    [12] playPauseButton : <symbolic>
+    [13] playPauseButtonWidthConstraint : So18NSLayoutConstraintCSg
+    [14] reverseButton : <symbolic>
+    [15] sharedListeningParticipantsLabel : So7UILabelCSg
+    [16] playerSubscriptions : Shy <symbolic>
+    [17] artworkLayoutGuide : So13UILayoutGuideCSg
+    [18] shuffleButton : <symbolic>
+    [19] repeatButton : <symbolic>
+    [20] artworkConstraints : SaySo18NSLayoutConstraintCG
+    [21] nowPlayingItemVibrancyEffectHeadlineStackView : <symbolic>
+    [22] nowPlayingItemVibrancyEffectTitleLabelView : <symbolic>
+    [23] nowPlayingItemVibrancyEffectSecondaryLabelView : <symbolic>
+    [24] nowPlayingItemLargeTextTitleLabel : So7UILabelCSg
+    [25] nowPlayingItemLargeTextMarqueeView : So14MPUMarqueeViewCSg
+    [26] playbackCancellationGesture : So28UILongPressGestureRecognizerCSg
+    [27] transportControlsController : <symbolic>
+    [28] transportControlsStack : <symbolic>
+    [29] reverseButtonConfiguration : <symbolic>
+    [30] playPauseButtonConfiguration : <symbolic>
+    [31] skipButtonConfiguration : <symbolic>
+    [32] bindings : Say <symbolic>
+    [33] cancellables : Shy <symbolic>
+    [34] dragDropController : <symbolic>
+    [35] highlightGestureRecognizer : <symbolic>
+    [36] highlightGestureRecognizerHandler : <symbolic>
+    [37] reverseButtonVibrancyEffectContainerView : <symbolic>
+    [38] playPauseButtonVibrancyEffectContainerView : <symbolic>
+    [39] skipButtonVibrancyEffectContainerView : <symbolic>
+    [40] handoffButton : So8UIButtonCSg
+    [41] isPreviewing : Sb
+    [42] isSharedListeningLoading : Sb
+    [43] sharedListeningParticipantsCount : Si
+    [44] $__lazy_storage_$_loadingString : SSSg
+    [45] $__lazy_storage_$_nowPlayingHeadlineStackView : So11UIStackViewCSg

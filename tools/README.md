@@ -36,3 +36,14 @@ a high unresolved rate means lossy extraction, not missing metadata.
 
 Downloads remote dyld caches for iPhone13,1 (17.0–17.3.1) and iPhone10,6
 (16.7.10), extracts SwiftUI, runs `swiftmd`, writes per-version summaries.
+
+## Offline Music fields
+
+Live FOVO on Music crashes. Dump field names from the IPSW instead:
+
+```bash
+./tools/offline-music-fields.sh /tmp/sp-offline-music
+# → MusicApplication-summary.txt + MA-NowPlayingContentView.txt …
+```
+
+See [`SwiftPeek/docs/OFFLINE_MUSIC_FIELDS.md`](../SwiftPeek/docs/OFFLINE_MUSIC_FIELDS.md).

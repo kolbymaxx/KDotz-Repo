@@ -1,0 +1,10 @@
+class    MusicApplication.NowPlayingTransportControlStackView  [desc 0xb2e1d4]
+    [ 0] useBoundsAsPointInside : Sb
+class    MusicApplication.NowPlayingTransportButton  [desc 0xb2e23c]
+    [ 0] packageView : <symbolic>
+    [ 1] currentStates : SaySSG
+    [ 2] stateAnimationTimer : So7NSTimerCSg
+    [ 3] package : <symbolic>
+    [ 4] highlightIndicatorView : So6UIViewCSg
+    [ 5] highlightIndicatorWidthConstraint : So18NSLayoutConstraintCSg
+    [ 6] highlightIndicatorWidth : <symbolic>

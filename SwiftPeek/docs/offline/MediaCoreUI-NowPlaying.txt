@@ -1,0 +1,43 @@
+enum     MediaCoreUI.NowPlayingContentID  [desc 0x20c41d104]
+    [ 0] default : <none>
+    [ 1] leadingFooterToggleButtonContent : <none>
+    [ 2] trailingFooterToggleButtonContent : <none>
+struct   MediaCoreUI.NowPlayingSharedViews  [desc 0x20c41d148]  fovo=2
+    [ 0] map : <symbolic>
+struct   MediaCoreUI.NowPlayingQueueView  [desc 0x20c4211f4]  fovo=4
+    [ 0] content : x
+struct   MediaCoreUI.NowPlayingQueuePlayingItem  [desc 0x20c42125c]  fovo=2
+    [ 0] sharedViews : <symbolic>
+    [ 1] _deviceMetrics : <symbolic>
+struct   MediaCoreUI.NowPlayingQueueSection  [desc 0x20c421298]  fovo=8
+    [ 0] content : q_
+    [ 1] headerView : q0_
+    [ 2] data : x
+    [ 3] _deviceMetrics : <symbolic>
+struct   MediaCoreUI.NowPlayingQueueRow  [desc 0x20c421334]  fovo=4
+    [ 0] artwork : x
+    [ 1] title : <symbolic>
+    [ 2] subtitle : <symbolic>
+    [ 3] action : yyc
+    [ 4] _deviceMetrics : <symbolic>
+struct   MediaCoreUI.NowPlayingButton  [desc 0x20c421b64]  fovo=4
+    [ 0] button : x
+struct   MediaCoreUI.NowPlayingFooterContentSelectionButton  [desc 0x20c423ed8]  fovo=4
+    [ 0] contentBuilder : <symbolic>
+    [ 1] toggleButton : <symbolic>
+struct   MediaCoreUI.NowPlayingView  [desc 0x20c426638]  fovo=4
+    [ 0] _nowPlayingNamespace : <symbolic>
+    [ 1] _playerStyle : <symbolic>
+    [ 2] _deviceMetrics : <symbolic>
+    [ 3] controller : x
+class    MediaCoreUI.NowPlayingViewModel  [desc 0x20c426b74]
+    [ 0] background : <symbolic>
+    [ 1] artwork : <symbolic>
+    [ 2] metadata : <symbolic>
+    [ 3] contextMenu : <symbolic>
+    [ 4] timeControl : <symbolic>
+    [ 5] transportControls : <symbolic>
+    [ 6] contentSelection : <symbolic>
+    [ 7] isLive : Sb
+    [ 8] isPlaying : Sb
+struct   MediaCoreUI.NowPlayingRouteButton  [desc 0x20c426e58]  fovo=2
