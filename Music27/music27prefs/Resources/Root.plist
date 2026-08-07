@@ -10,7 +10,7 @@
 			<key>label</key>
 			<string>Music27</string>
 			<key>footerText</key>
-			<string>1.1.15: Recovers from 1.1.14 black/crash — never fades MiniPlayer. Dock floats (safeBottom+12); stock tab bar soft-hidden only. First launch after update forces Floating Glass Dock OFF; re-enable after Library works.</string>
+			<string>1.1.16: Dual-pill floating dock (mini + 5 tabs). Soft-hides Music's tabsViewController chrome (not just UITabBar). Never fades MiniPlayer. Library must stay tappable.</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -94,7 +94,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>Music27 1.1.15 — safe dock (no MiniPlayer fade). No APT publish until verified on iPhone X.</string>
+			<string>Music27 1.1.16 — dual-pill glass dock. No APT publish until verified on iPhone X.</string>
 		</dict>
 	</array>
 	<key>title</key>

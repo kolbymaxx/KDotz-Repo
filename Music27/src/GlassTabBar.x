@@ -8,12 +8,12 @@
 
 // Floating Liquid Glass dock for Music.
 //
-// 1.1.15 (safe recovery after 1.1.14 black/crash):
-// - 1.1.14 faded MiniPlayerViewController.view — that blanked/crashed Music again.
-// - NEVER fade/hide MiniPlayer or any protected host. Soft-hide UITabBar only.
-// - Keep passthrough overlay + bottomPad = safeBottom + 12 float.
-// - One-time prefs marker forces Floating Glass Dock OFF so Music can launch;
-//   re-enable after verifying Library.
+// 1.1.16 (dual-pill dock + Music custom tab chrome):
+// - 1.1.15 floated a mini glass pill but stock Listen Now/Browse/… tabs stayed
+//   visible — MusicApplication.TabBarController draws tabs via
+//   tabsViewController, not UITabBar. Soft-hide that chrome (height-capped).
+// - NEVER fade MiniPlayerViewController (1.1.14 crash). Overlay covers it.
+// - Force expanded dual-pill (mini + 5 tabs); fix tab button layout.
 
 static const NSInteger kM27DockTag = 0x4D323744; // 'M27D'
 static const CGFloat kM27ScrollCollapseY = 48.0;
@@ -299,8 +299,21 @@ static void M27SweepLegacyDockSubviews(void) {
     }
 }
 
-/// Soft-hide stock UITabBar only. NEVER touch MiniPlayer / Library hosts —
-/// fading MiniPlayerViewController.view in 1.1.14 blanked/crashed Music.
+static void M27SoftHideChromeView(UIView *view, BOOL hide) {
+    if (!view) return;
+    // Never hide large content hosts (Library / full-screen).
+    CGFloat h = CGRectGetHeight(view.bounds);
+    CGFloat w = CGRectGetWidth(view.bounds);
+    if (h > 140.0 || (w > 0 && h > w)) return;
+    if (M27IsProtectedMusicHost(view)) return;
+    NSString *name = NSStringFromClass(view.class);
+    if ([name containsString:@"Hosting"] || [name containsString:@"Library"]) return;
+    view.alpha = hide ? 0.0 : 1.0;
+    view.userInteractionEnabled = !hide;
+}
+
+/// Soft-hide stock bottom tab chrome. NEVER fade MiniPlayer / Library hosts.
+/// Music 16 uses tabsViewController (SwiftPeek) — UITabBar alone is not enough.
 static void M27ApplyStockChromeVisibility(UITabBarController *tbc, BOOL glassOn) {
     if (!tbc || !tbc.isViewLoaded) return;
 
@@ -308,7 +321,7 @@ static void M27ApplyStockChromeVisibility(UITabBarController *tbc, BOOL glassOn)
     if (glassOn) {
         bar.alpha = 0.0;
         bar.userInteractionEnabled = NO;
-        bar.hidden = NO; // keep geometry; do not remove from hierarchy
+        bar.hidden = NO;
         if (@available(iOS 15.0, *)) {
             UITabBarAppearance *clear = [UITabBarAppearance new];
             [clear configureWithTransparentBackground];
@@ -321,11 +334,39 @@ static void M27ApplyStockChromeVisibility(UITabBarController *tbc, BOOL glassOn)
         bar.hidden = NO;
     }
 
-    // Always restore MiniPlayer if a prior 1.1.13/1.1.14 build faded it.
+    // SwiftPeek: MusicApplication.TabBarController.tabsViewController
+    @try {
+        id tabsVC = [tbc valueForKey:@"tabsViewController"];
+        if ([tabsVC isKindOfClass:UIViewController.class]) {
+            UIViewController *vc = (UIViewController *)tabsVC;
+            if (vc.isViewLoaded) M27SoftHideChromeView(vc.view, glassOn);
+        }
+    } @catch (__unused NSException *ex) {}
+
+    // Also soft-hide bottom-aligned tab chrome siblings under the TBC view.
+    if (tbc.isViewLoaded) {
+        CGFloat hostH = CGRectGetHeight(tbc.view.bounds);
+        for (UIView *sub in tbc.view.subviews) {
+            if (sub == tbc.selectedViewController.view) continue;
+            if (sub == tbc.tabBar) continue;
+            NSString *name = NSStringFromClass(sub.class);
+            BOOL nameHit = [name localizedCaseInsensitiveContainsString:@"tabbar"]
+                || [name localizedCaseInsensitiveContainsString:@"tabsview"]
+                || [name localizedCaseInsensitiveContainsString:@"tabstrip"];
+            CGFloat y = CGRectGetMinY(sub.frame);
+            CGFloat h = CGRectGetHeight(sub.bounds);
+            BOOL bottomChrome = (h > 0 && h <= 120.0 && y > hostH * 0.65);
+            if (nameHit || (bottomChrome && [sub isKindOfClass:UITabBar.class])) {
+                M27SoftHideChromeView(sub, glassOn);
+            }
+        }
+    }
+
+    // Always restore MiniPlayer if a prior build faded it — never fade again.
     UIViewController *miniVC = M27FindMiniPlayerViewController(tbc);
     if (miniVC.isViewLoaded && M27ClassNameHasSuffix(miniVC, @"MiniPlayerViewController")) {
         UIView *mini = miniVC.view;
-        if (mini && (mini.alpha < 0.99 || !mini.userInteractionEnabled)) {
+        if (mini) {
             mini.alpha = 1.0;
             mini.userInteractionEnabled = YES;
         }
@@ -473,6 +514,10 @@ static void M27InstallDockIfNeeded(UITabBarController *tbc) {
         }
         dock.delegate = controller;
         controller.dock = dock;
+        // Always expanded dual-pill on install; reload tabs every time so icons
+        // appear after Music finishes populating viewControllers.
+        [dock reloadTabs];
+        [dock setMode:M27DockModeExpanded animated:NO];
         dock.selectedTabIndex = (NSInteger)tbc.selectedIndex;
         [controller syncNowPlaying];
         M27LayoutDock(tbc, dock);
