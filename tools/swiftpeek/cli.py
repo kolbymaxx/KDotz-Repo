@@ -7,6 +7,8 @@
   python3 -m swiftpeek strings annotated.json
   python3 -m swiftpeek fields annotated.json MiniPlayer
   python3 -m swiftpeek find annotated.json artwork
+  python3 -m swiftpeek targets annotated.json
+  python3 -m swiftpeek scaffold annotated.json -o ~/Tweaks/MyMusicTweak --name MyMusicTweak
 """
 from __future__ import annotations
 
@@ -22,6 +24,7 @@ if __name__ == "__main__" and (__package__ is None or __package__ == ""):
 
 from .api import FieldCatalog, PeekSession, annotate_dump, load_dump
 from .paths import DEFAULT_CATALOG
+from .scaffold import format_targets, rank_targets, write_scaffold
 
 
 def _cmd_annotate(args: argparse.Namespace) -> int:
@@ -72,8 +75,10 @@ def _cmd_summary(args: argparse.Namespace) -> int:
             "with_strings": "with_strings",
         }[k]
         if k == "matched_nodes":
-            print(f"offline:      {s.get('matched_nodes')}/{s.get('nodes')} matched "
-                  f"({s.get('catalog_types')} catalog types)")
+            print(
+                f"offline:      {s.get('matched_nodes')}/{s.get('nodes')} matched "
+                f"({s.get('catalog_types')} catalog types)"
+            )
         elif k == "catalog_types":
             continue
         else:
@@ -125,6 +130,37 @@ def _cmd_find(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_targets(args: argparse.Namespace) -> int:
+    sess = _session(args)
+    targets = rank_targets(sess, limit=args.limit)
+    if args.json:
+        print(json.dumps([t.as_dict() for t in targets], indent=2))
+    else:
+        text = format_targets(targets)
+        if not text.endswith("\n"):
+            text += "\n"
+        sys.stdout.write(text)
+    return 0
+
+
+def _cmd_scaffold(args: argparse.Namespace) -> int:
+    if not args.dump.is_file():
+        print(f"missing dump: {args.dump}", file=sys.stderr)
+        return 1
+    sess = _session(args)
+    root = write_scaffold(
+        sess,
+        args.output,
+        name=args.name,
+        bundle_id=args.bundle_id,
+        filter_substr=args.filter,
+        limit=args.limit,
+    )
+    print(f"# scaffold written to {root}", file=sys.stderr)
+    print(f"# edit {root / 'src' / 'Tweak.x'} and see {root / 'TARGETS.md'}", file=sys.stderr)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="swiftpeek", description=__doc__)
     ap.add_argument(
@@ -159,6 +195,35 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("dump", type=Path)
     p.add_argument("needle")
     p.set_defaults(func=_cmd_find)
+
+    p = sub.add_parser("targets", help="rank dump nodes for tweakability")
+    p.add_argument("dump", type=Path)
+    p.add_argument("-n", "--limit", type=int, default=20)
+    p.add_argument("--json", action="store_true", help="emit JSON instead of markdown")
+    p.set_defaults(func=_cmd_targets)
+
+    p = sub.add_parser("scaffold", help="emit a Music-only Theos tweak skeleton")
+    p.add_argument("dump", type=Path)
+    p.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        required=True,
+        help="directory to write the Theos project into",
+    )
+    p.add_argument("--name", default="PeekMusicTweak", help="TWEAK_NAME / package Name")
+    p.add_argument(
+        "--bundle-id",
+        default="com.kolby.peekmusic",
+        help="debian Package id (default: com.kolby.peekmusic)",
+    )
+    p.add_argument(
+        "--filter",
+        default=None,
+        help="only hook types matching this substring (e.g. MiniPlayer)",
+    )
+    p.add_argument("-n", "--limit", type=int, default=12, help="targets listed in TARGETS.md")
+    p.set_defaults(func=_cmd_scaffold)
 
     args = ap.parse_args(argv)
     return args.func(args)

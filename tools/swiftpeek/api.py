@@ -86,7 +86,7 @@ def annotate_dump(dump: dict[str, Any], catalog: FieldCatalog | None = None) -> 
         "total_nodes": len(annotated),
         "catalog_types": len(cat),
         "note": "layouts from offline swiftmd; not live FOVO",
-        "api_version": "0.4.0",
+        "api_version": "0.5.0",
     }
     return result
 
