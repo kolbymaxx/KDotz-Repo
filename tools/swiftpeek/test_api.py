@@ -55,7 +55,7 @@ class ReadAPITests(unittest.TestCase):
         out = annotate_dump(SAMPLE, self.catalog)
         info = out["offline_annotate"]
         self.assertEqual(info["matched_nodes"], 3)
-        self.assertEqual(info["api_version"], "0.5.0")
+        self.assertEqual(info["api_version"], "0.6.0")
         mini = out["nodes"][0]
         self.assertTrue(mini["offline_fields"])
         names = {f["name"] for f in mini["offline_fields"]}

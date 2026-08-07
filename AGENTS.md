@@ -25,10 +25,12 @@ key thing for working here in a Linux cloud VM.
   (the `tools/swiftmd` binary is intentionally `.gitignore`d; rebuild it as needed).
 - Self-test swiftmd end-to-end: `python3 tools/mkfixture.py && ./tools/swiftmd /tmp/fixture.macho`
   → expect `TestKit.MyView` with `title : Swift.String`, `tint : SwiftUI.Color`.
-- Join a device dump with offline field layouts, then query it:
-  `python3 tools/annotate-dump.py <dump>.json -o annotated.json` then
-  `python3 tools/peek-query.py annotated.json summary|types|strings|fields <T>|find <s>`.
-  The offline catalog lives at `SwiftPeek/docs/offline/field-catalog.json` (~1955 types).
+- SwiftPeek host API (preferred):
+  `PYTHONPATH=tools python3 -m swiftpeek annotate|summary|fields|find|targets|scaffold …`
+  and dump-free `… catalog types|fields|find …`.
+  Legacy: `annotate-dump.py` / `peek-query.py`. Catalog:
+  `SwiftPeek/docs/offline/field-catalog.json` (~1955 types).
+  Unit tests: `PYTHONPATH=tools python3 -m unittest tools.swiftpeek.test_api tools.swiftpeek.test_scaffold -v`.
 - See `tools/README.md` and `SwiftPeek/README.md` for the full recon workflow.
 
 ### APT / Sileo repo tooling (Linux-runnable)
@@ -44,5 +46,5 @@ key thing for working here in a Linux cloud VM.
 
 - `repo-site/` + `.github/workflows/deploy-repo-pages.yml` publish the static Sileo
   landing page to GitHub Pages; nothing to run locally.
-- There is no automated unit-test suite; the `swiftmd` fixture run above is the
-  canonical smoke test for host-tool changes.
+- Host-tool unit tests live under `tools/swiftpeek/test_*.py` (plus the
+  `swiftmd` fixture smoke test above).

@@ -3,14 +3,13 @@
 Read-only SwiftUI / Music view inspector for jailbroken iOS. Recovers live
 type names (M1) and optional on-screen strings (M2) without mutating the UI.
 
-**Status:** Phase 1 — M1 + safe M2 `screen_strings` proven on iPhone X /
-16.7.14. Live FOVO field meta is **unsafe** on Music — leave Dump Field Meta
-**off** (0.3.6). Field **names/layouts** for device-sampled Music types are
-recoverable **offline** via `swiftmd` on `MusicApplication.framework`
-([docs/OFFLINE_MUSIC_FIELDS.md](docs/OFFLINE_MUSIC_FIELDS.md)). Phase 2–3 host
-tools: annotate / query / **ranked targets** / **Theos scaffold** —
-[`docs/READ_API.md`](docs/READ_API.md), [`docs/TWEAK_WORKFLOW.md`](docs/TWEAK_WORKFLOW.md),
-`PYTHONPATH=tools python3 -m swiftpeek …`. Not published to APT.
+**Status:** Device **0.3.6** — M1 types + M2 `screen_strings` proven on iPhone X /
+16.7.14. Dump Field Meta stays **off** (FOVO unsafe on Music). Host tooling is
+Phase 2–3.1: annotate / query / **catalog browse** / **ranked targets** /
+**Theos scaffold with KVC stubs** — [`docs/READ_API.md`](docs/READ_API.md),
+[`docs/TWEAK_WORKFLOW.md`](docs/TWEAK_WORKFLOW.md),
+`PYTHONPATH=tools python3 -m swiftpeek …`. Offline layouts:
+[`docs/OFFLINE_MUSIC_FIELDS.md`](docs/OFFLINE_MUSIC_FIELDS.md). Not published to APT.
 
 ## Targets
 

@@ -1,0 +1,36 @@
+{
+  "tool_version": "0.3.6",
+  "milestone": 2,
+  "message": "fixture: redacted Music dump for host-tool smoke tests (no FOVO)",
+  "nodes": [
+    {
+      "type": "MusicApplication.MiniPlayerViewController",
+      "objc_class": "MusicApplication.MiniPlayerViewController",
+      "role": "scan_controller",
+      "screen_strings": ["Sample Track", "Sample Artist"]
+    },
+    {
+      "type": "MusicApplication.NowPlayingContentView",
+      "objc_class": "MusicApplication.NowPlayingContentView",
+      "role": "scan_view"
+    },
+    {
+      "type": "MusicApplication.TabBarController",
+      "objc_class": "MusicApplication.TabBarController",
+      "role": "scan_controller",
+      "screen_strings": ["Listen Now", "Library", "Search"]
+    },
+    {
+      "type": "MusicApplication.LibraryViewController",
+      "objc_class": "MusicApplication.LibraryViewController",
+      "role": "scan_controller",
+      "screen_strings": ["Library", "Playlists", "Artists"]
+    },
+    {
+      "type": "MusicApplication.SearchViewController<MusicApplication.SearchLandingViewController>",
+      "objc_class": "_TtGC16MusicApplication20SearchViewControllerCS_27SearchLandingViewController_",
+      "role": "scan_controller",
+      "screen_strings": ["Search", "Browse Categories"]
+    }
+  ]
+}

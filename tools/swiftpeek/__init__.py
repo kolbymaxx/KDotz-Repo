@@ -1,6 +1,7 @@
 """SwiftPeek host-side read API — annotate live dumps with offline field layouts.
 
 Phase 2: read/annotate/query. Phase 3: ranked targets + Theos scaffold.
+Phase 3.1: catalog browse (no dump) + richer KVC scaffold stubs.
 No live FOVO; safe to use with 0.3.6 device dumps.
 """
 
@@ -19,4 +20,4 @@ __all__ = [
     "write_scaffold",
 ]
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"

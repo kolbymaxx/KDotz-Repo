@@ -61,6 +61,47 @@ class FieldCatalog:
             return []
         return list(hit.get("fields") or [])
 
+    def search_types(self, needle: str, *, limit: int = 40) -> list[dict[str, Any]]:
+        """Substring search over catalog type names (no dump required)."""
+        n = needle.lower()
+        rows: list[dict[str, Any]] = []
+        for key, meta in sorted(self._full.items()):
+            if n not in key.lower():
+                continue
+            fields = meta.get("fields") or []
+            rows.append(
+                {
+                    "type": key,
+                    "kind": meta.get("kind"),
+                    "field_count": len(fields),
+                    "fields": fields,
+                }
+            )
+            if len(rows) >= limit:
+                break
+        return rows
+
+    def find_fields(self, needle: str, *, limit: int = 80) -> list[dict[str, Any]]:
+        """Search field names/types across the whole catalog (no dump required)."""
+        n = needle.lower()
+        hits: list[dict[str, Any]] = []
+        for key, meta in sorted(self._full.items()):
+            for f in meta.get("fields") or []:
+                name = str(f.get("name") or "")
+                typ = str(f.get("type") or "")
+                if n in name.lower() or n in typ.lower():
+                    hits.append(
+                        {
+                            "type": key,
+                            "name": name,
+                            "type_hint": typ,
+                            "index": int(f.get("index") or 0),
+                        }
+                    )
+                    if len(hits) >= limit:
+                        return hits
+        return hits
+
 
 def annotate_dump(dump: dict[str, Any], catalog: FieldCatalog | None = None) -> dict[str, Any]:
     cat = catalog or FieldCatalog()
@@ -86,7 +127,7 @@ def annotate_dump(dump: dict[str, Any], catalog: FieldCatalog | None = None) -> 
         "total_nodes": len(annotated),
         "catalog_types": len(cat),
         "note": "layouts from offline swiftmd; not live FOVO",
-        "api_version": "0.5.0",
+        "api_version": "0.6.0",
     }
     return result
 
