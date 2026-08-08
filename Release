@@ -5,7 +5,7 @@ Version: 1.0
 Codename: lumina
 Architectures: iphoneos-arm64 iphoneos-arm64e
 Components: main
-Description: Lumina Repo - tweaks by Kolby (rootless + roothide)
+Description: Lumina Repo - tweaks by ma6x9x (rootless + roothide)
 Date: Sat, 08 Aug 2026 03:40:48 +0000
 MD5Sum:
  9c3fd4175a285d7d9403e1d253a24dd9 34407 Packages

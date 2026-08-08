@@ -4,8 +4,8 @@ Depends: mobilesubstrate, preferenceloader
 Version: 1.40.6
 Architecture: iphoneos-arm64
 Description: iOS 27-style liquid glass Siri orb — wide glowing rainbow band, single pop on roothide. rootless + roothide (Relaxin'), iOS 14–17.3. Replaces FloatingSiri.
-Maintainer: Kolby
-Author: Kolby
+Maintainer: ma6x9x
+Author: ma6x9x
 Section: Tweaks
 Conflicts: com.kolby.floatingsiri
 Replaces: com.kolby.floatingsiri

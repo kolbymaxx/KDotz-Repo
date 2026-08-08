@@ -32,7 +32,7 @@ filesize() {
   # iphoneos-arm64 = Dopamine / rootless; iphoneos-arm64e = RootHide (Relaxin')
   echo "Architectures: iphoneos-arm64 iphoneos-arm64e"
   echo "Components: main"
-  echo "Description: Lumina Repo - tweaks by Kolby (rootless + roothide)"
+  echo "Description: Lumina Repo - tweaks by ma6x9x (rootless + roothide)"
   echo "Date: $(date -Ru)"
   echo "MD5Sum:"
   for f in "${INDEX_FILES[@]}"; do

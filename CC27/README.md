@@ -97,7 +97,7 @@ Unlike aesthetic-only tweaks (CC26 / CCXVIII), CC27 focuses on the **real custom
 Add **Lumina Repo** in Sileo:
 
 ```
-https://raw.githubusercontent.com/kolbymaxx/lumina-repo/main/
+https://raw.githubusercontent.com/ma6x9x/lumina-repo/main/
 ```
 
 Install **CC27** (depends on **CCSupport**). Respring. Open Control Center → tap **+** or touch & hold empty space.

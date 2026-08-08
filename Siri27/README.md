@@ -13,10 +13,10 @@ Package ID: `com.kolby.siri27` (replaces / uninstalls `com.kolby.floatingsiri` o
 Add this source in Sileo (Sources → Edit → Add):
 
 ```
-https://raw.githubusercontent.com/kolbymaxx/lumina-repo/main/
+https://raw.githubusercontent.com/ma6x9x/lumina-repo/main/
 ```
 
-(Landing page: `https://kolbymaxx.github.io/lumina-repo/`)
+(Landing page: `https://ma6x9x.github.io/lumina-repo/`)
 
 Then install **Siri27**. Works on both jailbreak types with the same URL:
 

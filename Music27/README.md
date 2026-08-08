@@ -41,7 +41,7 @@ Prefs are read preferring `/var/jb/.../com.music27.tweak.plist` (Dopamine), then
 Add this source in Sileo (**Sources → Edit → Add**):
 
 ```
-https://raw.githubusercontent.com/kolbymaxx/lumina-repo/main/
+https://raw.githubusercontent.com/ma6x9x/lumina-repo/main/
 ```
 
 Then search for **Music27** and install. New versions show up as normal Sileo updates when the repo is refreshed.

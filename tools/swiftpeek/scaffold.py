@@ -259,8 +259,8 @@ def write_scaffold(
                 "Version: 0.0.1",
                 "Architecture: iphoneos-arm64",
                 "Description: Scaffold from SwiftPeek dump — Music-only. Edit src/Tweak.x.",
-                "Maintainer: Kolby",
-                "Author: Kolby",
+                "Maintainer: ma6x9x",
+                "Author: ma6x9x",
                 "Section: Tweaks",
                 "",
             ]

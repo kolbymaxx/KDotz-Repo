@@ -6,12 +6,12 @@
 #   ./scripts/publish-to-lumina.sh /path/to/com.music27.tweak_1.0.2_iphoneos-arm64.deb
 #
 # When run inside the Lumina monorepo, copies into ../dist and regenerates the
-# APT index. Outside the monorepo, clones kolbymaxx/lumina-repo instead.
+# APT index. Outside the monorepo, clones ma6x9x/lumina-repo instead.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEB="${1:-}"
-REPO_SLUG="kolbymaxx/lumina-repo"
+REPO_SLUG="ma6x9x/lumina-repo"
 
 if [[ -z "$DEB" ]]; then
   DEB="$(ls -t "$ROOT"/packages/com.music27.tweak_*.deb 2>/dev/null | head -1 || true)"

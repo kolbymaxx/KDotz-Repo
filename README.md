@@ -4,19 +4,19 @@
   <img src="repo-site/logo.png" width="128" height="128" alt="Lumina Repo logo">
 </p>
 
-Sileo / Zebra APT source for Kolby's jailbreak tweaks (rootless + roothide).
+Sileo / Zebra APT source for ma6x9x's jailbreak tweaks (rootless + roothide).
 
 ## Add in Sileo (Dopamine 3 / rootless)
 
 **Sources → + → Add:**
 
 ```
-https://raw.githubusercontent.com/kolbymaxx/lumina-repo/main/
+https://raw.githubusercontent.com/ma6x9x/lumina-repo/main/
 ```
 
 Origin / label: **Lumina Repo**.
 
-Landing page (after GitHub rename to `lumina-repo`): https://kolbymaxx.github.io/lumina-repo/
+Landing page (after GitHub rename to `lumina-repo`): https://ma6x9x.github.io/lumina-repo/
 
 > Prefer the `raw.githubusercontent.com` URL in Sileo. GitHub Pages paths are
 > case-sensitive; mixed-case repo names get lowercased by some Sileo builds and
@@ -28,7 +28,7 @@ RootHide and Dopamine use **different package architectures**. After a clean Dop
 jailbreak:
 
 1. Remove any leftover KDotz / Lumina source entries (especially any that 404)
-2. Add `https://raw.githubusercontent.com/kolbymaxx/lumina-repo/main/`
+2. Add `https://raw.githubusercontent.com/ma6x9x/lumina-repo/main/`
 3. Pull to refresh — you should see Siri27 / Music27 / CC27 (`iphoneos-arm64`)
 4. Do **not** expect RHCompat — that package is RootHide-only (`iphoneos-arm64e`)
 

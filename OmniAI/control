@@ -7,6 +7,6 @@ Depends: mobilesubstrate, preferenceloader, firmware (>= 16.0)
 Conflicts: com.kolby.grokagent
 Replaces: com.kolby.grokagent
 Provides: com.kolby.grokagent
-Maintainer: kolbymaxx
-Author: kolbymaxx
+Maintainer: ma6x9x
+Author: ma6x9x
 Section: Tweaks
