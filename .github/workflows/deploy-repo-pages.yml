@@ -6,6 +6,8 @@ on:
     paths:
       - 'Packages'
       - 'Packages.gz'
+      - 'Packages.bz2'
+      - 'Packages.xz'
       - 'Release'
       - 'dist/**'
       - 'repo-site/**'
@@ -39,7 +41,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p site/dist
-          cp Packages Packages.gz Release site/
+          cp Packages Packages.gz Packages.bz2 Packages.xz Release site/
           cp dist/*.deb site/dist/
           cp repo-site/index.html site/ 2>/dev/null || true
           cp repo-site/logo.png site/ 2>/dev/null || true
@@ -48,6 +50,9 @@ jobs:
           touch site/.nojekyll
           test -f site/Release
           test -f site/Packages
+          test -f site/Packages.gz
+          test -f site/Packages.bz2
+          test -f site/Packages.xz
           ls -laR site
 
       - name: Configure Pages

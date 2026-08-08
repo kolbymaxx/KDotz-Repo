@@ -68,7 +68,7 @@ After building a new `.deb`, publish it into [KDotz Repo](https://github.com/kol
 # then push the branch it creates on kolbymaxx/Siri27 (or merge to main)
 ```
 
-Or copy the deb into `Siri27/dist/` and run `scripts/update-apt-repo.sh` there, then commit `Packages`, `Packages.gz`, and `Release`.
+Or copy the deb into `dist/` at the KDotz-Repo root and run `scripts/update-apt-repo.sh`, then commit `Packages`, `Packages.gz`, `Packages.bz2`, `Packages.xz`, and `Release`.
 
 ## Scope / honesty
 

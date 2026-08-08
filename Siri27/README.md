@@ -27,7 +27,7 @@ Sileo picks the right one automatically based on your jailbreak's architecture,
 and new versions appear as normal updates when the repo is refreshed.
 
 After each new release, regenerate the index with `scripts/update-apt-repo.sh`
-and commit `Packages`, `Packages.gz`, and `Release`.
+and commit `Packages`, `Packages.gz`, `Packages.bz2`, `Packages.xz`, and `Release`.
 
 ## What’s fixed in 1.30
 

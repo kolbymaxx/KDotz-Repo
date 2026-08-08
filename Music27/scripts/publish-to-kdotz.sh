@@ -36,8 +36,8 @@ cp "$DEB" "$WORKDIR/Siri27/dist/"
   bash scripts/update-apt-repo.sh
   git checkout -b "cursor/publish-music27-${BASENAME%.deb}-1f6a" 2>/dev/null \
     || git checkout -b "cursor/publish-music27-$(date +%Y%m%d%H%M%S)-1f6a"
-  git add "dist/$BASENAME" Packages Packages.gz Release README.md 2>/dev/null || true
-  git add "dist/$BASENAME" Packages Packages.gz Release
+  git add "dist/$BASENAME" Packages Packages.gz Packages.bz2 Packages.xz Release README.md 2>/dev/null || true
+  git add "dist/$BASENAME" Packages Packages.gz Packages.bz2 Packages.xz Release
   if git diff --cached --quiet; then
     echo "Nothing to publish (already up to date)."
     exit 0

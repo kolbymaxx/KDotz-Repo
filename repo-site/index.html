@@ -14,7 +14,7 @@
     color: #e8ecf5;
   }
   .card {
-    max-width: 420px; margin: 24px; padding: 36px 32px; text-align: center;
+    max-width: 440px; margin: 24px; padding: 36px 32px; text-align: center;
     background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
     border-radius: 24px; backdrop-filter: blur(20px);
   }
@@ -25,33 +25,51 @@
     border: 2px solid rgba(255,182,220,0.35);
   }
   h1 { margin: 0 0 6px; font-size: 2rem; letter-spacing: -0.02em; }
-  p.tag { margin: 0 0 24px; color: #c9a7c8; }
+  p.tag { margin: 0 0 20px; color: #c9a7c8; }
   .url {
     padding: 12px 16px; border-radius: 12px; background: rgba(0,0,0,0.35);
     border: 1px solid rgba(255,255,255,0.10); font-family: ui-monospace, Menlo, monospace;
     font-size: 0.85rem; word-break: break-all; user-select: all;
   }
+  .btns { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 18px; }
   a.btn {
-    display: inline-block; margin-top: 20px; padding: 12px 24px; border-radius: 14px;
+    display: inline-block; padding: 12px 22px; border-radius: 14px;
     background: linear-gradient(135deg, #ff6bb5, #c45cff); color: #fff; text-decoration: none;
     font-weight: 600;
   }
-  p.small { margin-top: 22px; font-size: 0.78rem; color: #7787a3; }
+  a.btn.secondary {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    font-weight: 500;
+  }
+  p.small { margin-top: 18px; font-size: 0.78rem; color: #7787a3; line-height: 1.45; text-align: left; }
+  p.small strong { color: #c9d3e6; font-weight: 600; }
 </style>
 </head>
 <body>
   <div class="card">
     <img class="logo" src="logo.png" width="112" height="112" alt="KDotz Repo">
     <h1>KDotz Repo</h1>
-    <p class="tag">Tweaks by Kolby &mdash; rootless &amp; roothide</p>
+    <p class="tag">Tweaks by Kolby &mdash; Dopamine rootless + RootHide</p>
     <div class="url" id="repo-url">loading&hellip;</div>
-    <a class="btn" id="sileo-link" href="#">Add to Sileo</a>
-    <p class="small">Same source works on rootless (Dopamine) and roothide (Relaxin&rsquo;) &mdash; Sileo picks the right build automatically.</p>
+    <div class="btns">
+      <a class="btn" id="sileo-link" href="#">Add to Sileo</a>
+      <a class="btn secondary" id="zebra-link" href="#">Add to Zebra</a>
+    </div>
+    <p class="small">
+      <strong>Dopamine 3 (rootless):</strong> Sileo installs <code>iphoneos-arm64</code> builds (Siri27, Music27, CC27).<br><br>
+      <strong>Switched from RootHide?</strong> Remove any old KDotz source first, then add this URL again and refresh. RootHide-only packages (RHCompat / <code>iphoneos-arm64e</code>) will not appear on Dopamine.<br><br>
+      Backup URL if Pages fails: <span id="mirror-url" style="word-break:break-all"></span>
+    </p>
   </div>
   <script>
-    const base = window.location.origin + window.location.pathname.replace(/index\.html$/, "");
+    const base = (window.location.origin + window.location.pathname.replace(/index\.html$/, ""))
+      .replace(/\/?$/, "/");
+    const mirror = "https://raw.githubusercontent.com/kolbymaxx/KDotz-Repo/main/";
     document.getElementById("repo-url").textContent = base;
+    document.getElementById("mirror-url").textContent = mirror;
     document.getElementById("sileo-link").href = "sileo://source/" + base;
+    document.getElementById("zebra-link").href = "zbra://sources/add/" + base;
   </script>
 </body>
 </html>

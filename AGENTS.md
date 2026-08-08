@@ -33,12 +33,14 @@ key thing for working here in a Linux cloud VM.
 
 ### APT / Sileo repo tooling (Linux-runnable)
 
-- `scripts/update-apt-repo.sh` regenerates the `Packages`, `Packages.gz`, and
-  `Release` index from the `.deb` files in `dist/` (needs `dpkg-scanpackages`).
-  Gotcha: it **rewrites those three tracked files at the repo root**. If you only
-  run it to sanity-check, `git checkout -- Packages Packages.gz Release` afterward
-  so you don't accidentally commit an index churn. Only commit them when actually
-  publishing a new `.deb` (see the "Publishing a new `.deb`" section in `README.md`).
+- `scripts/update-apt-repo.sh` regenerates the `Packages`, `Packages.gz`,
+  `Packages.bz2`, `Packages.xz`, and `Release` index from the `.deb` files in
+  `dist/` (needs `dpkg-scanpackages`, `gzip`, `bzip2`, `xz`).
+  Gotcha: it **rewrites those tracked index files at the repo root**. If you only
+  run it to sanity-check, `git checkout -- Packages Packages.gz Packages.bz2 Packages.xz Release`
+  afterward so you don't accidentally commit an index churn. Only commit them when
+  actually publishing a new `.deb` (see the "Publishing a new `.deb`" section in
+  `README.md`).
 
 ### Notes
 
