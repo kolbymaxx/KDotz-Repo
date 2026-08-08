@@ -4,8 +4,12 @@
 @implementation M27GlassChrome
 
 + (UIVisualEffectView *)pillWithCornerRadius:(CGFloat)radius {
-    // Thin (not ultra-thin) reads more like floating glass over Music artwork.
-    UIBlurEffect *effect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThinMaterial];
+    // Chrome material reads closer to iOS 26/27 floating glass than ultra-thin.
+    UIBlurEffectStyle style = UIBlurEffectStyleSystemChromeMaterial;
+    if (@available(iOS 15.0, *)) {
+        style = UIBlurEffectStyleSystemChromeMaterial;
+    }
+    UIBlurEffect *effect = [UIBlurEffect effectWithStyle:style];
     UIVisualEffectView *glass = [[UIVisualEffectView alloc] initWithEffect:effect];
     glass.clipsToBounds = YES;
     glass.userInteractionEnabled = YES;
@@ -19,7 +23,7 @@
     UIView *highlight = [[UIView alloc] initWithFrame:CGRectZero];
     highlight.tag = 0x4D324847; // 'M2HG'
     highlight.userInteractionEnabled = NO;
-    highlight.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.22];
+    highlight.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.28];
     highlight.autoresizingMask = UIViewAutoresizingFlexibleWidth;
     [glass.contentView insertSubview:highlight atIndex:0];
 
@@ -62,9 +66,14 @@
 
 + (void)addSoftShadowToHost:(UIView *)host {
     host.layer.shadowColor = [UIColor blackColor].CGColor;
-    host.layer.shadowOpacity = 0.28;
-    host.layer.shadowRadius = 22.0;
-    host.layer.shadowOffset = CGSizeMake(0, 8);
+    // Slightly stronger on light canvases so floating pills read above Library art.
+    BOOL dark = NO;
+    if (@available(iOS 13.0, *)) {
+        dark = host.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark;
+    }
+    host.layer.shadowOpacity = dark ? 0.32 : 0.22;
+    host.layer.shadowRadius = 24.0;
+    host.layer.shadowOffset = CGSizeMake(0, 10);
     host.layer.masksToBounds = NO;
 }
 

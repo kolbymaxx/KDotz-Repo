@@ -10,6 +10,8 @@ Jailbreak tweak that restyles **Apple Music on iOS 16 / 17** toward the **iOS 26
 - Artwork-driven color wash on album / playlist / now-playing
 - **Pinned** row at the top of Library + Pin / Unpin in context menus and detail nav bars
 
+**Primary prove target: iOS 17 rootless Dopamine.** Stock Music on 17 already floats the mini-player closer to the iOS 27 look; 16 remains supported but is secondary until the 17 dock is verified.
+
 Settings live under **Settings → Music27**.
 
 ## Dock behavior
@@ -17,7 +19,7 @@ Settings live under **Settings → Music27**.
 1. Fresh launch starts **expanded** (mini pill + 5-tab pill).
 2. Scrolling down collapses into the merged red · mini · Search pill.
 3. Tap the **red button** to expand back to the 5-tab layout.
-4. Stock tab bar / mini player are soft-hidden (alpha) while the glass dock is ON.
+4. Stock tab bar / mini player stay intact; an overlay **cover** paints over them while the glass dock is ON (never fades MiniPlayer / Library hosts).
 
 ## Blank-screen history
 
@@ -32,7 +34,12 @@ Settings live under **Settings → Music27**.
 | **1.1.11** | SwiftPeek proved `MusicApplication.LibraryViewController` / `MiniPlayerViewController` / SwiftUI hosts stay alive while Music looks black. Narrow matchers; never hide protected hosts; leave stock tab bar intact |
 | **1.1.12** | Dock moves to a **dedicated passthrough `UIWindow`** — never a subview of Music’s key window. Library usable with dock ON |
 | **1.1.13** | Soft-hide stock chrome + stronger glass, but float pad still capped (~18pt) — still looked glued on iPhone X |
-| **1.1.14** | Real float: `bottomPad = safeBottom + 12` (from #48) + soft-hide stock tab/mini. Verify before APT |
+| **1.1.14** | Real float + faded MiniPlayerViewController.view → black/crash regression on iPhone X |
+| **1.1.15** | **Never** fade MiniPlayer. Soft-hide UITabBar only. Keep `safeBottom+12` float + overlay window. One-time force dock OFF for recovery |
+| **1.1.16** | Soft-hide Music `tabsViewController` chrome — still left stock tabs visible on device for many users |
+| **1.1.17** | **Cover, don’t mutate:** overlay mask over stock chrome + dual glass pills on top. Never alpha-hide Music views |
+| **1.1.18** | **Make cover visible:** solid cover, `UIWindowLevelStatusBar - 1`, `safeBottom+12` float, install retries + Console logs |
+| **1.1.19** | **iOS 17-first:** adaptive light/dark cover (white on light Library), StatusBar-level dual pills, slightly larger float gap on 17+. Still never mutates Music views |
 
 Prefs are read preferring `/var/jb/.../com.music27.tweak.plist` (Dopamine), then jbroot (RootHide), then rootful.
 
@@ -49,6 +56,14 @@ Then search for **Music27** and install. New versions show up as normal Sileo up
 Manual / Filza: install `packages/com.music27.tweak_*.deb`, respring, force-quit and relaunch **Music**. Toggle features under **Settings → Music27**.
 
 Architecture: `iphoneos-arm64` (rootless, files under `/var/jb`).
+
+## Verify on iOS 17 (Dopamine rootless)
+
+1. Install the CI rootless `.deb` for this version; respring.
+2. **Settings → Music27** footer must say **1.1.19**. Enable Music27 + Floating Glass Dock **ON**.
+3. **Force-quit Music**, relaunch Library (light or dark).
+4. Expect: stock mini/tabs covered by a canvas-matching plate + dual glass pills floating above the home indicator.
+5. Optional Console filter: `Music27 1.1.19` → `loaded` / `install OK` / `layout iOS=17`.
 
 ## Build
 
