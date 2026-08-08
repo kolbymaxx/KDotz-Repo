@@ -2,9 +2,9 @@
 
 ## Cursor Cloud specific instructions
 
-This repo (`KDotz Repo`) is an **iOS jailbreak tweak monorepo** built with **Theos**
-plus a small set of **host-side developer tools**. Understanding the split is the
-key thing for working here in a Linux cloud VM.
+This repo (`Lumina Repo`, GitHub slug `lumina-repo`) is an **iOS jailbreak tweak
+monorepo** built with **Theos** plus a small set of **host-side developer tools**.
+Understanding the split is the key thing for working here in a Linux cloud VM.
 
 ### What can and cannot run in the cloud VM (Linux)
 

@@ -24,15 +24,15 @@ filesize() {
 }
 
 {
-  echo "Origin: KDotz Repo"
-  echo "Label: KDotz Repo"
+  echo "Origin: Lumina Repo"
+  echo "Label: Lumina Repo"
   echo "Suite: stable"
   echo "Version: 1.0"
-  echo "Codename: kdotz"
+  echo "Codename: lumina"
   # iphoneos-arm64 = Dopamine / rootless; iphoneos-arm64e = RootHide (Relaxin')
   echo "Architectures: iphoneos-arm64 iphoneos-arm64e"
   echo "Components: main"
-  echo "Description: KDotz Repo - tweaks by Kolby (rootless + roothide)"
+  echo "Description: Lumina Repo - tweaks by Kolby (rootless + roothide)"
   echo "Date: $(date -Ru)"
   echo "MD5Sum:"
   for f in "${INDEX_FILES[@]}"; do

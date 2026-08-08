@@ -36,12 +36,12 @@ Settings live under **Settings → Music27**.
 
 Prefs are read preferring `/var/jb/.../com.music27.tweak.plist` (Dopamine), then jbroot (RootHide), then rootful.
 
-## Install via Sileo (KDotz Repo — recommended)
+## Install via Sileo (Lumina Repo — recommended)
 
 Add this source in Sileo (**Sources → Edit → Add**):
 
 ```
-https://raw.githubusercontent.com/kolbymaxx/Siri27/main/
+https://raw.githubusercontent.com/kolbymaxx/lumina-repo/main/
 ```
 
 Then search for **Music27** and install. New versions show up as normal Sileo updates when the repo is refreshed.
@@ -59,16 +59,16 @@ make package FINALPACKAGE=1
 
 Requires Theos with an iOS 15+ SDK (this project targets `iphone:clang:16.5:15.0`) and a rootless packaging scheme.
 
-## Publish updates to KDotz Repo
+## Publish updates to Lumina Repo
 
-After building a new `.deb`, publish it into [KDotz Repo](https://github.com/kolbymaxx/Siri27) (`dist/` + apt index):
+After building a new `.deb`, publish it into Lumina Repo (`dist/` + apt index):
 
 ```bash
-./scripts/publish-to-kdotz.sh
-# then push the branch it creates on kolbymaxx/Siri27 (or merge to main)
+./scripts/publish-to-lumina.sh
+# then commit/push from the monorepo root (or the branch it creates)
 ```
 
-Or copy the deb into `dist/` at the KDotz-Repo root and run `scripts/update-apt-repo.sh`, then commit `Packages`, `Packages.gz`, `Packages.bz2`, `Packages.xz`, and `Release`.
+Or copy the deb into `dist/` at the Lumina Repo root and run `scripts/update-apt-repo.sh`, then commit `Packages`, `Packages.gz`, `Packages.bz2`, `Packages.xz`, and `Release`.
 
 ## Scope / honesty
 

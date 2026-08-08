@@ -1,4 +1,4 @@
-name: Deploy KDotz Repo to Pages
+name: Deploy Lumina Repo to Pages
 
 on:
   push:

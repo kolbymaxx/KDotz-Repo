@@ -8,16 +8,15 @@ iOS 27–style **liquid glass** Siri orb for jailbroken devices.
 
 Package ID: `com.kolby.siri27` (replaces / uninstalls `com.kolby.floatingsiri` on install)
 
-## Install via Sileo — KDotz Repo (easiest — auto-updates)
+## Install via Sileo — Lumina Repo (easiest — auto-updates)
 
 Add this source in Sileo (Sources → Edit → Add):
 
 ```
-https://raw.githubusercontent.com/kolbymaxx/KDotz-Repo/main/
+https://raw.githubusercontent.com/kolbymaxx/lumina-repo/main/
 ```
 
-(Landing page: `https://kolbymaxx.github.io/KDotz-Repo/` — do not add the Pages
-URL in Sileo if it lowercases to `kdotz-repo` and 404s.)
+(Landing page: `https://kolbymaxx.github.io/lumina-repo/`)
 
 Then install **Siri27**. Works on both jailbreak types with the same URL:
 

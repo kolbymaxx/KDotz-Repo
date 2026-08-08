@@ -98,7 +98,7 @@ ipsw dyld extract "$DSC" \
 Copy a Filza dump off-device (AirDrop / Files), then on a Mac with the repo:
 
 ```bash
-cd ~/KDotz-Repo
+cd ~/lumina-repo
 git pull origin cursor/swiftpeek-m2-screen-99e4
 python3 tools/annotate-dump.py ~/Downloads/Music_….json -o ~/Downloads/annotated.json
 ```
