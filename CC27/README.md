@@ -97,7 +97,7 @@ Unlike aesthetic-only tweaks (CC26 / CCXVIII), CC27 focuses on the **real custom
 Add **KDotz Repo** in Sileo:
 
 ```
-https://kolbymaxx.github.io/KDotz-Repo/
+https://raw.githubusercontent.com/kolbymaxx/KDotz-Repo/main/
 ```
 
 Install **CC27** (depends on **CCSupport**). Respring. Open Control Center → tap **+** or touch & hold empty space.

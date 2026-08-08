@@ -13,10 +13,11 @@ Package ID: `com.kolby.siri27` (replaces / uninstalls `com.kolby.floatingsiri` o
 Add this source in Sileo (Sources → Edit → Add):
 
 ```
-https://kolbymaxx.github.io/KDotz-Repo/
+https://raw.githubusercontent.com/kolbymaxx/KDotz-Repo/main/
 ```
 
-(Backup mirror, same packages: `https://raw.githubusercontent.com/kolbymaxx/KDotz-Repo/main/`)
+(Landing page: `https://kolbymaxx.github.io/KDotz-Repo/` — do not add the Pages
+URL in Sileo if it lowercases to `kdotz-repo` and 404s.)
 
 Then install **Siri27**. Works on both jailbreak types with the same URL:
 

@@ -44,6 +44,7 @@
   }
   p.small { margin-top: 18px; font-size: 0.78rem; color: #7787a3; line-height: 1.45; text-align: left; }
   p.small strong { color: #c9d3e6; font-weight: 600; }
+  code { font-size: 0.92em; }
 </style>
 </head>
 <body>
@@ -51,25 +52,23 @@
     <img class="logo" src="logo.png" width="112" height="112" alt="KDotz Repo">
     <h1>KDotz Repo</h1>
     <p class="tag">Tweaks by Kolby &mdash; Dopamine rootless + RootHide</p>
-    <div class="url" id="repo-url">loading&hellip;</div>
+    <!-- Primary APT URL: raw.githubusercontent is case-insensitive.
+         GitHub Pages paths are case-sensitive; Sileo often lowercases
+         KDotz-Repo -> kdotz-repo and then Pages 404s. -->
+    <div class="url" id="repo-url">https://raw.githubusercontent.com/kolbymaxx/KDotz-Repo/main/</div>
     <div class="btns">
-      <a class="btn" id="sileo-link" href="#">Add to Sileo</a>
-      <a class="btn secondary" id="zebra-link" href="#">Add to Zebra</a>
+      <a class="btn" id="sileo-link" href="sileo://source/https://raw.githubusercontent.com/kolbymaxx/KDotz-Repo/main/">Add to Sileo</a>
+      <a class="btn secondary" id="zebra-link" href="zbra://sources/add/https://raw.githubusercontent.com/kolbymaxx/KDotz-Repo/main/">Add to Zebra</a>
     </div>
     <p class="small">
-      <strong>Dopamine 3 (rootless):</strong> Sileo installs <code>iphoneos-arm64</code> builds (Siri27, Music27, CC27).<br><br>
-      <strong>Switched from RootHide?</strong> Remove any old KDotz source first, then add this URL again and refresh. RootHide-only packages (RHCompat / <code>iphoneos-arm64e</code>) will not appear on Dopamine.<br><br>
-      Backup URL if Pages fails: <span id="mirror-url" style="word-break:break-all"></span>
+      <strong>Use this URL in Sileo</strong> (not the Pages path). Mixed-case
+      <code>…/KDotz-Repo/</code> becomes <code>…/kdotz-repo/</code> in some Sileo
+      builds and GitHub Pages returns 404.<br><br>
+      <strong>Dopamine 3 (rootless):</strong> installs <code>iphoneos-arm64</code>
+      builds (Siri27, Music27, CC27). RHCompat is RootHide-only.<br><br>
+      <strong>Switched from RootHide?</strong> Remove any old KDotz source, add the
+      URL above, then refresh.
     </p>
   </div>
-  <script>
-    const base = (window.location.origin + window.location.pathname.replace(/index\.html$/, ""))
-      .replace(/\/?$/, "/");
-    const mirror = "https://raw.githubusercontent.com/kolbymaxx/KDotz-Repo/main/";
-    document.getElementById("repo-url").textContent = base;
-    document.getElementById("mirror-url").textContent = mirror;
-    document.getElementById("sileo-link").href = "sileo://source/" + base;
-    document.getElementById("zebra-link").href = "zbra://sources/add/" + base;
-  </script>
 </body>
 </html>

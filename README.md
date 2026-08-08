@@ -11,25 +11,28 @@ Sileo / Zebra APT source for Kolby's jailbreak tweaks (rootless + roothide).
 **Sources → + → Add:**
 
 ```
-https://kolbymaxx.github.io/KDotz-Repo/
+https://raw.githubusercontent.com/kolbymaxx/KDotz-Repo/main/
 ```
 
-Keep the trailing slash. Origin / label: **KDotz Repo**.
+Origin / label: **KDotz Repo**.
 
-Backup mirror (same packages): `https://raw.githubusercontent.com/kolbymaxx/KDotz-Repo/main/`
+> **Why not the github.io URL?** GitHub Pages paths are **case-sensitive**.
+> Sileo often lowercases the path (`KDotz-Repo` → `kdotz-repo`), which 404s
+> (`Release returned status 404`). The `raw.githubusercontent.com` URL works
+> either way. Landing page: https://kolbymaxx.github.io/KDotz-Repo/
 
 ### Switched from RootHide (Relaxin') to Dopamine?
 
 RootHide and Dopamine use **different package architectures**. After a clean Dopamine
 jailbreak:
 
-1. Remove any leftover KDotz / old RootHide source entries in Sileo
-2. Add `https://kolbymaxx.github.io/KDotz-Repo/` again
+1. Remove any leftover KDotz source (especially any `…/kdotz-repo/` entry that 404s)
+2. Add `https://raw.githubusercontent.com/kolbymaxx/KDotz-Repo/main/`
 3. Pull to refresh — you should see Siri27 / Music27 / CC27 (`iphoneos-arm64`)
 4. Do **not** expect RHCompat — that package is RootHide-only (`iphoneos-arm64e`)
 
-If refresh still fails, try the raw.githubusercontent mirror above, or open the
-Pages URL in Safari and tap **Add to Sileo**.
+Optional later: rename this GitHub repo to all-lowercase `kdotz-repo` so the
+Pages URL itself survives Sileo’s lowercasing.
 
 ## Packages
 
