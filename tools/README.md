@@ -51,7 +51,7 @@ See [`SwiftPeek/docs/OFFLINE_MUSIC_FIELDS.md`](../SwiftPeek/docs/OFFLINE_MUSIC_F
 ## Phase 2 read API (`tools/swiftpeek`)
 
 ```bash
-cd ~/KDotz-Repo
+cd ~/lumina-repo
 PYTHONPATH=tools python3 -m swiftpeek annotate ~/Downloads/Music_….json -o ~/Downloads/annotated.json
 PYTHONPATH=tools python3 -m swiftpeek summary ~/Downloads/annotated.json
 PYTHONPATH=tools python3 -m swiftpeek fields ~/Downloads/annotated.json MiniPlayer

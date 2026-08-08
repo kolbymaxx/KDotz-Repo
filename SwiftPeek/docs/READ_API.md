@@ -15,7 +15,7 @@ No live FOVO. Safe with **0.3.6**.
 From the repo root (or `tools/` on `PYTHONPATH`):
 
 ```bash
-cd ~/KDotz-Repo
+cd ~/lumina-repo
 git pull origin main   # or the feature branch
 ```
 

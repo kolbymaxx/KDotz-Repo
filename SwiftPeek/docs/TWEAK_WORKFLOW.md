@@ -11,7 +11,7 @@ Turn a **0.3.6** Music dump into a starter Theos project without live FOVO.
 ## Host (Mac / this repo)
 
 ```bash
-cd ~/KDotz-Repo
+cd ~/lumina-repo
 git pull origin main
 
 # Annotate (optional — targets/scaffold auto-annotate)

@@ -1,22 +1,36 @@
-# KDotz Repo
+# Lumina Repo
 
 <p align="center">
-  <img src="repo-site/logo.png" width="128" height="128" alt="KDotz Repo logo">
+  <img src="repo-site/logo.png" width="128" height="128" alt="Lumina Repo logo">
 </p>
 
 Sileo / Zebra APT source for Kolby's jailbreak tweaks (rootless + roothide).
 
-## Add in Sileo
+## Add in Sileo (Dopamine 3 / rootless)
 
-**Sources → Edit → Add:**
+**Sources → + → Add:**
 
 ```
-https://kolbymaxx.github.io/KDotz-Repo/
+https://raw.githubusercontent.com/kolbymaxx/lumina-repo/main/
 ```
 
-Backup mirror (same packages): `https://raw.githubusercontent.com/kolbymaxx/KDotz-Repo/main/`
+Origin / label: **Lumina Repo**.
 
-Origin / label: **KDotz Repo**
+Landing page (after GitHub rename to `lumina-repo`): https://kolbymaxx.github.io/lumina-repo/
+
+> Prefer the `raw.githubusercontent.com` URL in Sileo. GitHub Pages paths are
+> case-sensitive; mixed-case repo names get lowercased by some Sileo builds and
+> then 404. An all-lowercase repo slug (`lumina-repo`) avoids that.
+
+### Switched from RootHide (Relaxin') to Dopamine?
+
+RootHide and Dopamine use **different package architectures**. After a clean Dopamine
+jailbreak:
+
+1. Remove any leftover KDotz / Lumina source entries (especially any that 404)
+2. Add `https://raw.githubusercontent.com/kolbymaxx/lumina-repo/main/`
+3. Pull to refresh — you should see Siri27 / Music27 / CC27 (`iphoneos-arm64`)
+4. Do **not** expect RHCompat — that package is RootHide-only (`iphoneos-arm64e`)
 
 ## Packages
 
@@ -36,13 +50,13 @@ RHCompat is published only as `iphoneos-arm64e` (RootHide).
 
 1. Copy the built package into `dist/`
 2. Run `scripts/update-apt-repo.sh`
-3. Commit `dist/*.deb`, `Packages`, `Packages.gz`, and `Release`
+3. Commit `dist/*.deb`, `Packages`, `Packages.gz`, `Packages.bz2`, `Packages.xz`, and `Release`
 4. Push to `main` — GitHub Pages redeploys and Sileo users get the update on refresh
 
 ```bash
 cp /path/to/com.example_1.2.3_iphoneos-arm64.deb dist/
 ./scripts/update-apt-repo.sh
-git add dist Packages Packages.gz Release
+git add dist Packages Packages.gz Packages.bz2 Packages.xz Release
 git commit -m "Publish com.example 1.2.3"
 git push
 ```
@@ -50,7 +64,7 @@ git push
 ## Layout
 
 - `dist/` — published `.deb` files
-- `Packages` / `Packages.gz` / `Release` — APT index (KDotz Repo)
+- `Packages` / `Packages.gz` / `Packages.bz2` / `Packages.xz` / `Release` — APT index (Lumina Repo)
 - `scripts/update-apt-repo.sh` — regenerates the index
 - `repo-site/` + `.github/workflows/deploy-repo-pages.yml` — GitHub Pages hosting
 - `Siri27/` — Siri27 Theos project

@@ -2,9 +2,9 @@
 
 ## Cursor Cloud specific instructions
 
-This repo (`KDotz Repo`) is an **iOS jailbreak tweak monorepo** built with **Theos**
-plus a small set of **host-side developer tools**. Understanding the split is the
-key thing for working here in a Linux cloud VM.
+This repo (`Lumina Repo`, GitHub slug `lumina-repo`) is an **iOS jailbreak tweak
+monorepo** built with **Theos** plus a small set of **host-side developer tools**.
+Understanding the split is the key thing for working here in a Linux cloud VM.
 
 ### What can and cannot run in the cloud VM (Linux)
 
@@ -33,12 +33,14 @@ key thing for working here in a Linux cloud VM.
 
 ### APT / Sileo repo tooling (Linux-runnable)
 
-- `scripts/update-apt-repo.sh` regenerates the `Packages`, `Packages.gz`, and
-  `Release` index from the `.deb` files in `dist/` (needs `dpkg-scanpackages`).
-  Gotcha: it **rewrites those three tracked files at the repo root**. If you only
-  run it to sanity-check, `git checkout -- Packages Packages.gz Release` afterward
-  so you don't accidentally commit an index churn. Only commit them when actually
-  publishing a new `.deb` (see the "Publishing a new `.deb`" section in `README.md`).
+- `scripts/update-apt-repo.sh` regenerates the `Packages`, `Packages.gz`,
+  `Packages.bz2`, `Packages.xz`, and `Release` index from the `.deb` files in
+  `dist/` (needs `dpkg-scanpackages`, `gzip`, `bzip2`, `xz`).
+  Gotcha: it **rewrites those tracked index files at the repo root**. If you only
+  run it to sanity-check, `git checkout -- Packages Packages.gz Packages.bz2 Packages.xz Release`
+  afterward so you don't accidentally commit an index churn. Only commit them when
+  actually publishing a new `.deb` (see the "Publishing a new `.deb`" section in
+  `README.md`).
 
 ### Notes
 
