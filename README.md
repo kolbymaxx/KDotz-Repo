@@ -9,14 +9,12 @@
   Dopamine (rootless) + RootHide.
 </p>
 
-**Landing page:** [ma6x9x.github.io/lumina-repo](https://ma6x9x.github.io/lumina-repo/)
-
 ## Add in Sileo
 
-**Sources → + → Add:**
+**Sources → + → Add** (this is also the landing page):
 
 ```
-https://raw.githubusercontent.com/ma6x9x/lumina-repo/main/
+https://ma6x9x.github.io/lumina-repo/
 ```
 
 Same URL works in Zebra. Origin / label: **Lumina Repo**.
